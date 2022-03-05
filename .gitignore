@@ -133,3 +133,6 @@ dmypy.json
 
 # vscode project settings
 .vscode/
+
+# compiled contracts
+artifacts/
