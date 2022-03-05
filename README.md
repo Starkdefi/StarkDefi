@@ -2,4 +2,4 @@
 
 StarkDefi smart contracts repository.
 
-Begining of something great
+Beginning of something great
