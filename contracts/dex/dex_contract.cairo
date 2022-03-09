@@ -1,5 +1,10 @@
-# Declare this file as a StarkNet contract.
 %lang starknet
+
+# @author StarkDefi
+# @license MIT
+
+# @description Using example cairo amm
+# TODO: Start porting uniswap
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
