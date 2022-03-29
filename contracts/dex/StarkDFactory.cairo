@@ -9,7 +9,18 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.alloc import alloc
 
-# Contract variables
+#
+# Events
+#
+
+# Pair created event
+@event
+func pair_created(token0 : felt, token1 : felt, pair : felt, pair_count : felt):
+end
+
+#
+# Storage
+#
 
 # `address public feeTo;`
 @storage_var
@@ -36,35 +47,32 @@ end
 func _all_pairs_length() -> (len : felt):
 end
 
-# Pair created event
-@event
-func pair_created(token0 : felt, token1 : felt, pair : felt, pair_count : felt):
-end
-
 # class has for pair contract, required for `deploy` function
 @storage_var
 func _class_hash_for_pair_contract() -> (class_hash : felt):
 end
 
-# Contstructor
-
-# constructor(address _feeToSetter) public {
-#     feeToSetter = _feeToSetter;
-# }
+#
+# Constructor
+#
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    fee_to_setter : felt
+    fee_to_setter : felt, class_hash_pair_contract : felt, 
 ):
+    # TODO: Add checks
+    _all_pairs_length.write(0)
+    _class_hash_for_pair_contract.write(class_hash_pair_contract)
     _fee_to_setter.write(fee_to_setter)
     return ()
 end
 
-# contract views
+#
+# Getters
+#
 
 # get pair contract address given token0 and token1
 # returns  address of pair
-# mapping(address => mapping(address => address)) public getPair;
 @view
 func get_pair{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     token0 : felt, token1 : felt
@@ -116,7 +124,9 @@ func class_hash_for_pair_contract{
     return _class_hash_for_pair_contract.read()
 end
 
-# contract external methods
+#
+# Setters
+#
 
 # set fee to address
 @external
