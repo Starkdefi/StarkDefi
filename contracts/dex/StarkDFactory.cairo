@@ -40,3 +40,8 @@ end
 @event
 func pair_created(token0 : felt, token1 : felt, pair : felt, pair_count : felt):
 end
+
+# class has for pair contract, required for `deploy` function
+@storage_var
+func _class_hash_for_pair_contract() -> (class_hash : felt):
+end
