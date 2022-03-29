@@ -77,6 +77,7 @@ end
 func all_pairs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
     pairs_len : felt, pairs : felt*
 ):
+    alloc_locals
     let (num_pairs) = _all_pairs_length.read()
     let (local pairs : felt*) = alloc()  # allocate an array for pairs
     # TODO: create populate the pairs array
@@ -93,14 +94,16 @@ end
 
 # get fee to address
 @view
-func fee_to{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (fee_to : felt):
+func fee_to{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    address : felt
+):
     return _fee_to.read()
 end
 
 # get fee to setter address
 @view
 func fee_to_setter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    fee_to_setter : felt
+    address : felt
 ):
     return _fee_to_setter.read()
 end
