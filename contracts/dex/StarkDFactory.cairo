@@ -8,6 +8,8 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.alloc import alloc
+from starkware.starknet.common.syscalls import get_caller_address
+from starkware.cairo.common.math import assert_not_zero
 
 #
 # Events
@@ -60,7 +62,14 @@ end
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     fee_to_setter : felt, class_hash_pair_contract : felt, 
 ):
-    # TODO: Add checks
+    with_attr error_message("invalid fee to setter"):
+        assert_not_zero(fee_to_setter)
+    end
+
+    with_attr error_message("invalid class hash for pair contract"):
+        assert_not_zero(class_hash_pair_contract)
+    end
+
     _all_pairs_length.write(0)
     _class_hash_for_pair_contract.write(class_hash_pair_contract)
     _fee_to_setter.write(fee_to_setter)
@@ -133,7 +142,11 @@ end
 func write_fee_to{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     fee_to_address : felt
 ):
-    # TODO: Add checks, only feeto setter can set fee to
+    let (fee_to_settor) = fee_to_setter()
+    let (caller) = get_caller_address()
+    with_attr error_message("only fee to setter can set fee to address"):
+        assert caller = fee_to_settor
+    end
     _fee_to.write(fee_to_address)
     return ()
 end
@@ -143,7 +156,15 @@ end
 func write_fee_to_setter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     fee_to_setter_address : felt
 ):
-    # TODO: Add checks, only current fee to setter can set fee to setter
+    let (fee_to_settor) = fee_to_setter()
+    let (caller) = get_caller_address()
+    with_attr error_message("only current fee to setter can update fee to setter"):
+        assert caller = fee_to_settor
+    end
+    with_attr error_message("invalid fee to setter"):
+        assert_not_zero(fee_to_setter_address)
+    end
+
     _fee_to_setter.write(fee_to_setter_address)
     return ()
 end
