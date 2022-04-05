@@ -139,7 +139,7 @@ end
 
 # set fee to address
 @external
-func write_fee_to{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func set_fee_to{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     fee_to_address : felt
 ):
     let (fee_to_settor) = fee_to_setter()
@@ -153,7 +153,7 @@ end
 
 # set fee to setter address
 @external
-func write_fee_to_setter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func set_fee_to_setter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     fee_to_setter_address : felt
 ):
     let (fee_to_settor) = fee_to_setter()
