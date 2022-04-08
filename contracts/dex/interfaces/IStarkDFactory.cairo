@@ -23,9 +23,9 @@ namespace IStarkDFactory:
     func create_pair(token0 : felt, token1 : felt) -> (pair : felt):
     end
 
-    func set_fee_to(fee_to_address : felt) -> ():
+    func set_fee_to(fee_to_address : felt):
     end
 
-    func set_fee_to_setter(fee_to_setter_address : felt) -> ():
+    func set_fee_to_setter(fee_to_setter_address : felt):
     end
 end
