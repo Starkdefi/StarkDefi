@@ -48,17 +48,19 @@ namespace StarkDefiLib:
         amountOut : Uint256, reserveIn : Uint256, reserveOut : Uint256
     ) -> (amountIn : felt):
         # TODO: implement this function
+        return (amountIn=0)
     end
 
     func get_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountIn : Uint256, path_len : felt, path : felt*
-    ) -> (amounts : felt*):
+    ) -> (amounts : felt):
         # TODO: implement this function
+        return (amounts=0)
     end
 
     func get_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountOut : Uint256, path_len : felt, path : felt*
-    ) -> (amounts : felt*):
+    ) -> (amounts : felt):
         # TODO: implement this function
         return (amounts=0)
     end
