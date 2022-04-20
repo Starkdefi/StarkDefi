@@ -7,6 +7,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.math import assert_not_equal, assert_not_zero
 from starkware.cairo.common.math_cmp import is_le_felt
+from starkware.cairo.common.uint256 import Uint256
 
 namespace StarkDefiLib:
     # Sort tokens by their address
@@ -27,5 +28,38 @@ namespace StarkDefiLib:
         end
         assert_not_zero(token0)
         return (token0, token1)
+    end
+
+    func quote{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        amountA : Uint256, reserveA : Uint256, reserveB : Uint256
+    ) -> (amountB : felt):
+        # TODO: implement this function
+        return (amountB=0)
+    end
+
+    func get_amount_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        amountIn : Uint256, reserveIn : Uint256, reserveOut : Uint256
+    ) -> (amountOut : felt):
+        # TODO: implement this function
+        return (amountOut=0)
+    end
+
+    func get_amount_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        amountOut : Uint256, reserveIn : Uint256, reserveOut : Uint256
+    ) -> (amountIn : felt):
+        # TODO: implement this function
+    end
+
+    func get_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        factory : felt, amountIn : Uint256, path_len : felt, path : felt*
+    ) -> (amounts : felt*):
+        # TODO: implement this function
+    end
+
+    func get_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        factory : felt, amountOut : Uint256, path_len : felt, path : felt*
+    ) -> (amounts : felt*):
+        # TODO: implement this function
+        return (amounts=0)
     end
 end
