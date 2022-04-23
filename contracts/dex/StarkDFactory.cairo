@@ -8,8 +8,11 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.alloc import alloc
-from starkware.starknet.common.syscalls import get_caller_address
-from starkware.cairo.common.math import assert_not_zero
+from starkware.starknet.common.syscalls import get_caller_address, get_contract_address, deploy
+from starkware.cairo.common.math import assert_not_zero, assert_not_equal
+from dex.libraries.StarkDefiLib import StarkDefiLib
+from starkware.cairo.common.hash import hash2
+from starkware.cairo.common.bool import FALSE
 
 #
 # Events
@@ -17,7 +20,7 @@ from starkware.cairo.common.math import assert_not_zero
 
 # Pair created event
 @event
-func pair_created(token0 : felt, token1 : felt, pair : felt, pair_count : felt):
+func Pair_Created(token0 : felt, token1 : felt, pair : felt, pair_count : felt):
 end
 
 #
@@ -60,7 +63,7 @@ end
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    fee_to_setter : felt, class_hash_pair_contract : felt, 
+    fee_to_setter : felt, class_hash_pair_contract : felt
 ):
     with_attr error_message("invalid fee to setter"):
         assert_not_zero(fee_to_setter)
@@ -172,8 +175,54 @@ end
 # create pair
 @external
 func create_pair{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    token0 : felt, token1 : felt
+    tokenA : felt, tokenB : felt
 ) -> (pair : felt):
     # TODO: create pair business logic
-    return (pair=0)
+    alloc_locals
+    with_attr error_message("invalid tokenA and tokenB"):
+        assert_not_zero(tokenA)
+        assert_not_zero(tokenB)
+    end
+
+    with_attr error_message("same token provided for tokenA and tokenB"):
+        assert_not_equal(tokenA, tokenB)
+    end
+
+    let (pair_found) = _get_pair.read(tokenA, tokenB)
+    with_attr error_message("can't create pair, pair already exists"):
+        assert pair_found = 0
+    end
+
+    let (token0, token1) = StarkDefiLib.sort_tokens(tokenA, tokenB)
+    let (class_hash : felt) = _class_hash_for_pair_contract.read()
+    let (this_address : felt) = get_contract_address()
+    let pair_constructor_calldata : felt* = alloc()
+
+    assert [pair_constructor_calldata] = token0
+    assert [pair_constructor_calldata + 1] = token1
+    assert [pair_constructor_calldata + 2] = this_address
+
+    tempvar pedersen_ptr = pedersen_ptr
+
+    let (address_salt) = hash2{hash_ptr=pedersen_ptr}(token0, token1)
+
+    let (pair : felt) = deploy(
+        class_hash=class_hash,
+        contract_address_salt=address_salt,
+        constructor_calldata_size=3,
+        constructor_calldata=pair_constructor_calldata,
+        deploy_from_zero=FALSE,
+    )
+
+    _get_pair.write(token0, token1, pair)
+    _get_pair.write(token1, token0, pair)  # pair is symmetric
+
+    # update all pairs length and all pairs array
+    let (pair_count) = _all_pairs_length.read()
+    _all_pairs_length.write(pair_count + 1)
+    _all_pairs.write(pair_count, pair)
+
+    # Emit event
+    Pair_Created.emit(token0=token0, token1=token1, pair=pair, pair_count=pair_count + 1)
+    return (pair)
 end
