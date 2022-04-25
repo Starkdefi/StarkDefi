@@ -11,6 +11,7 @@ from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDCallee import IStarkDCallee
 from starkware.cairo.common.uint256 import Uint256
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.math import assert_not_zero
 
 const MINIMUM_LIQUIDITY = 1000
 
@@ -125,6 +126,10 @@ end
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     token0 : felt, token1 : felt, factory : felt
 ):
+    with_attr error_message("token0 and token1 must not be zero"):
+        assert_not_zero(token0)
+        assert_not_zero(token1)
+    end
     _name.write('StarkDefi Pair')
     _symbol.write('STARKD-LP')
     _decimals.write(18)
@@ -132,4 +137,98 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _token1.write(token1)
     _factory.write(factory)
     return ()
+end
+
+#
+# Getters
+#
+
+@view
+func name{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (name : felt):
+    let (name) = _name.read()
+    return (name)
+end
+
+@view
+func symbol{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (symbol : felt):
+    let (symbol) = _symbol.read()
+    return (symbol)
+end
+
+@view
+func totalSupply{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    totalSupply : Uint256
+):
+    let (totalSupply : Uint256) = total_supply.read()
+    return (totalSupply)
+end
+
+@view
+func decimals{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    decimals : felt
+):
+    let (decimals) = _decimals.read()
+    return (decimals)
+end
+
+@view
+func balanceOf{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    account : felt
+) -> (balance : Uint256):
+    let (balance : Uint256) = balances.read(account=account)
+    return (balance)
+end
+
+@view
+func allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    owner : felt, spender : felt
+) -> (remaining : Uint256):
+    let (remaining : Uint256) = allowances.read(owner=owner, spender=spender)
+    return (remaining)
+end
+
+@view
+func token0{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    address : felt
+):
+    let (address) = _token0.read()
+    return (address)
+end
+
+@view
+func token1{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    address : felt
+):
+    let (address) = _token1.read()
+    return (address)
+end
+
+@view
+func get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    reserve0 : Uint256, reserve1 : Uint256, block_timestamp_last : felt
+):
+    let (reserve0) = _reserve0.read()
+    let (reserve1) = _reserve1.read()
+    let (block_timestamp_last) = _block_timestamp_last.read()
+    return (reserve0, reserve1, block_timestamp_last)
+end
+
+@view
+func price_0_cumulative_last{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    ) -> (res : Uint256):
+    let (res) = _price_0_cumulative_last.read()
+    return (res)
+end
+
+@view
+func price_1_cumulative_last{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    ) -> (res : Uint256):
+    let (res) = _price_1_cumulative_last.read()
+    return (res)
+end
+
+@view
+func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : Uint256):
+    let (res) = _klast.read()
+    return (res)
 end
