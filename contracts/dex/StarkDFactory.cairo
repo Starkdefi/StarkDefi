@@ -98,10 +98,22 @@ func all_pairs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     pairs_len : felt, pairs : felt*
 ):
     alloc_locals
-    let (num_pairs) = _all_pairs_length.read()
+    let (pair_count) = _all_pairs_length.read()
     let (local pairs : felt*) = alloc()  # allocate an array for pairs
-    # TODO: create populate the pairs array
-    return (num_pairs, pairs)
+    let (pairs_end) = _populate_all_pairs(0, pair_count, pairs)
+    return (pair_count, pairs)
+end
+
+func _populate_all_pairs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    index : felt, pair_count : felt, pairs : felt*
+) -> (pairs : felt*):
+    alloc_locals
+    if index == pair_count:
+        return (pairs)
+    end
+    let (pair) = _all_pairs.read(index)
+    assert [pairs] = pair
+    return _populate_all_pairs(index + 1, pair_count, pairs + 1)
 end
 
 # get total numbe of pairs
@@ -177,7 +189,6 @@ end
 func create_pair{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     tokenA : felt, tokenB : felt
 ) -> (pair : felt):
-    # TODO: create pair business logic
     alloc_locals
     with_attr error_message("invalid tokenA and tokenB"):
         assert_not_zero(tokenA)
