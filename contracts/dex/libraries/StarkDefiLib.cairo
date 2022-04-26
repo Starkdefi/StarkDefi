@@ -8,6 +8,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.math import assert_not_equal, assert_not_zero
 from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.alloc import alloc
 
 namespace StarkDefiLib:
     # Sort tokens by their address
@@ -32,36 +33,40 @@ namespace StarkDefiLib:
 
     func quote{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         amountA : Uint256, reserveA : Uint256, reserveB : Uint256
-    ) -> (amountB : felt):
+    ) -> (amountB : Uint256):
         # TODO: implement this function
-        return (amountB=0)
+        return (amountB=Uint256(0, 0))
     end
 
     func get_amount_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         amountIn : Uint256, reserveIn : Uint256, reserveOut : Uint256
-    ) -> (amountOut : felt):
+    ) -> (amountOut : Uint256):
         # TODO: implement this function
-        return (amountOut=0)
+        return (amountOut=Uint256(0, 0))
     end
 
     func get_amount_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         amountOut : Uint256, reserveIn : Uint256, reserveOut : Uint256
-    ) -> (amountIn : felt):
+    ) -> (amountIn : Uint256):
         # TODO: implement this function
-        return (amountIn=0)
+        return (amountIn=Uint256(0, 0))
     end
 
     func get_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountIn : Uint256, path_len : felt, path : felt*
-    ) -> (amounts : felt):
+    ) -> (amounts :  Uint256*):
         # TODO: implement this function
-        return (amounts=0)
+        alloc_locals
+        let (local amounts: Uint256*) = alloc()
+        return (amounts=amounts)
     end
 
     func get_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountOut : Uint256, path_len : felt, path : felt*
-    ) -> (amounts : felt):
+    ) -> (amounts : Uint256*):
         # TODO: implement this function
-        return (amounts=0)
+        alloc_locals
+        let (local amounts: Uint256*) = alloc()
+        return (amounts=amounts)
     end
 end
