@@ -7,8 +7,14 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.math import assert_not_equal, assert_not_zero
 from starkware.cairo.common.math_cmp import is_le_felt
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import (
+    Uint256,
+    uint256_lt,
+    uint256_mul,
+    uint256_unsigned_div_rem,
+)
 from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.bool import TRUE, FALSE
 
 namespace StarkDefiLib:
     # Sort tokens by their address
@@ -34,8 +40,27 @@ namespace StarkDefiLib:
     func quote{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         amountA : Uint256, reserveA : Uint256, reserveB : Uint256
     ) -> (amountB : Uint256):
-        # TODO: implement this function
-        return (amountB=Uint256(0, 0))
+        alloc_locals
+        let (is_amountA_gt_zero) = uint256_lt(Uint256(0, 0), amountA)
+
+        # require(amountA > 0, 'UniswapV2Library: INSUFFICIENT_AMOUNT');
+        with_attr error_message("insufficient amount"):
+            assert is_amountA_gt_zero = TRUE
+        end
+
+        let (is_reserveA_gt_zero) = uint256_lt(Uint256(0, 0), reserveA)
+        let (is_reserveB_gt_zero) = uint256_lt(Uint256(0, 0), reserveB)
+
+        # require(reserveA > 0 && reserveB > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        with_attr error_message("insufficient liquidity"):
+            assert is_reserveA_gt_zero = 1
+            assert is_reserveB_gt_zero = 1
+        end
+
+        # amountB = amountA.mul(reserveB) / reserveA;
+        let (amountA_x_reserveB : Uint256) = uint256_mul(amountA, reserveB)
+        let (amountB : Uint256, _) = uint256_unsigned_div_rem(amountA_x_reserveB, reserveA)
+        return (amountB)
     end
 
     func get_amount_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -54,10 +79,10 @@ namespace StarkDefiLib:
 
     func get_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountIn : Uint256, path_len : felt, path : felt*
-    ) -> (amounts :  Uint256*):
+    ) -> (amounts : Uint256*):
         # TODO: implement this function
         alloc_locals
-        let (local amounts: Uint256*) = alloc()
+        let (local amounts : Uint256*) = alloc()
         return (amounts=amounts)
     end
 
@@ -66,7 +91,7 @@ namespace StarkDefiLib:
     ) -> (amounts : Uint256*):
         # TODO: implement this function
         alloc_locals
-        let (local amounts: Uint256*) = alloc()
+        let (local amounts : Uint256*) = alloc()
         return (amounts=amounts)
     end
 end
