@@ -207,10 +207,7 @@ end
 func get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
     reserve0 : Uint256, reserve1 : Uint256, block_timestamp_last : felt
 ):
-    let (reserve0) = _reserve0.read()
-    let (reserve1) = _reserve1.read()
-    let (block_timestamp_last) = _block_timestamp_last.read()
-    return (reserve0, reserve1, block_timestamp_last)
+    return _get_reserves()
 end
 
 @view
@@ -231,4 +228,13 @@ end
 func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : Uint256):
     let (res) = _klast.read()
     return (res)
+end
+
+func _get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    reserve0 : Uint256, reserve1 : Uint256, block_timestamp_last : felt
+):
+    let (reserve0) = _reserve0.read()
+    let (reserve1) = _reserve1.read()
+    let (block_timestamp_last) = _block_timestamp_last.read()
+    return (reserve0, reserve1, block_timestamp_last)
 end
