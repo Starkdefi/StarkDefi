@@ -9,9 +9,18 @@
 from dex.interfaces.IERC20 import IERC20
 from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDCallee import IStarkDCallee
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import (
+    Uint256,
+    uint256_check,
+    uint256_le,
+    uint256_not,
+    uint256_eq,
+)
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero
+from dex.libraries.safemath import SafeUint256
+from starkware.starknet.common.syscalls import get_caller_address
+from starkware.cairo.common.bool import FALSE
 
 const MINIMUM_LIQUIDITY = 1000
 
@@ -228,6 +237,215 @@ end
 func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : Uint256):
     let (res) = _klast.read()
     return (res)
+end
+
+#
+# Externals
+#
+
+@external
+func transfer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    recipient : felt, amount : Uint256
+) -> (success : felt):
+    let (sender) = get_caller_address()
+    _transfer(sender, recipient, amount)
+
+    return (1)
+end
+
+@external
+func transfer_from{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    sender : felt, recipient : felt, amount : Uint256
+) -> (success : felt):
+    alloc_locals
+    let (caller) = get_caller_address()
+    # subtract allowance
+    _spend_allowance(sender, caller, amount)
+
+    # execute transfer
+    _transfer(sender, recipient, amount)
+
+    return (1)
+end
+
+func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    spender : felt, amount : Uint256
+) -> (success : felt):
+    with_attr error_message("amount is not a valid Uint256"):
+        uint256_check(amount)
+    end
+
+    let (caller) = get_caller_address()
+    _approve(caller, spender, amount)
+    return (1)
+end
+
+func increase_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    spender : felt, added_value : Uint256
+) -> (success : felt):
+    with_attr error("ERC20: added_value is not a valid Uint256"):
+        uint256_check(added_value)
+    end
+
+    let (caller) = get_caller_address()
+    let (current_allowance : Uint256) = allowances.read(caller, spender)
+
+    # add allowance
+    with_attr error_message("ERC20: allowance overflow"):
+        let (new_allowance : Uint256) = SafeUint256.add(current_allowance, added_value)
+    end
+
+    _approve(caller, spender, new_allowance)
+    return (1)
+end
+
+func decrease_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    spender : felt, subtracted_value : Uint256
+) -> (success : felt):
+    alloc_locals
+    with_attr error_message("subtracted_value is not a valid Uint256"):
+        uint256_check(subtracted_value)
+    end
+
+    let (caller) = get_caller_address()
+    let (current_allowance : Uint256) = allowances.read(owner=caller, spender=spender)
+
+    with_attr error_message("allowance below zero"):
+        let (new_allowance : Uint256) = SafeUint256.sub_le(current_allowance, subtracted_value)
+    end
+
+    _approve(caller, spender, new_allowance)
+    return (1)
+end
+
+#
+# Internal
+#
+func _mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    recipient : felt, amount : Uint256
+):
+    with_attr error_message("amount is not a valid Uint256"):
+        uint256_check(amount)
+    end
+
+    with_attr error_message("cannot mint to the zero address"):
+        assert_not_zero(recipient)
+    end
+
+    let (supply : Uint256) = total_supply.read()
+    with_attr error_message("mint overflow"):
+        let (new_supply : Uint256) = SafeUint256.add(supply, amount)
+    end
+    total_supply.write(new_supply)
+
+    let (balance : Uint256) = balances.read(account=recipient)
+    # overflow is not possible because sum is guaranteed to be less than total supply
+    # which we check for overflow below
+    let (new_balance : Uint256) = SafeUint256.add(balance, amount)
+    balances.write(recipient, new_balance)
+
+    Transfer.emit(0, recipient, amount)
+    return ()
+end
+
+func _burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    account : felt, amount : Uint256
+):
+    with_attr error_message("ERC20: amount is not a valid Uint256"):
+        uint256_check(amount)
+    end
+
+    with_attr error_message("ERC20: cannot burn from the zero address"):
+        assert_not_zero(account)
+    end
+
+    let (balance : Uint256) = balances.read(account)
+    with_attr error_message("ERC20: burn amount exceeds balance"):
+        let (new_balance : Uint256) = SafeUint256.sub_le(balance, amount)
+    end
+
+    balances.write(account, new_balance)
+
+    let (supply : Uint256) = total_supply.read()
+    let (new_supply : Uint256) = SafeUint256.sub_le(supply, amount)
+    total_supply.write(new_supply)
+    Transfer.emit(account, 0, amount)
+    return ()
+end
+
+func _transfer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    sender : felt, recipient : felt, amount : Uint256
+):
+    alloc_locals
+    with_attr error_message("amount is not a valid Uint256"):
+        uint256_check(amount)  # almost surely not needed, might remove after confirmation
+    end
+    with_attr error_message("cannot transfer from the zero address"):
+        assert_not_zero(sender)
+    end
+
+    with_attr error_message("cannot transfer to the zero address"):
+        assert_not_zero(recipient)
+    end
+
+    let (local sender_balance : Uint256) = balances.read(account=sender)
+    with_attr error_message(" transfer amount exceeds balance"):
+        let (new_sender_balance : Uint256) = SafeUint256.sub_le(sender_balance, amount)
+    end
+
+    balances.write(sender, new_sender_balance)
+
+    # add to recipient
+    let (recipient_balance : Uint256) = balances.read(account=recipient)
+    # overflow is not possible because sum is guaranteed by mint to be less than total supply
+    let (new_recipient_balance : Uint256) = SafeUint256.add(recipient_balance, amount)
+    balances.write(recipient, new_recipient_balance)
+
+    Transfer.emit(sender, recipient, amount)
+    return ()
+end
+
+func _spend_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    owner : felt, spender : felt, amount : Uint256
+):
+    alloc_locals
+    with_attr error_message("amount is not a valid Uint256"):
+        uint256_check(amount)  # almost surely not needed, might remove after confirmation
+    end
+
+    let (current_allowance : Uint256) = allowances.read(owner, spender)
+    let (infinite : Uint256) = uint256_not(Uint256(0, 0))
+    let (is_infinite : felt) = uint256_eq(current_allowance, infinite)
+
+    if is_infinite == FALSE:
+        with_attr error_message("insufficient allowance"):
+            let (new_allowance : Uint256) = SafeUint256.sub_le(current_allowance, amount)
+        end
+
+        _approve(owner, spender, new_allowance)
+        return ()
+    end
+    return ()
+end
+
+func _approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    owner : felt, spender : felt, amount : Uint256
+):
+    with_attr error_message("amount is not a valid Uint256"):
+        uint256_check(amount)
+    end
+
+    with_attr error_message("cannot approve from the zero address"):
+        assert_not_zero(owner)
+    end
+
+    with_attr error_message("cannot approve to the zero address"):
+        assert_not_zero(spender)
+    end
+
+    allowances.write(owner, spender, amount)
+    Approval.emit(owner, spender, amount)
+    return ()
 end
 
 func _get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
