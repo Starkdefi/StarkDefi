@@ -221,22 +221,22 @@ end
 
 @view
 func price_0_cumulative_last{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    ) -> (res : Uint256):
-    let (res) = _price_0_cumulative_last.read()
-    return (res)
+    ) -> (price : Uint256):
+    let (price) = _price_0_cumulative_last.read()
+    return (price)
 end
 
 @view
 func price_1_cumulative_last{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    ) -> (res : Uint256):
-    let (res) = _price_1_cumulative_last.read()
-    return (res)
+    ) -> (price : Uint256):
+    let (price) = _price_1_cumulative_last.read()
+    return (price)
 end
 
 @view
-func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (res : Uint256):
-    let (res) = _klast.read()
-    return (res)
+func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (reserve : Uint256):
+    let (reserve) = _klast.read()
+    return (reserve)
 end
 
 #
@@ -316,6 +316,44 @@ func decrease_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
 
     _approve(caller, spender, new_allowance)
     return (1)
+end
+
+@external
+func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt) -> (
+    liquidity : felt
+):
+    # TODO: implement mint
+
+    return (liquidity=0)
+end
+
+@external
+func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt) -> (
+    amount0 : felt, amount1 : felt
+):
+    # TODO: implement burn
+
+    return (amount0=0, amount1=0)
+end
+
+@external
+func swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    amount0Out : Uint256, amount1Out : Uint256, to : felt, data_len : felt, data : felt*
+):
+    # TODO: implement swap
+    return ()
+end
+
+@external
+func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt):
+    # TODO: implement skim
+    return ()
+end
+
+@external
+func sync{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
+    # TODO: implement sync
+    return ()
 end
 
 #
