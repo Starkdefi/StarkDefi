@@ -15,12 +15,15 @@ from starkware.cairo.common.uint256 import (
     uint256_le,
     uint256_not,
     uint256_eq,
+    uint256_sqrt,
+    uint256_unsigned_div_rem,
+    uint256_lt,
 )
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero
 from dex.libraries.safemath import SafeUint256
-from starkware.starknet.common.syscalls import get_caller_address
-from starkware.cairo.common.bool import FALSE
+from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from starkware.cairo.common.bool import FALSE, TRUE
 
 const MINIMUM_LIQUIDITY = 1000
 
@@ -234,7 +237,9 @@ func price_1_cumulative_last{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, r
 end
 
 @view
-func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (reserve : Uint256):
+func klast{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    reserve : Uint256
+):
     let (reserve) = _klast.read()
     return (reserve)
 end
@@ -250,7 +255,7 @@ func transfer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     let (sender) = get_caller_address()
     _transfer(sender, recipient, amount)
 
-    return (1)
+    return (TRUE)
 end
 
 @external
@@ -265,7 +270,7 @@ func transfer_from{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     # execute transfer
     _transfer(sender, recipient, amount)
 
-    return (1)
+    return (TRUE)
 end
 
 func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -277,7 +282,7 @@ func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 
     let (caller) = get_caller_address()
     _approve(caller, spender, amount)
-    return (1)
+    return (TRUE)
 end
 
 func increase_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -296,7 +301,7 @@ func increase_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
     end
 
     _approve(caller, spender, new_allowance)
-    return (1)
+    return (TRUE)
 end
 
 func decrease_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -315,16 +320,99 @@ func decrease_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
     end
 
     _approve(caller, spender, new_allowance)
-    return (1)
+    return (TRUE)
 end
 
 @external
 func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt) -> (
-    liquidity : felt
+    liquidity : Uint256
 ):
-    # TODO: implement mint
+    alloc_locals
+    local liquidity : Uint256
 
-    return (liquidity=0)
+    let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
+    let (token0) = _token0.read()
+    let (token1) = _token1.read()
+    let (this_address) = get_contract_address()
+
+    let (local balance0 : Uint256) = IERC20.balanceOf(contract_address=token0, account=this_address)
+    let (local balance1 : Uint256) = IERC20.balanceOf(contract_address=token1, account=this_address)
+
+    let (local amount0 : Uint256) = SafeUint256.sub_lt(balance0, reserve0)
+    let (local amount1 : Uint256) = SafeUint256.sub_lt(balance1, reserve1)
+
+    let (fee_on) = _mint_fee(reserve0, reserve1)
+    let (local _total_supply : Uint256) = total_supply.read()
+
+    let (is_total_supply_zero) = uint256_eq(_total_supply, Uint256(0, 0))
+
+    if is_total_supply_zero == TRUE:
+        # liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+        let (amount0_x_amount1 : Uint256) = SafeUint256.mul(amount0, amount1)
+        let (sqrt_amount0_x_amount1 : Uint256) = uint256_sqrt(amount0_x_amount1)
+
+        let (actual_liquidity : Uint256) = SafeUint256.sub_lt(
+            sqrt_amount0_x_amount1, Uint256(MINIMUM_LIQUIDITY, 0)
+        )  # permanently lock the first MINIMUM_LIQUIDITY tokens
+
+        assert liquidity = actual_liquidity
+
+        _mint(1, Uint256(MINIMUM_LIQUIDITY, 0))  # mint minimum liquidity to burn address
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        # liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
+        let (amount0_x_total_supply : Uint256) = SafeUint256.mul(amount0, _total_supply)
+        let (liquidity_0 : Uint256, _) = uint256_unsigned_div_rem(amount0_x_total_supply, reserve0)
+
+        let (amount1_x_total_supply : Uint256) = SafeUint256.mul(amount1, _total_supply)
+        let (liquidity_1 : Uint256, _) = uint256_unsigned_div_rem(amount1_x_total_supply, reserve1)
+
+        let (is_liquidity_0_less) = uint256_lt(liquidity_0, liquidity_1)
+
+        if is_liquidity_0_less == TRUE:
+            assert liquidity = liquidity_0
+        else:
+            assert liquidity = liquidity_1
+        end
+
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    local syscall_ptr : felt* = syscall_ptr
+    local pedersen_ptr : HashBuiltin* = pedersen_ptr
+
+    # require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
+
+    let (is_liquidity_greater_than_zero) = uint256_lt(Uint256(0, 0), liquidity)
+    with_attr error_message("insufficient liquidity minted"):
+        assert is_liquidity_greater_than_zero = TRUE
+    end
+
+    _mint(to, liquidity)
+
+    _update(balance0, balance1, reserve0, reserve1)
+
+    # if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+    if fee_on == TRUE:
+        let (klast : Uint256) = SafeUint256.mul(balance0, balance1)
+        _klast.write(klast)
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    let (caller) = get_caller_address()
+    Mint.emit(sender=caller, amount0=amount0, amount1=amount1)
+
+    return (liquidity)
 end
 
 @external
@@ -493,4 +581,18 @@ func _get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     let (reserve1) = _reserve1.read()
     let (block_timestamp_last) = _block_timestamp_last.read()
     return (reserve0, reserve1, block_timestamp_last)
+end
+
+func _mint_fee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    reserve0 : Uint256, reserve1 : Uint256
+) -> (fee_on : felt):
+    # TODO: implement fee
+    return (fee_on=0)
+end
+
+func _update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    balance0 : Uint256, balance1 : Uint256, reserve0 : Uint256, reserve1 : Uint256
+):
+    # TODO: implement update
+    return ()
 end
