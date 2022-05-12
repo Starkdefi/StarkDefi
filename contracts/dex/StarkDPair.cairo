@@ -417,11 +417,72 @@ end
 
 @external
 func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt) -> (
-    amount0 : felt, amount1 : felt
+    amount0 : Uint256, amount1 : Uint256
 ):
-    # TODO: implement burn
+    alloc_locals
 
-    return (amount0=0, amount1=0)
+    let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
+    let (token0) = _token0.read()
+    let (token1) = _token1.read()
+    let (this_address) = get_contract_address()
+
+    let (local balance0 : Uint256) = IERC20.balanceOf(contract_address=token0, account=this_address)
+    let (local balance1 : Uint256) = IERC20.balanceOf(contract_address=token1, account=this_address)
+
+    let (local liquidity : Uint256) = balances.read(this_address)
+
+    let (fee_on) = _mint_fee(reserve0, reserve1)
+
+    let (local _total_supply : Uint256) = total_supply.read()
+    let (is_total_supply_above_zero) = uint256_lt(Uint256(0, 0), _total_supply)
+
+    assert is_total_supply_above_zero = TRUE
+
+    let (liquidity_x_balance0 : Uint256) = SafeUint256.mul(liquidity, balance0)
+    let (local amount0 : Uint256, _) = uint256_unsigned_div_rem(liquidity_x_balance0, _total_supply)
+    let (is_amount0_above_zero) = uint256_lt(Uint256(0, 0), amount0)
+
+    let (liquidity_x_balance1 : Uint256) = SafeUint256.mul(liquidity, balance1)
+    let (local amount1 : Uint256, _) = uint256_unsigned_div_rem(liquidity_x_balance1, _total_supply)
+    let (is_amount1_above_zero) = uint256_lt(Uint256(0, 0), amount1)
+
+    # require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
+    with_attr error_message("insufficient liquidity burned"):
+        assert is_amount0_above_zero = TRUE
+        assert is_amount1_above_zero = TRUE
+    end
+
+    _burn(this_address, liquidity)
+
+    IERC20.transfer(contract_address=token0, recipient=to, amount=amount0)
+    IERC20.transfer(contract_address=token1, recipient=to, amount=amount1)
+
+    let (local new_balance0 : Uint256) = IERC20.balanceOf(
+        contract_address=token0, account=this_address
+    )
+    let (local new_balance1 : Uint256) = IERC20.balanceOf(
+        contract_address=token1, account=this_address
+    )
+
+    _update(new_balance0, new_balance1, reserve0, reserve1)
+
+    # if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
+    if fee_on == 1:
+        let (klast : Uint256) = SafeUint256.mul(new_balance0, new_balance1)
+        _klast.write(klast)
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    let (caller) = get_caller_address()
+    Burn.emit(sender=caller, amount0=amount0, amount1=amount1, to=to)
+
+    return (amount0, amount1)
 end
 
 @external
