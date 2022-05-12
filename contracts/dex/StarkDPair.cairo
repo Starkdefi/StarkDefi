@@ -495,13 +495,39 @@ end
 
 @external
 func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt):
-    # TODO: implement skim
+    alloc_locals
+    let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
+    let (token0) = _token0.read()
+    let (token1) = _token1.read()
+    let (this_address) = get_contract_address()
+
+    let (local balance0 : Uint256) = IERC20.balanceOf(contract_address=token0, account=this_address)
+    let (local balance1 : Uint256) = IERC20.balanceOf(contract_address=token1, account=this_address)
+
+    let (local amount0 : Uint256) = SafeUint256.sub_lt(balance0, reserve0)
+    let (local amount1 : Uint256) = SafeUint256.sub_lt(balance1, reserve1)
+
+    IERC20.transfer(contract_address=token0, recipient=to, amount=amount0)
+    IERC20.transfer(contract_address=token1, recipient=to, amount=amount1)
+
     return ()
 end
 
 @external
 func sync{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
-    # TODO: implement sync
+    alloc_locals
+    let (token0) = _token0.read()
+    let (token1) = _token1.read()
+    let (this_address) = get_contract_address()
+
+    let (local balance0 : Uint256) = IERC20.balanceOf(contract_address=token0, account=this_address)
+    let (local balance1 : Uint256) = IERC20.balanceOf(contract_address=token1, account=this_address)
+
+    let (local reserve0 : Uint256) = _reserve0.read()
+    let (local reserve1 : Uint256) = _reserve1.read()
+
+    _update(balance0, balance1, reserve0, reserve1)
+
     return ()
 end
 
