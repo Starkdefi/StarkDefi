@@ -24,6 +24,7 @@ from starkware.cairo.common.math import assert_not_zero
 from dex.libraries.safemath import SafeUint256
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
 from starkware.cairo.common.bool import FALSE, TRUE
+from starkware.cairo.common.math_cmp import is_not_zero
 
 const MINIMUM_LIQUIDITY = 1000
 
@@ -197,6 +198,14 @@ func allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 ) -> (remaining : Uint256):
     let (remaining : Uint256) = allowances.read(owner=owner, spender=spender)
     return (remaining)
+end
+
+@view
+func factory{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
+    address : felt
+):
+    let (address) = _factory.read()
+    return (address)
 end
 
 @view
@@ -673,8 +682,65 @@ end
 func _mint_fee{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     reserve0 : Uint256, reserve1 : Uint256
 ) -> (fee_on : felt):
-    # TODO: implement fee
-    return (fee_on=0)
+    alloc_locals
+    let (local factory) = _factory.read()
+    let (local fee_to) = IStarkDFactory.fee_to(contract_address=factory)
+    let (local fee_on) = is_not_zero(fee_to)
+    let (local klast : Uint256) = _klast.read()
+
+    let (local is_klast_zero) = uint256_eq(klast, Uint256(0, 0))
+
+    if fee_on == TRUE:
+        if is_klast_zero == FALSE:
+            let (reserve0_x_reserve1 : Uint256) = SafeUint256.mul(reserve0, reserve1)
+            let (local rootk : Uint256) = uint256_sqrt(reserve0_x_reserve1)
+            let (local rootklast : Uint256) = uint256_sqrt(klast)
+            let (is_rootk_greater_than_rootklast) = uint256_lt(rootklast, rootk)
+            if is_rootk_greater_than_rootklast == TRUE:
+                let (local rootk_sub_rootklast : Uint256) = SafeUint256.sub_le(rootk, rootklast)
+                let (local _total_supply : Uint256) = total_supply.read()
+
+                let (numerator : Uint256) = SafeUint256.mul(rootk_sub_rootklast, _total_supply)
+                let (rootk_x_5 : Uint256) = SafeUint256.mul(rootk, Uint256(5, 0))
+                let (local denominator : Uint256) = SafeUint256.add(rootk_x_5, rootklast)
+
+                let (liquidity : Uint256, _) = uint256_unsigned_div_rem(numerator, denominator)
+                let (is_liquidity_greater_than_zero) = uint256_lt(Uint256(0, 0), liquidity)
+
+                # if (liquidity > 0) _mint(feeTo, liquidity);
+                if is_liquidity_greater_than_zero == TRUE:
+                    _mint(fee_to, liquidity)
+                    tempvar syscall_ptr = syscall_ptr
+                    tempvar pedersen_ptr = pedersen_ptr
+                    tempvar range_check_ptr = range_check_ptr
+                else:
+                    tempvar syscall_ptr = syscall_ptr
+                    tempvar pedersen_ptr = pedersen_ptr
+                    tempvar range_check_ptr = range_check_ptr
+                end
+            else:
+                tempvar syscall_ptr = syscall_ptr
+                tempvar pedersen_ptr = pedersen_ptr
+                tempvar range_check_ptr = range_check_ptr
+            end
+        else:
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        end
+    else:
+        if is_klast_zero == FALSE:
+            _klast.write(Uint256(0, 0))
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        else:
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        end
+    end
+    return (fee_on)
 end
 
 func _update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
