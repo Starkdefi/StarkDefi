@@ -22,9 +22,13 @@ from starkware.cairo.common.uint256 import (
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero
 from dex.libraries.safemath import SafeUint256
-from starkware.starknet.common.syscalls import get_caller_address, get_contract_address
+from starkware.starknet.common.syscalls import (
+    get_caller_address,
+    get_contract_address,
+    get_block_timestamp,
+)
 from starkware.cairo.common.bool import FALSE, TRUE
-from starkware.cairo.common.math_cmp import is_not_zero
+from starkware.cairo.common.math_cmp import is_not_zero, is_le
 
 const MINIMUM_LIQUIDITY = 1000
 
@@ -746,6 +750,91 @@ end
 func _update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     balance0 : Uint256, balance1 : Uint256, reserve0 : Uint256, reserve1 : Uint256
 ):
-    # TODO: implement update
+    alloc_locals
+    # require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+    with_attr error_message("overflow"):
+        assert balance0.high = 0
+        assert balance1.high = 0
+    end
+
+    let (block_timestamp) = get_block_timestamp()
+    let (block_timestamp_last) = _block_timestamp_last.read()
+    # bt = block_timestamp
+    let (is_bt_greater_than_equal_to_bt_last) = is_le(block_timestamp_last, block_timestamp)
+
+    if is_bt_greater_than_equal_to_bt_last == TRUE:
+        let (is_bt_not_equal_to_bt_last) = is_not_zero(block_timestamp - block_timestamp_last)
+
+        if is_bt_not_equal_to_bt_last == TRUE:
+            let (is_reserve0_zero) = uint256_eq(reserve0, Uint256(0, 0))
+
+            if is_reserve0_zero == FALSE:
+                let (is_reserve1_zero) = uint256_eq(reserve1, Uint256(0, 0))
+
+                if is_reserve1_zero == FALSE:
+                    # price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+                    # price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+
+                    let (price_0_cumulative_last) = _price_0_cumulative_last.read()
+                    let (reserve1_x_reserve0 : Uint256, _) = uint256_unsigned_div_rem(
+                        reserve1, reserve0
+                    )
+
+                    let (res1_x_res0_x_time_diff : Uint256) = SafeUint256.mul(
+                        reserve1_x_reserve0, Uint256(block_timestamp - block_timestamp_last, 0)
+                    )
+
+                    let (new_price_0_cumulative : Uint256) = SafeUint256.add(
+                        price_0_cumulative_last, res1_x_res0_x_time_diff
+                    )
+                    _price_0_cumulative_last.write(new_price_0_cumulative)
+
+                    let (price_1_cumulative_last) = _price_1_cumulative_last.read()
+                    let (reserve0_x_reserve1 : Uint256, _) = uint256_unsigned_div_rem(reserve0, reserve1)
+                    let (res0_x_res1_x_time_diff : Uint256) = SafeUint256.mul(
+                        reserve0_x_reserve1, Uint256(block_timestamp - block_timestamp_last, 0)
+                    )
+                    let (new_price_1_cumulative : Uint256) = SafeUint256.add(
+                        price_1_cumulative_last, res0_x_res1_x_time_diff
+                    )
+                    _price_1_cumulative_last.write(new_price_1_cumulative)
+
+                    tempvar syscall_ptr = syscall_ptr
+                    tempvar pedersen_ptr = pedersen_ptr
+                    tempvar range_check_ptr = range_check_ptr
+                else:
+                    tempvar syscall_ptr = syscall_ptr
+                    tempvar pedersen_ptr = pedersen_ptr
+                    tempvar range_check_ptr = range_check_ptr
+                end
+                tempvar syscall_ptr = syscall_ptr
+                tempvar pedersen_ptr = pedersen_ptr
+                tempvar range_check_ptr = range_check_ptr
+            else:
+                tempvar syscall_ptr = syscall_ptr
+                tempvar pedersen_ptr = pedersen_ptr
+                tempvar range_check_ptr = range_check_ptr
+            end
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        else:
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        end
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+    _reserve0.write(balance0)
+    _reserve1.write(balance1)
+    _block_timestamp_last.write(block_timestamp)
+
+    Sync.emit(reserve0=balance0, reserve1=balance1)
     return ()
 end
