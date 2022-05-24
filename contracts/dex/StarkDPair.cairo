@@ -20,7 +20,7 @@ from starkware.cairo.common.uint256 import (
     uint256_lt,
 )
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.cairo.common.math import assert_not_zero
+from starkware.cairo.common.math import assert_not_zero, assert_not_equal
 from dex.libraries.safemath import SafeUint256
 from starkware.starknet.common.syscalls import (
     get_caller_address,
@@ -29,6 +29,7 @@ from starkware.starknet.common.syscalls import (
 )
 from starkware.cairo.common.bool import FALSE, TRUE
 from starkware.cairo.common.math_cmp import is_not_zero, is_le
+from starkware.cairo.common.pow import pow
 
 const MINIMUM_LIQUIDITY = 1000
 
@@ -502,7 +503,162 @@ end
 func swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     amount0Out : Uint256, amount1Out : Uint256, to : felt, data_len : felt, data : felt*
 ):
-    # TODO: implement swap
+    alloc_locals
+    let (local is_amount0out_greater_than_zero) = uint256_lt(Uint256(0, 0), amount0Out)
+    let (local is_amount1out_greater_than_zero) = uint256_lt(Uint256(0, 0), amount1Out)
+    local output_amount
+
+    if is_amount0out_greater_than_zero == TRUE:
+        assert output_amount = TRUE
+    else:
+        if is_amount1out_greater_than_zero == TRUE:
+            assert output_amount = TRUE
+        else:
+            assert output_amount = FALSE
+        end
+    end
+
+    # require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
+    with_attr error_message("insufficient output amount"):
+        assert output_amount = TRUE
+    end
+
+    let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
+    let (is_amount0out_less_than_reserve0) = uint256_lt(amount0Out, reserve0)
+    let (is_amount1out_less_than_reserve0) = uint256_lt(amount1Out, reserve1)
+
+    # require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
+    with_attr error_message("insufficient liquidity"):
+        assert is_amount0out_less_than_reserve0 = TRUE
+        assert is_amount1out_less_than_reserve0 = TRUE
+    end
+
+    let (local token0) = _token0.read()
+    let (local token1) = _token1.read()
+
+    # require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO');
+    with_attr error_message("invalid to"):
+        assert_not_equal(token0, to)
+        assert_not_equal(token1, to)
+    end
+
+    let (this_address) = get_contract_address()
+
+    if is_amount0out_greater_than_zero == TRUE:
+        IERC20.transfer(contract_address=token0, recipient=to, amount=amount0Out)
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    if is_amount1out_greater_than_zero == TRUE:
+        IERC20.transfer(contract_address=token1, recipient=to, amount=amount1Out)
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    local syscall_ptr : felt* = syscall_ptr
+    local pedersen_ptr : HashBuiltin* = pedersen_ptr
+
+    let (caller) = get_caller_address()
+
+    let (data_len_above_zero) = is_le(1, data_len)
+
+    # if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+    if data_len_above_zero == TRUE:
+        IStarkDCallee.starkd_call(
+            contract_address=to,
+            sender=caller,
+            amount0Out=amount0Out,
+            amount1Out=amount1Out,
+            data_len=data_len,
+            data=data,
+        )
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    let (local balance0 : Uint256) = IERC20.balanceOf(contract_address=token0, account=this_address)
+    let (local balance1 : Uint256) = IERC20.balanceOf(contract_address=token1, account=this_address)
+
+    let (local new_balance0 : Uint256) = SafeUint256.sub_le(reserve0, amount0Out)
+    let (local new_balance1 : Uint256) = SafeUint256.sub_le(reserve1, amount1Out)
+
+    local input_amount
+    let (local is_balance0_greater_than_new_balance0) = uint256_lt(new_balance0, balance0)
+    let (local is_balance1_greater_than_new_balance1) = uint256_lt(new_balance1, balance1)
+
+    if is_balance0_greater_than_new_balance0 == TRUE:
+        assert input_amount = TRUE
+    else:
+        if is_balance1_greater_than_new_balance1 == TRUE:
+            assert input_amount = TRUE
+        else:
+            assert input_amount = FALSE
+        end
+    end
+
+    # require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
+    with_attr error_message("insufficient input amount"):
+        assert input_amount = TRUE
+    end
+
+    let (local amount0In : Uint256) = SafeUint256.sub_le(balance0, new_balance0)
+    let (local amount1In : Uint256) = SafeUint256.sub_le(balance1, new_balance1)
+
+    let (balance0_x_1000 : Uint256) = SafeUint256.mul(balance0, Uint256(1000, 0))
+    let (amount0In_x_3 : Uint256) = SafeUint256.mul(amount0In, Uint256(3, 0))
+    let (local balance0Adjusted : Uint256) = SafeUint256.sub_lt(balance0_x_1000, amount0In_x_3)
+
+    let (balance1_x_1000 : Uint256) = SafeUint256.mul(balance1, Uint256(1000, 0))
+    let (amount1In_x_3 : Uint256) = SafeUint256.mul(amount1In, Uint256(3, 0))
+    let (local balance1Adjusted : Uint256) = SafeUint256.sub_lt(balance1_x_1000, amount1In_x_3)
+
+    let (balance0Adjusted_x_balance1Adjusted : Uint256) = SafeUint256.mul(
+        balance0Adjusted, balance1Adjusted
+    )
+
+    let (reserve0_x_reserve1 : Uint256) = SafeUint256.mul(reserve0, reserve1)
+
+    let (local multiplier) = pow(1000, 2)
+    let (reserve0_mul_reserve1_mul_multiplier : Uint256) = SafeUint256.mul(
+        reserve0_x_reserve1, Uint256(multiplier, 0)
+    )
+
+    let (is_adjusted_balance_prod_ge_reserve_prod) = uint256_le(
+        reserve0_mul_reserve1_mul_multiplier, balance0Adjusted_x_balance1Adjusted
+    )
+    # require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
+    with_attr error_message("invariant K"):
+        assert is_adjusted_balance_prod_ge_reserve_prod = 1
+    end
+
+    _update(balance0, balance1, reserve0, reserve1)
+
+    let (caller) = get_caller_address()
+    Swap.emit(
+        sender=caller,
+        amount0In=amount0In,
+        amount1In=amount1In,
+        amount0Out=amount0Out,
+        amount1Out=amount1Out,
+        to=to,
+    )
+
     return ()
 end
 
@@ -790,7 +946,9 @@ func _update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
                     _price_0_cumulative_last.write(new_price_0_cumulative)
 
                     let (price_1_cumulative_last) = _price_1_cumulative_last.read()
-                    let (reserve0_x_reserve1 : Uint256, _) = uint256_unsigned_div_rem(reserve0, reserve1)
+                    let (reserve0_x_reserve1 : Uint256, _) = uint256_unsigned_div_rem(
+                        reserve0, reserve1
+                    )
                     let (res0_x_res1_x_time_diff : Uint256) = SafeUint256.mul(
                         reserve0_x_reserve1, Uint256(block_timestamp - block_timestamp_last, 0)
                     )
