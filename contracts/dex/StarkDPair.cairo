@@ -136,6 +136,10 @@ end
 func _factory() -> (address : felt):
 end
 
+@storage_var
+func _entry_locked() -> (res : felt):
+end
+
 #
 # Constructor
 #
@@ -154,6 +158,7 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _token0.write(token0)
     _token1.write(token1)
     _factory.write(factory)
+    _entry_locked.write(FALSE)
     return ()
 end
 
@@ -342,8 +347,9 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     liquidity : Uint256
 ):
     alloc_locals
-    local liquidity : Uint256
+    _lock()
 
+    local liquidity : Uint256
     let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
     let (token0) = _token0.read()
     let (token1) = _token1.read()
@@ -426,6 +432,7 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     let (caller) = get_caller_address()
     Mint.emit(sender=caller, amount0=amount0, amount1=amount1)
 
+    _unlock()
     return (liquidity)
 end
 
@@ -434,6 +441,7 @@ func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     amount0 : Uint256, amount1 : Uint256
 ):
     alloc_locals
+    _lock()
 
     let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
     let (token0) = _token0.read()
@@ -496,6 +504,7 @@ func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     let (caller) = get_caller_address()
     Burn.emit(sender=caller, amount0=amount0, amount1=amount1, to=to)
 
+    _unlock()
     return (amount0, amount1)
 end
 
@@ -504,6 +513,8 @@ func swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     amount0Out : Uint256, amount1Out : Uint256, to : felt, data_len : felt, data : felt*
 ):
     alloc_locals
+    _lock()
+
     let (local is_amount0out_greater_than_zero) = uint256_lt(Uint256(0, 0), amount0Out)
     let (local is_amount1out_greater_than_zero) = uint256_lt(Uint256(0, 0), amount1Out)
     local output_amount
@@ -659,12 +670,15 @@ func swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         to=to,
     )
 
+    _unlock()
     return ()
 end
 
 @external
 func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to : felt):
     alloc_locals
+    _lock()
+
     let (local reserve0 : Uint256, local reserve1 : Uint256, _) = _get_reserves()
     let (token0) = _token0.read()
     let (token1) = _token1.read()
@@ -679,12 +693,15 @@ func skim{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     IERC20.transfer(contract_address=token0, recipient=to, amount=amount0)
     IERC20.transfer(contract_address=token1, recipient=to, amount=amount1)
 
+    _unlock()
     return ()
 end
 
 @external
 func sync{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
     alloc_locals
+    _lock()
+
     let (token0) = _token0.read()
     let (token1) = _token1.read()
     let (this_address) = get_contract_address()
@@ -697,6 +714,7 @@ func sync{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
 
     _update(balance0, balance1, reserve0, reserve1)
 
+    _unlock()
     return ()
 end
 
@@ -994,5 +1012,25 @@ func _update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     _block_timestamp_last.write(block_timestamp)
 
     Sync.emit(reserve0=balance0, reserve1=balance1)
+    return ()
+end
+
+# lock it if entry is unlocked
+func _lock{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
+    let (locked) = _entry_locked.read()
+    with_attr error_message("locked"):
+        assert locked = FALSE
+    end
+    _entry_locked.write(TRUE)
+    return ()
+end
+
+# unlock entry
+func _unlock{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}():
+    let (locked) = _entry_locked.read()
+    with_attr error_message("not locked"):
+        assert locked = TRUE
+    end
+    _entry_locked.write(FALSE)
     return ()
 end
