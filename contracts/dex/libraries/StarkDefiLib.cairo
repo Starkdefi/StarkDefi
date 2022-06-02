@@ -12,6 +12,7 @@ from starkware.cairo.common.uint256 import (
     uint256_lt,
     uint256_mul,
     uint256_add,
+    uint256_sub,
     uint256_unsigned_div_rem,
 )
 from starkware.cairo.common.alloc import alloc
@@ -96,8 +97,32 @@ namespace StarkDefiLib:
     func get_amount_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         amountOut : Uint256, reserveIn : Uint256, reserveOut : Uint256
     ) -> (amountIn : Uint256):
-        # TODO: implement this function
-        return (amountIn=Uint256(0, 0))
+        alloc_locals
+        let (is_amountOut_gt_zero) = uint256_lt(Uint256(0, 0), amountOut)
+
+        # require(amountOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
+        with_attr error_message("insufficient output amount"):
+            assert is_amountOut_gt_zero = TRUE
+        end
+
+        let (is_reserveIn_gt_zero) = uint256_lt(Uint256(0, 0), reserveIn)
+        let (is_reserveOut_gt_zero) = uint256_lt(Uint256(0, 0), reserveOut)
+
+        # require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        with_attr error_message("insufficient liquidity"):
+            assert is_reserveIn_gt_zero = TRUE
+            assert is_reserveOut_gt_zero = TRUE
+        end
+
+        let (amountOut_mul_reserveIn : Uint256) = uint256_mul(amountOut, reserveIn)
+        let (numerator : Uint256) = uint256_mul(amountOut_mul_reserveIn, Uint256(1000, 0))
+        let (sub_result : Uint256) = uint256_sub(reserveOut, amountOut)
+        let (denominator : Uint256) = uint256_mul(sub_result, Uint256(997, 0))
+
+        let (div_result : Uint256, _) = uint256_unsigned_div_rem(numerator, denominator)
+        let (local amountIn : Uint256) = uint256_add(div_result, Uint256(1, 0))
+
+        return (amountIn)
     end
 
     func get_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
