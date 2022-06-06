@@ -5,7 +5,7 @@
 # @description library for StarkDefi contracts
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
-from starkware.cairo.common.math import assert_not_equal, assert_not_zero
+from starkware.cairo.common.math import assert_not_equal, assert_not_zero, assert_le
 from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.uint256 import (
     Uint256,
@@ -17,6 +17,8 @@ from starkware.cairo.common.uint256 import (
 )
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.bool import TRUE, FALSE
+from dex.interfaces.IStarkDFactory import IStarkDFactory
+from dex.interfaces.IStarkDPair import IStarkDPair
 
 namespace StarkDefiLib:
     # Sort tokens by their address
@@ -37,6 +39,33 @@ namespace StarkDefiLib:
         end
         assert_not_zero(token0)
         return (token0, token1)
+    end
+
+    func pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        factory : felt, tokenA : felt, tokenB : felt
+    ) -> (pair : felt):
+        alloc_locals
+        let (local token0, local token1) = StarkDefiLib.sort_tokens(tokenA, tokenB)
+        let (local pair) = IStarkDFactory.get_pair(
+            contract_address=factory, token0=token0, token1=token1
+        )
+        return (pair)
+    end
+
+    func get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        factory : felt, tokenA : felt, tokenB : felt
+    ) -> (reserveA : Uint256, reserveB : Uint256):
+        alloc_locals
+        let (local token0, _) = StarkDefiLib.sort_tokens(tokenA, tokenB)
+        let (local pair) = StarkDefiLib.pair_for(factory, tokenA, tokenB)
+        let (local reserve0 : Uint256, local reserve1 : Uint256, _) = IStarkDPair.get_reserves(
+            contract_address=pair
+        )
+        if tokenA == token0:
+            return (reserve0, reserve1)
+        else:
+            return (reserve1, reserve0)
+        end
     end
 
     func quote{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -128,10 +157,56 @@ namespace StarkDefiLib:
     func get_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountIn : Uint256, path_len : felt, path : felt*
     ) -> (amounts : Uint256*):
-        # TODO: implement this function
         alloc_locals
+
+        # require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
+        with_attr error_message("invalid path"):
+            assert_le(2, path_len)
+        end
+
         let (local amounts : Uint256*) = alloc()
-        return (amounts=amounts)
+        let (amounts_end : Uint256*) = _populate_amounts_out(
+            factory, amountIn, 0, path_len, path, amounts
+        )
+
+        return (amounts)
+    end
+
+    func _populate_amounts_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        factory : felt,
+        amountIn : Uint256,
+        current_index : felt,
+        path_len : felt,
+        path : felt*,
+        amounts : Uint256*,
+    ) -> (amounts : Uint256*):
+        alloc_locals
+
+        if current_index == path_len:
+            return (amounts)
+        end
+
+        if current_index == 0:
+            assert [amounts] = amountIn
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        else:
+            let (local reserveIn : Uint256, local reserveOut : Uint256) = StarkDefiLib.get_reserves(
+                factory, [path - 1], [path]
+            )
+            let (local amountOut : Uint256) = StarkDefiLib.get_amount_out(
+                [amounts - Uint256.SIZE], reserveIn, reserveOut
+            )
+            assert [amounts] = amountOut
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        end
+
+        return _populate_amounts_out(
+            factory, amountIn, current_index + 1, path_len, path + 1, amounts + Uint256.SIZE
+        )
     end
 
     func get_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
