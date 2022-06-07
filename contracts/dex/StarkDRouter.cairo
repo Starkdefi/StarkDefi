@@ -200,13 +200,19 @@ end
 func _pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     factory : felt, tokenA : felt, tokenB : felt
 ) -> (pair : felt):
-    # TODO: implement pair for
+    alloc_locals
+    let (local pair : Uint256) = StarkDefiLib.pair_for(
+        factory=factory, tokenA=tokenA, tokenB=tokenB
+    )
     return (pair=0)
 end
 
 func _get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     factory : felt, tokenA : felt, tokenB : felt
 ) -> (reserveA : Uint256, reserveB : Uint256):
-    # TODO: implement get reserves
-    return (reserveA=Uint256(0, 0), reserveB=Uint256(0, 0))
+    alloc_locals
+    let (local reserveA : Uint256, local reserveB : Uint256) = StarkDefiLib.get_reserves(
+        factory=factory, tokenA=tokenA, tokenB=tokenB
+    )
+    return (reserveA=reserveA, reserveB=reserveB)
 end
