@@ -212,9 +212,59 @@ namespace StarkDefiLib:
     func get_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         factory : felt, amountOut : Uint256, path_len : felt, path : felt*
     ) -> (amounts : Uint256*):
-        # TODO: implement this function
         alloc_locals
+
+        # require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
+        with_attr error_message("invalid path"):
+            assert_le(2, path_len)
+        end
         let (local amounts : Uint256*) = alloc()
-        return (amounts=amounts)
+        let (amounts_end : Uint256*) = _populate_amounts_in(
+            factory,
+            amountOut,
+            path_len - 1,
+            path_len,
+            path + (path_len - 1),
+            amounts + (path_len - 1) * Uint256.SIZE,
+        )
+
+        return (amounts)
+    end
+
+    func _populate_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+        factory : felt,
+        amountOut : Uint256,
+        current_index : felt,
+        path_len : felt,
+        path : felt*,
+        amounts : Uint256*,
+    ) -> (amounts : Uint256*):
+        alloc_locals
+
+        if current_index == path_len - 1:
+            assert [amounts] = amountOut
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        else:
+            let (local reserveIn : Uint256, local reserveOut : Uint256) = StarkDefiLib.get_reserves(
+                factory, [path], [path + 1]
+            )
+            let (local amountIn : Uint256) = StarkDefiLib.get_amount_in(
+                [amounts + Uint256.SIZE], reserveIn, reserveOut
+            )
+            assert [amounts] = amountIn
+            tempvar syscall_ptr = syscall_ptr
+            tempvar pedersen_ptr = pedersen_ptr
+            tempvar range_check_ptr = range_check_ptr
+        end
+
+        if current_index == 0:
+            return (amounts)
+        end
+
+        return _populate_amounts_in(
+            factory, amountOut, current_index - 1, path_len, path - 1, amounts - Uint256.SIZE
+        )
     end
 end
