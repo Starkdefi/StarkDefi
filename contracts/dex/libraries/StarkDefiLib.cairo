@@ -10,15 +10,13 @@ from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.uint256 import (
     Uint256,
     uint256_lt,
-    uint256_mul,
-    uint256_add,
-    uint256_sub,
     uint256_unsigned_div_rem,
 )
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.bool import TRUE, FALSE
 from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDPair import IStarkDPair
+from dex.libraries.safemath import SafeUint256
 
 namespace StarkDefiLib:
     # Sort tokens by their address
@@ -89,7 +87,7 @@ namespace StarkDefiLib:
         end
 
         # amountB = amountA.mul(reserveB) / reserveA;
-        let (amountA_x_reserveB : Uint256) = uint256_mul(amountA, reserveB)
+        let (amountA_x_reserveB : Uint256) = SafeUint256.mul(amountA, reserveB)
         let (amountB : Uint256, _) = uint256_unsigned_div_rem(amountA_x_reserveB, reserveA)
         return (amountB)
     end
@@ -114,10 +112,10 @@ namespace StarkDefiLib:
             assert is_reserveOut_gt_zero = TRUE
         end
 
-        let (amountIn_with_fee : Uint256) = uint256_mul(amountIn, Uint256(997, 0))
-        let (numerator : Uint256) = uint256_mul(amountIn_with_fee, reserveOut)
-        let (reserveIn_x_1000 : Uint256) = uint256_mul(reserveIn, Uint256(1000, 0))
-        let (local denominator : Uint256) = uint256_add(reserveIn_x_1000, amountIn_with_fee)
+        let (amountIn_with_fee : Uint256) = SafeUint256.mul(amountIn, Uint256(997, 0))
+        let (numerator : Uint256) = SafeUint256.mul(amountIn_with_fee, reserveOut)
+        let (reserveIn_x_1000 : Uint256) = SafeUint256.mul(reserveIn, Uint256(1000, 0))
+        let (local denominator : Uint256) = SafeUint256.add(reserveIn_x_1000, amountIn_with_fee)
 
         let (amountOut : Uint256, _) = uint256_unsigned_div_rem(numerator, denominator)
         return (amountOut)
@@ -143,13 +141,13 @@ namespace StarkDefiLib:
             assert is_reserveOut_gt_zero = TRUE
         end
 
-        let (amountOut_mul_reserveIn : Uint256) = uint256_mul(amountOut, reserveIn)
-        let (numerator : Uint256) = uint256_mul(amountOut_mul_reserveIn, Uint256(1000, 0))
-        let (sub_result : Uint256) = uint256_sub(reserveOut, amountOut)
-        let (denominator : Uint256) = uint256_mul(sub_result, Uint256(997, 0))
+        let (amountOut_mul_reserveIn : Uint256) = SafeUint256.mul(amountOut, reserveIn)
+        let (numerator : Uint256) = SafeUint256.mul(amountOut_mul_reserveIn, Uint256(1000, 0))
+        let (sub_result : Uint256) = SafeUint256.sub_lt(reserveOut, amountOut)
+        let (denominator : Uint256) = SafeUint256.mul(sub_result, Uint256(997, 0))
 
         let (div_result : Uint256, _) = uint256_unsigned_div_rem(numerator, denominator)
-        let (local amountIn : Uint256) = uint256_add(div_result, Uint256(1, 0))
+        let (local amountIn : Uint256) = SafeUint256.add(div_result, Uint256(1, 0))
 
         return (amountIn)
     end
