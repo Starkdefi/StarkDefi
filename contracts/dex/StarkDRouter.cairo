@@ -12,6 +12,9 @@ from dex.interfaces.IERC20 import IERC20
 from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDPair import IStarkDPair
 from dex.libraries.StarkDefiLib import StarkDefiLib
+from starkware.cairo.common.math import assert_not_zero, assert_le
+from starkware.cairo.common.alloc import alloc
+from starkware.starknet.common.syscalls import get_block_timestamp
 
 #
 # Storage
@@ -27,6 +30,10 @@ end
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(factory : felt):
+    with_attr error_message("invalid factory"):
+        assert_not_zero(factory)
+    end
+
     _factory.write(factory)
     return ()
 end
@@ -53,21 +60,21 @@ end
 @view
 func quote{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     amountA : Uint256, reserveA : Uint256, reserveB : Uint256
-) -> (amountB : felt):
+) -> (amountB : Uint256):
     return StarkDefiLib.quote(amountA, reserveA, reserveB)
 end
 
 @view
 func get_amount_out{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     amountIn : Uint256, reserveIn : Uint256, reserveOut : Uint256
-) -> (amountOut : felt):
+) -> (amountOut : Uint256):
     return StarkDefiLib.get_amount_out(amountIn, reserveIn, reserveOut)
 end
 
 @view
 func get_amount_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     amountOut : Uint256, reserveIn : Uint256, reserveOut : Uint256
-) -> (amountIn : felt):
+) -> (amountIn : Uint256):
     return StarkDefiLib.get_amount_in(amountOut, reserveIn, reserveOut)
 end
 
@@ -84,7 +91,7 @@ end
 @view
 func get_amounts_in{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     amountOut : Uint256, path_len : felt, path : felt*
-) -> (amounts_len : felt, amounts : felt*):
+) -> (amounts_len : felt, amounts : Uint256*):
     alloc_locals
     let (local factory) = _factory.read()
     let (local amounts : Uint256*) = StarkDefiLib.get_amounts_in(factory, amountOut, path_len, path)
@@ -94,6 +101,14 @@ end
 #
 # Externals
 #
+
+func _ensure{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(deadline : felt):
+    let (block_timestamp) = get_block_timestamp()
+    with_attr error_message("expired"):
+        assert_le(block_timestamp, deadline)
+    end
+    return ()
+end
 
 @external
 func add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -105,9 +120,9 @@ func add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     amountBMin : Uint256,
     to : felt,
     deadline : felt,
-) -> (amountA : felt, amountB : felt, liquidity : felt):
+) -> (amountA : Uint256, amountB : Uint256, liquidity : Uint256):
     # TODO: implement add liquidity
-    return (amountA=0, amountB=0, liquidity=0)
+    return (amountA=Uint256(0, 0), amountB=Uint256(0, 0), liquidity=Uint256(0, 0))
 end
 
 @external
@@ -119,10 +134,10 @@ func remove_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     amountBMin : Uint256,
     to : felt,
     deadline : felt,
-) -> (amountA : felt, amountB : felt):
+) -> (amountA : Uint256, amountB : Uint256):
     # TODO: implement remove liquidity
 
-    return (amountA=0, amountB=0)
+    return (amountA=Uint256(0, 0), amountB=Uint256(0, 0))
 end
 
 @external
@@ -135,9 +150,11 @@ func swap_exact_tokens_for_tokens{
     path : felt*,
     to : felt,
     deadline : felt,
-) -> (amounts_len : felt, amounts : felt*):
+) -> (amounts_len : felt, amounts : Uint256*):
     # TODO: implement swap exact tokens for tokens
-    return (amounts_len=0, amounts=0)
+    alloc_locals
+    let (local amounts : Uint256*) = alloc()
+    return (amounts_len=0, amounts=amounts)
 end
 
 @external
@@ -150,7 +167,52 @@ func swap_tokens_for_exact_tokens{
     path : felt*,
     to : felt,
     deadline : felt,
-) -> (amounts_len : felt, amounts : felt*):
+) -> (amounts_len : felt, amounts : Uint256*):
     # TODO: implement swap exact tokens for tokens
-    return (amounts_len=0, amounts=0)
+    alloc_locals
+    let (local amounts : Uint256*) = alloc()
+    return (amounts_len=0, amounts=amounts)
+end
+
+#
+# Internals
+#
+
+func _add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    tokenA : felt,
+    tokenB : felt,
+    amountADesired : Uint256,
+    amountBDesired : Uint256,
+    amountAMin : Uint256,
+    amountBMin : Uint256,
+) -> (amountA : Uint256, amountB : Uint256):
+    # TODO: Implement add liquidity
+    return (amountA=Uint256(0, 0), amountB=Uint256(0, 0))
+end
+
+func _swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    current_index : felt, amounts_len : felt, amounts : Uint256*, path : felt*, _to : felt
+):
+    # TODO: implement swap
+    return ()
+end
+
+func _pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    factory : felt, tokenA : felt, tokenB : felt
+) -> (pair : felt):
+    alloc_locals
+    let (local pair : Uint256) = StarkDefiLib.pair_for(
+        factory=factory, tokenA=tokenA, tokenB=tokenB
+    )
+    return (pair=0)
+end
+
+func _get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+    factory : felt, tokenA : felt, tokenB : felt
+) -> (reserveA : Uint256, reserveB : Uint256):
+    alloc_locals
+    let (local reserveA : Uint256, local reserveB : Uint256) = StarkDefiLib.get_reserves(
+        factory=factory, tokenA=tokenA, tokenB=tokenB
+    )
+    return (reserveA=reserveA, reserveB=reserveB)
 end
