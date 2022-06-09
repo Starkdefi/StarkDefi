@@ -201,7 +201,7 @@ func _pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     factory : felt, tokenA : felt, tokenB : felt
 ) -> (pair : felt):
     alloc_locals
-    let (local pair : Uint256) = StarkDefiLib.pair_for(
+    let (local pair : felt) = StarkDefiLib.pair_for(
         factory=factory, tokenA=tokenA, tokenB=tokenB
     )
     return (pair=0)
