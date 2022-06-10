@@ -7,14 +7,16 @@
 # TODO: Port uniswap router to cairo
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_le
 from dex.interfaces.IERC20 import IERC20
 from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDPair import IStarkDPair
 from dex.libraries.StarkDefiLib import StarkDefiLib
 from starkware.cairo.common.math import assert_not_zero, assert_le
 from starkware.cairo.common.alloc import alloc
-from starkware.starknet.common.syscalls import get_block_timestamp
+from starkware.starknet.common.syscalls import get_block_timestamp, get_caller_address
+from dex.libraries.safemath import SafeUint256
+from starkware.cairo.common.bool import TRUE, FALSE
 
 #
 # Storage
@@ -121,8 +123,22 @@ func add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     to : felt,
     deadline : felt,
 ) -> (amountA : Uint256, amountB : Uint256, liquidity : Uint256):
-    # TODO: implement add liquidity
-    return (amountA=Uint256(0, 0), amountB=Uint256(0, 0), liquidity=Uint256(0, 0))
+    alloc_locals
+    _ensure(deadline)
+
+    let (local factory) = _factory.read()
+    let (local amountA : Uint256, local amountB : Uint256) = _add_liquidity(
+        tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin
+    )
+
+    let (local pair) = _pair_for(factory, tokenA, tokenB)
+    let (sender) = get_caller_address()
+
+    IERC20.transferFrom(contract_address=tokenA, sender=sender, recipient=pair, amount=amountA)
+    IERC20.transferFrom(contract_address=tokenB, sender=sender, recipient=pair, amount=amountB)
+
+    let (local liquidity : Uint256) = IStarkDPair.mint(contract_address=pair, to=to)
+    return (amountA, amountB, liquidity)
 end
 
 @external
@@ -186,8 +202,58 @@ func _add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
     amountAMin : Uint256,
     amountBMin : Uint256,
 ) -> (amountA : Uint256, amountB : Uint256):
-    # TODO: Implement add liquidity
-    return (amountA=Uint256(0, 0), amountB=Uint256(0, 0))
+    alloc_locals
+
+    let (local factory) = _factory.read()
+    let (local pair) = IStarkDFactory.get_pair(
+        contract_address=factory, token0=tokenA, token1=tokenB
+    )
+
+    if pair == FALSE:
+        let (new_pair) = IStarkDFactory.create_pair(
+            contract_address=factory, token0=tokenA, token1=tokenB
+        )
+    end
+
+    let (local reserveA : Uint256, local reserveB : Uint256) = _get_reserves(
+        factory, tokenA, tokenB
+    )
+    let (reserveA_x_reserveB : Uint256) = SafeUint256.mul(reserveA, reserveB)
+    let (is_reserveA_x_reserveB_zero) = uint256_eq(reserveA_x_reserveB, Uint256(0, 0))
+
+    if is_reserveA_x_reserveB_zero == TRUE:
+        return (amountADesired, amountBDesired)
+    else:
+        let (local amountBOptimal : Uint256) = StarkDefiLib.quote(
+            amountADesired, reserveA, reserveB
+        )
+        let (is_amountBOptimal_le_amountBDesired) = uint256_le(amountBOptimal, amountBDesired)
+
+        if is_amountBOptimal_le_amountBDesired == TRUE:
+            let (is_amountBOptimal_ge_amountBMin) = uint256_le(amountBMin, amountBOptimal)
+
+            # require(amountBOptimal >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+            with_attr error_message("insufficient B amount"):
+                assert is_amountBOptimal_ge_amountBMin = TRUE
+            end
+
+            return (amountADesired, amountBOptimal)
+        else:
+            let (local amountAOptimal : Uint256) = StarkDefiLib.quote(
+                amountBDesired, reserveB, reserveA
+            )
+            let (is_amountAOptimal_le_amountADesired) = uint256_le(amountAOptimal, amountADesired)
+            assert is_amountAOptimal_le_amountADesired = TRUE
+            let (is_amountAOptimal_ge_amountAMin) = uint256_le(amountAMin, amountAOptimal)
+
+            # require(amountAOptimal >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+            with_attr error_message("insufficient A amount"):
+                assert is_amountAOptimal_ge_amountAMin = TRUE
+            end
+            
+            return (amountAOptimal, amountBDesired)
+        end
+    end
 end
 
 func _swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -201,9 +267,7 @@ func _pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     factory : felt, tokenA : felt, tokenB : felt
 ) -> (pair : felt):
     alloc_locals
-    let (local pair : felt) = StarkDefiLib.pair_for(
-        factory=factory, tokenA=tokenA, tokenB=tokenB
-    )
+    let (local pair : felt) = StarkDefiLib.pair_for(factory=factory, tokenA=tokenA, tokenB=tokenB)
     return (pair=0)
 end
 
