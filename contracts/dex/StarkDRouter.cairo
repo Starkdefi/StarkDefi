@@ -151,9 +151,45 @@ func remove_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
     to : felt,
     deadline : felt,
 ) -> (amountA : Uint256, amountB : Uint256):
-    # TODO: implement remove liquidity
+    alloc_locals
+    _ensure(deadline)
 
-    return (amountA=Uint256(0, 0), amountB=Uint256(0, 0))
+    let (local factory) = _factory.read()
+    let (local pair) = _pair_for(factory, tokenA, tokenB)
+    let (sender) = get_caller_address()
+
+    IERC20.transferFrom(contract_address=pair, sender=sender, recipient=pair, amount=liquidity)
+
+    let (local amount0 : Uint256, local amount1 : Uint256) = IStarkDPair.burn(
+        contract_address=pair, to=to
+    )
+    let (local token0, _) = StarkDefiLib.sort_tokens(tokenA, tokenB)
+    local amountA : Uint256
+    local amountB : Uint256
+
+    if tokenA == token0:
+        assert amountA = amount0
+        assert amountB = amount1
+    else:
+        assert amountA = amount1
+        assert amountB = amount0
+    end
+
+    let (is_amountA_ge_amountAMin) = uint256_le(amountAMin, amountA)
+
+    # require(amountA >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+    with_attr error_message("insufficient A amount"):
+        assert is_amountA_ge_amountAMin = TRUE
+    end
+
+    let (is_amountB_ge_amountBMin) = uint256_le(amountBMin, amountB)
+
+    # require(amountB >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+    with_attr error_message("insufficient B amount"):
+        assert is_amountB_ge_amountBMin = TRUE
+    end
+
+    return (amountA, amountB)
 end
 
 @external
@@ -250,7 +286,7 @@ func _add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
             with_attr error_message("insufficient A amount"):
                 assert is_amountAOptimal_ge_amountAMin = TRUE
             end
-            
+
             return (amountAOptimal, amountBDesired)
         end
     end
