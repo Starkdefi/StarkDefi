@@ -7,7 +7,7 @@
 # TODO: Port uniswap router to cairo
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
-from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_le
+from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_le, is_le
 from dex.interfaces.IERC20 import IERC20
 from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDPair import IStarkDPair
@@ -327,8 +327,48 @@ end
 func _swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     current_index : felt, amounts_len : felt, amounts : Uint256*, path : felt*, _to : felt
 ):
-    # TODO: implement swap
-    return ()
+    alloc_locals
+    let (local factory) = _factory.read()
+
+    if current_index == amounts_len - 1:
+        return ()
+    end
+
+    let (local token0, _) = StarkDefiLib.sort_tokens([path], [path + 1])
+    local amount0Out : Uint256
+    local amount1Out : Uint256
+
+    if [path] == token0:
+        assert amount0Out = Uint256(0, 0)
+        assert amount1Out = [amounts + Uint256.SIZE]
+    else:
+        assert amount0Out = [amounts + Uint256.SIZE]
+        assert amount1Out = Uint256(0, 0)
+    end
+
+    # address to = i < path.length - 2 ? UniswapV2Library.pairFor(factory, output, path[i + 2]) : _to;
+    local to
+    let (is_index_lt_len_2) = is_le(current_index, amounts_len - 3)
+
+    if is_index_lt_len_2 == TRUE:
+        let (local pair) = _pair_for(factory, [path + 1], [path + 2])
+        assert to = pair
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    else:
+        assert to = _to
+        tempvar syscall_ptr = syscall_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar range_check_ptr = range_check_ptr
+    end
+
+    let (local pair) = _pair_for(factory, [path], [path + 1])
+    IStarkDPair.swap(
+        contract_address=pair, amount0Out=amount0Out, amount1Out=amount1Out, to=to, data_len=0
+    )
+    # recurse
+    return _swap(current_index + 1, amounts_len, amounts + Uint256.SIZE, path + 1, _to)
 end
 
 func _pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
