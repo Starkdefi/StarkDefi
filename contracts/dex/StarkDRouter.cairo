@@ -203,10 +203,27 @@ func swap_exact_tokens_for_tokens{
     to : felt,
     deadline : felt,
 ) -> (amounts_len : felt, amounts : Uint256*):
-    # TODO: implement swap exact tokens for tokens
     alloc_locals
-    let (local amounts : Uint256*) = alloc()
-    return (amounts_len=0, amounts=amounts)
+    _ensure(deadline)
+
+    let (local factory) = _factory.read()
+    let (local amounts : Uint256*) = StarkDefiLib.get_amounts_out(factory, amountIn, path_len, path)
+    let (is_amount_last_gel_amountOutMin) = uint256_le(
+        amountOutMin, [amounts + (path_len - 1) * Uint256.SIZE]
+    )
+
+    # require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+    with_attr error_message("insufficient output amount"):
+        assert is_amount_last_gel_amountOutMin = TRUE
+    end
+
+    let (local pair) = _pair_for(factory, [path], [path + 1])
+    let (sender) = get_caller_address()
+
+    IERC20.transferFrom(contract_address=[path], sender=sender, recipient=pair, amount=[amounts])
+
+    _swap(0, path_len, amounts, path, to)
+    return (path_len, amounts)
 end
 
 @external
@@ -220,10 +237,25 @@ func swap_tokens_for_exact_tokens{
     to : felt,
     deadline : felt,
 ) -> (amounts_len : felt, amounts : Uint256*):
-    # TODO: implement swap exact tokens for tokens
     alloc_locals
-    let (local amounts : Uint256*) = alloc()
-    return (amounts_len=0, amounts=amounts)
+    _ensure(deadline)
+
+    let (local factory) = _factory.read()
+    let (local amounts : Uint256*) = StarkDefiLib.get_amounts_in(factory, amountOut, path_len, path)
+    let (is_amount_first_le_amountInMax) = uint256_le([amounts], amountInMax)
+
+    # require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+    with_attr error_message("excessive input amount"):
+        assert is_amount_first_le_amountInMax = 1
+    end
+
+    let (local pair) = _pair_for(factory, [path], [path + 1])
+    let (sender) = get_caller_address()
+
+    IERC20.transferFrom(contract_address=[path], sender=sender, recipient=pair, amount=[amounts])
+
+    _swap(0, path_len, amounts, path, to)
+    return (path_len, amounts)
 end
 
 #
