@@ -4,8 +4,6 @@
 # @license MIT
 # @description port of uniswap pair contract
 
-# TODO: Port uniswap pair contract to cairo
-
 from dex.interfaces.IERC20 import IERC20
 from dex.interfaces.IStarkDFactory import IStarkDFactory
 from dex.interfaces.IStarkDCallee import IStarkDCallee

@@ -4,8 +4,6 @@
 # @license MIT
 # @description port of uniswap factory
 
-# TODO: Port uniswap factory to cairo
-
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.alloc import alloc
 from starkware.starknet.common.syscalls import get_caller_address, get_contract_address, deploy

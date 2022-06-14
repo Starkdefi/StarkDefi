@@ -4,8 +4,6 @@
 # @license MIT
 # @description port of uniswap router
 
-# TODO: Port uniswap router to cairo
-
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_le, is_le
 from dex.interfaces.IERC20 import IERC20
