@@ -1,0 +1,17 @@
+name: Run Test on PRs
+
+on: [pull_request]
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out
+        uses: actions/checkout@v3
+
+      - name: Run Test
+        run: |
+          npm i
+          npx hardhat starknet-compile 
+          npx hardhat test --starknet-network integrated-devnet
