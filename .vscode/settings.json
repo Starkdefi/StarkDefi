@@ -1,0 +1,4 @@
+{
+  "makefile.extensionOutputFolder": "./.vscode",
+  "cairols.sourceDir": "./contracts"
+}
