@@ -32,15 +32,15 @@ export async function deployFactory(
   feeToAddress: string
 ): Promise<StarknetContract> {
   const pairContractFactory = await starknet.getContractFactory(
-    "contracts/dex/Pair.cairo"
+    "contracts/dex/StarkDPair.cairo"
   );
   const declaredPairClass = await pairContractFactory.declare();
   const factory = await starknet.getContractFactory(
-    "contracts/dex/Factory.cairo"
+    "contracts/dex/StarkDFactory.cairo"
   );
   const factoryContract = await factory.deploy(
     {
-      pair_contract_class_hash: declaredPairClass,
+      class_hash_pair_contract: declaredPairClass,
       fee_to_setter: feeToAddress,
     },
     { salt: "0x42" }
@@ -53,7 +53,7 @@ export async function deployRouter(
   factoryAddress: string
 ): Promise<StarknetContract> {
   const routerContractFactory = await starknet.getContractFactory(
-    "contracts/dex/Router.cairo"
+    "contracts/dex/StarkDRouter.cairo"
   );
   const routerContract = await routerContractFactory.deploy(
     { factory: factoryAddress },
@@ -71,7 +71,7 @@ export async function deployPair(
   factoryContract: StarknetContract
 ): Promise<StarknetContract> {
   const pairFactory = await starknet.getContractFactory(
-    "contracts/dex/Pair.cairo"
+    "contracts/dex/StarkDPair.cairo"
   );
 
   const executionInfo = await deployerAccount.call(

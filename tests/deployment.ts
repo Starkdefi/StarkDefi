@@ -79,7 +79,7 @@ describe("Deployment Test", function () {
     factoryContract = await deployFactory(deployerAccount.address);
     const feeToSetter = await deployerAccount.call(
       factoryContract,
-      "get_fee_to_setter"
+      "fee_to_setter"
     );
     expect(deployerAccount.address === feeToSetter.address);
   });
