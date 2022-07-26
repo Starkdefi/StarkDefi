@@ -11,3 +11,5 @@ typechain
 cache
 artifacts
 venv
+
+starknet-artifacts
