@@ -1,6 +1,34 @@
 # StarkDefi
 
-This official contract repository for StarkDefi. This project uses hardhat (TypeScript) alongside the **starknet-hardhat-plugin** to run compile, run, deploy and test cairo/starknet contracts. 
+This is the official contract repository for StarkDefi. This project uses hardhat (TypeScript) alongside the **starknet-hardhat-plugin** to run compile, run, deploy and test cairo/starknet contracts.
+
+## Getting Started
+
+To get started, you need to clone the repository. And install the dependencies.
+
+Run:
+
+```bash
+npm install
+```
+
+or
+
+```bash
+    yarn install
+```
+
+Compile the contracts by running the following command:
+
+```bash
+npx hardhat run scripts/compile-contract.ts 
+```
+
+Run the tests by running the following command:
+
+```bash
+npx hardhat text
+```
 
 Try running some of the following tasks:
 
@@ -41,8 +69,8 @@ You can use it by calling `npx hardhat starknet-deploy --starknet-network myNetw
 
 The Alpha networks and integrated Devnet are available by default, you don't need to define them in the config file; just pass:
 
--   `--starknet-network alpha` or `--starknet-network alpha-goerli` for Alpha Testnet (on Goerli)
--   `--starknet-network alpha-mainnet` for Alpha Mainnet
--   `--starknet-network integrated-devnet` for integrated Devnet
+- `--starknet-network alpha` or `--starknet-network alpha-goerli` for Alpha Testnet (on Goerli)
+- `--starknet-network alpha-mainnet` for Alpha Mainnet
+- `--starknet-network integrated-devnet` for integrated Devnet
 
-By default the integrated Devnet, it will spawn Devnet using its Docker image and listening on http://127.0.0.1:5050. **To use this, you must have Docker installed on your machine**.
+By default the integrated Devnet, it will spawn Devnet using its Docker image and listening on <http://127.0.0.1:5050>. **To use this, you must have Docker installed on your machine**.
