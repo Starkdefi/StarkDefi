@@ -15,7 +15,7 @@ npm install
 or
 
 ```bash
-    yarn install
+yarn install
 ```
 
 Compile the contracts by running the following command:
