@@ -15,7 +15,7 @@ import {
   // eslint-disable-next-line node/no-missing-import
 } from "./utils";
 
-describe("Deployment Test", function () {
+describe("Add and Remove Liquidity Test", function () {
   this.timeout(TIMEOUT); // 15 mins
 
   let user1Account: Account;
