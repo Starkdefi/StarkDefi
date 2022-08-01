@@ -272,12 +272,12 @@ func _add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
 
     let (local factory) = _factory.read()
     let (local pair) = IStarkDFactory.get_pair(
-        contract_address=factory, token0=tokenA, token1=tokenB
+        contract_address=factory, tokenA=tokenA, tokenB=tokenB
     )
 
     if pair == FALSE:
         let (new_pair) = IStarkDFactory.create_pair(
-            contract_address=factory, token0=tokenA, token1=tokenB
+            contract_address=factory, tokenA=tokenA, tokenB=tokenB
         )
     end
 
@@ -374,7 +374,7 @@ func _pair_for{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
 ) -> (pair : felt):
     alloc_locals
     let (local pair : felt) = StarkDefiLib.pair_for(factory=factory, tokenA=tokenA, tokenB=tokenB)
-    return (pair=0)
+    return (pair)
 end
 
 func _get_reserves{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(

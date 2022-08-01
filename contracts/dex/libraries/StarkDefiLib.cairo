@@ -45,7 +45,7 @@ namespace StarkDefiLib:
         alloc_locals
         let (local token0, local token1) = StarkDefiLib.sort_tokens(tokenA, tokenB)
         let (local pair) = IStarkDFactory.get_pair(
-            contract_address=factory, token0=token0, token1=token1
+            contract_address=factory, tokenA=token0, tokenB=token1
         )
         return (pair)
     end
