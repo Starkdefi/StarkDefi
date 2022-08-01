@@ -27,7 +27,7 @@ npx hardhat run scripts/compile-contract.ts
 Run the tests by running the following command:
 
 ```bash
-npx hardhat text
+npx hardhat test
 ```
 
 Try running some of the following tasks:
