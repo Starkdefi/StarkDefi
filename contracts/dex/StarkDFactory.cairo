@@ -18,7 +18,7 @@ from starkware.cairo.common.bool import FALSE
 
 # Pair created event
 @event
-func Pair_Created(token0 : felt, token1 : felt, pair : felt, pair_count : felt):
+func PairCreated(event_name : felt, tokenA : felt, tokenB : felt, pair : felt, pair_count : felt):
 end
 
 #
@@ -37,7 +37,7 @@ end
 
 # mapping(address => mapping(address => address)) public getPair;
 @storage_var
-func _get_pair(token0 : felt, token1 : felt) -> (pair : felt):
+func _get_pair(tokenA : felt, tokenB : felt) -> (pair : felt):
 end
 
 # `address[] public allPairs;`
@@ -85,9 +85,9 @@ end
 # returns  address of pair
 @view
 func get_pair{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    token0 : felt, token1 : felt
+    tokenA : felt, tokenB : felt
 ) -> (pair : felt):
-    return _get_pair.read(token0, token1)
+    return _get_pair.read(tokenA, tokenB)
 end
 
 # get all pairs
@@ -232,6 +232,6 @@ func create_pair{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _all_pairs.write(pair_count, pair)
 
     # Emit event
-    Pair_Created.emit(token0=token0, token1=token1, pair=pair, pair_count=pair_count + 1)
+    PairCreated.emit(event_name=97174080259686752580822372, tokenA=token0, tokenB=token1, pair=pair, pair_count=pair_count + 1)
     return (pair)
 end
