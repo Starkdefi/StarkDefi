@@ -114,8 +114,8 @@ export async function deployPair(
   // Does not deploy to network immediately after create_pair call so best to get pair from factory and rebuild contract
   // using result from get_pair. That way, 100% sure that the pair is deployed and ready to use.
   const res0 = await deployerAccount.call(factoryContract, "get_pair", {
-    token0: executionInfo.token0,
-    token1: executionInfo.token1,
+    tokenA: executionInfo.token0,
+    tokenB: executionInfo.token1,
   });
   return pairFactory.getContractAt(res0.pair);
 }
