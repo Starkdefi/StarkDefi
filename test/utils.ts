@@ -8,11 +8,11 @@ export const MINIMUM_LIQUIDITY = 1000;
 export const BURN_ADDRESS = 1;
 
 export type CairoUint = {
-  low: bigint | Number | BigNumber | BigInt;
-  high: bigint | BigInt;
+  low: bigint | number | BigNumber;
+  high: bigint;
 };
 
-export function uint(x: bigint | Number | BigNumber | BigInt): CairoUint {
+export function uint(x: bigint | number | BigNumber): CairoUint {
   return { low: x, high: 0n };
 }
 
@@ -20,8 +20,12 @@ export function uintToBigInt(x: any): bigint {
   return x.low;
 }
 
-export function feltToAddress(x: bigint | BigInt): string {
+export function feltToAddress(x: bigint): string {
   return BigNumber.from(x).toHexString();
+}
+
+export function addressToFelt(x: string): bigint {
+  return BigInt(x);
 }
 
 export function bigintToHex(x: bigint | BigInt): string {
@@ -96,26 +100,17 @@ export async function deployPair(
     "contracts/dex/StarkDPair.cairo"
   );
 
-  const executionInfo = await deployerAccount.call(
-    routerContract,
-    "sort_tokens",
-    {
-      tokenA: token0Address,
-      tokenB: token1Address,
-    }
-  );
-
   const pair = await deployerAccount.invoke(factoryContract, "create_pair", {
-    tokenA: executionInfo.token0,
-    tokenB: executionInfo.token1,
+    tokenA: addressToFelt(token0Address),
+    tokenB: addressToFelt(token1Address),
   });
   console.log("Pair deployed at", pair);
 
   // Does not deploy to network immediately after create_pair call so best to get pair from factory and rebuild contract
   // using result from get_pair. That way, 100% sure that the pair is deployed and ready to use.
   const res0 = await deployerAccount.call(factoryContract, "get_pair", {
-    tokenA: executionInfo.token0,
-    tokenB: executionInfo.token1,
+    tokenA: addressToFelt(token0Address),
+    tokenB: addressToFelt(token1Address),
   });
   return pairFactory.getContractAt(res0.pair);
 }
@@ -140,9 +135,10 @@ export async function addLiquidity(
   routerContract: StarknetContract,
   token0Contract: StarknetContract,
   token1Contract: StarknetContract,
-  amount0: Number,
-  amount1: Number,
-  deadline: Number
+  amount0: number,
+  amount1: number,
+  recipient: string,
+  deadline: number
 ) {
   const { decimals: token0Decimals } = await caller.call(
     token0Contract,
@@ -170,18 +166,41 @@ export async function addLiquidity(
     amountBDesired: uint(token1Amount),
     amountAMin: uint(0n),
     amountBMin: uint(0n),
-    to: caller.address,
-    deadline: BigNumber.from(deadline),
+    to: recipient,
+    deadline: BigInt(deadline),
   });
 
   console.log("Liquidity added:", txHash);
   return txHash;
 }
 
+export async function removeLiquidity(
+  caller: Account,
+  routerContract: StarknetContract,
+  token0Contract: StarknetContract,
+  token1Contract: StarknetContract,
+  liquidity: number | bigint,
+  recipient: string,
+  deadline: number
+) {
+  const txHash = await caller.invoke(routerContract, "remove_liquidity", {
+    tokenA: token0Contract.address,
+    tokenB: token1Contract.address,
+    liquidity: uint(liquidity),
+    amountAMin: uint(0n),
+    amountBMin: uint(0n),
+    to: recipient,
+    deadline: BigInt(deadline),
+  });
+
+  console.log("Liquidity removed:", txHash);
+  return txHash;
+}
+
 export async function mintTokens(
   caller: Account,
   tokenContract: StarknetContract,
-  amount: Number,
+  amount: number | bigint,
   recipient: string
 ) {
   const { decimals: tokenDecimals } = await caller.call(
@@ -200,22 +219,23 @@ export async function mintTokens(
   return txHash;
 }
 
+export async function tokenDecimals(
+  caller: Account,
+  tokenContract: StarknetContract
+) {
+  const { decimals } = await caller.call(tokenContract, "decimals");
+  return decimals;
+}
+
 export async function approve(
   caller: Account,
   tokenContract: StarknetContract,
-  amount: Number,
+  amount: bigint | BigNumber,
   spender: string
 ) {
-  const { decimals: tokenDecimals } = await caller.call(
-    tokenContract,
-    "decimals"
-  );
-
-  const tokenAmount = ethers.utils.parseUnits(amount.toString(), tokenDecimals);
-
   const txHash = await caller.invoke(tokenContract, "approve", {
     spender,
-    amount: uint(tokenAmount),
+    amount: uint(amount),
   });
 
   console.log(
