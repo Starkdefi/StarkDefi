@@ -36,23 +36,24 @@ const MINIMUM_LIQUIDITY = 1000
 #
 
 @event
-func Transfer(from_address : felt, to_address : felt, amount : Uint256):
+func Transfer(event_name : felt, from_address : felt, to_address : felt, amount : Uint256):
 end
 
 @event
-func Approval(owner : felt, spender : felt, amount : Uint256):
+func Approval(event_name : felt, owner : felt, spender : felt, amount : Uint256):
 end
 
 @event
-func Mint(sender : felt, amount0 : Uint256, amount1 : Uint256):
+func Mint(event_name : felt, sender : felt, amount0 : Uint256, amount1 : Uint256):
 end
 
 @event
-func Burn(sender : felt, amount0 : Uint256, amount1 : Uint256, to : felt):
+func Burn(event_name : felt, sender : felt, amount0 : Uint256, amount1 : Uint256, to : felt):
 end
 
 @event
 func Swap(
+    event_name : felt, 
     sender : felt,
     amount0In : Uint256,
     amount1In : Uint256,
@@ -63,7 +64,7 @@ func Swap(
 end
 
 @event
-func Sync(reserve0 : Uint256, reserve1 : Uint256):
+func Sync(event_name : felt, reserve0 : Uint256, reserve1 : Uint256):
 end
 
 #
@@ -144,17 +145,17 @@ end
 
 @constructor
 func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    token0 : felt, token1 : felt, factory : felt
+    tokenA : felt, tokenB : felt, factory : felt
 ):
     with_attr error_message("token0 and token1 must not be zero"):
-        assert_not_zero(token0)
-        assert_not_zero(token1)
+        assert_not_zero(tokenA)
+        assert_not_zero(tokenB)
     end
     _name.write('StarkDefi Pair')
     _symbol.write('STARKD-LP')
     _decimals.write(18)
-    _token0.write(token0)
-    _token1.write(token1)
+    _token0.write(tokenA)
+    _token1.write(tokenB)
     _factory.write(factory)
     _entry_locked.write(FALSE)
     return ()
@@ -276,7 +277,7 @@ func transfer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
 end
 
 @external
-func transfer_from{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+func transferFrom{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     sender : felt, recipient : felt, amount : Uint256
 ) -> (success : felt):
     alloc_locals
@@ -290,6 +291,7 @@ func transfer_from{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check
     return (TRUE)
 end
 
+@external
 func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     spender : felt, amount : Uint256
 ) -> (success : felt):
@@ -302,7 +304,8 @@ func approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     return (TRUE)
 end
 
-func increase_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+@external
+func increaseAllowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     spender : felt, added_value : Uint256
 ) -> (success : felt):
     with_attr error("ERC20: added_value is not a valid Uint256"):
@@ -321,7 +324,8 @@ func increase_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_
     return (TRUE)
 end
 
-func decrease_allowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
+@external
+func decreaseAllowance{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     spender : felt, subtracted_value : Uint256
 ) -> (success : felt):
     alloc_locals
@@ -428,7 +432,7 @@ func mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     end
 
     let (caller) = get_caller_address()
-    Mint.emit(sender=caller, amount0=amount0, amount1=amount1)
+    Mint.emit(event_name=1298755188, sender=caller, amount0=amount0, amount1=amount1)
 
     _unlock()
     return (liquidity)
@@ -500,7 +504,7 @@ func burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(to 
     end
 
     let (caller) = get_caller_address()
-    Burn.emit(sender=caller, amount0=amount0, amount1=amount1, to=to)
+    Burn.emit(event_name=1114993262, sender=caller, amount0=amount0, amount1=amount1, to=to)
 
     _unlock()
     return (amount0, amount1)
@@ -660,6 +664,7 @@ func swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
 
     let (caller) = get_caller_address()
     Swap.emit(
+        event_name=1400332656,
         sender=caller,
         amount0In=amount0In,
         amount1In=amount1In,
@@ -742,7 +747,7 @@ func _mint{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     let (new_balance : Uint256) = SafeUint256.add(balance, amount)
     balances.write(recipient, new_balance)
 
-    Transfer.emit(0, recipient, amount)
+    Transfer.emit(6085033173541348722, 0, recipient, amount)
     return ()
 end
 
@@ -767,7 +772,7 @@ func _burn{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     let (supply : Uint256) = total_supply.read()
     let (new_supply : Uint256) = SafeUint256.sub_le(supply, amount)
     total_supply.write(new_supply)
-    Transfer.emit(account, 0, amount)
+    Transfer.emit(6085033173541348722, account, 0, amount)
     return ()
 end
 
@@ -799,7 +804,7 @@ func _transfer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
     let (new_recipient_balance : Uint256) = SafeUint256.add(recipient_balance, amount)
     balances.write(recipient, new_recipient_balance)
 
-    Transfer.emit(sender, recipient, amount)
+    Transfer.emit(6085033173541348722, sender, recipient, amount)
     return ()
 end
 
@@ -842,7 +847,7 @@ func _approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     end
 
     allowances.write(owner, spender, amount)
-    Approval.emit(owner, spender, amount)
+    Approval.emit(4715392446655521132, owner, spender, amount)
     return ()
 end
 
@@ -1009,7 +1014,7 @@ func _update{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     _reserve1.write(balance1)
     _block_timestamp_last.write(block_timestamp)
 
-    Sync.emit(reserve0=balance0, reserve1=balance1)
+    Sync.emit(event_name=1400467043, reserve0=balance0, reserve1=balance1)
     return ()
 end
 

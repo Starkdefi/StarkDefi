@@ -21,7 +21,7 @@ yarn install
 Compile the contracts by running the following command:
 
 ```bash
-npx hardhat run scripts/compile-contract.ts 
+npx hardhat run scripts/compileContract.ts 
 ```
 
 Run the tests by running the following command:

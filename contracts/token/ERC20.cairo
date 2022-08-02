@@ -41,6 +41,15 @@ end
 func allowances(owner : felt, spender : felt) -> (res : Uint256):
 end
 
+
+#
+# Events
+#
+# @notice An event emitted whenever allowances is updated
+@event
+func Approval(event_name : felt, owner : felt, spender : felt, amount : Uint256):
+end
+
 #
 # Constructor
 #
@@ -266,6 +275,7 @@ func _approve{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}
     assert_not_zero(spender)
     uint256_check(amount)
     allowances.write(caller, spender, amount)
+    Approval.emit(event_name=4715392446655521132, owner=caller, spender=spender, amount=amount)
     return ()
 end
 

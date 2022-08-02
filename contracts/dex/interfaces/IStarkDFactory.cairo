@@ -11,7 +11,7 @@ namespace IStarkDFactory:
     func class_hash_for_pair_contract() -> (class_hash : felt):
     end
 
-    func get_pair(token0 : felt, token1 : felt) -> (pair : felt):
+    func get_pair(tokenA : felt, tokenB : felt) -> (pair : felt):
     end
 
     func all_pairs() -> (pairs_len : felt, pairs : felt*):
@@ -20,7 +20,7 @@ namespace IStarkDFactory:
     func all_pairs_length() -> (len : felt):
     end
 
-    func create_pair(token0 : felt, token1 : felt) -> (pair : felt):
+    func create_pair(tokenA : felt, tokenB : felt) -> (pair : felt):
     end
 
     func set_fee_to(fee_to_address : felt):
