@@ -4,7 +4,6 @@ import { Account, StarknetContract } from "hardhat/types/runtime";
 import {
   deployToken,
   deployFactory,
-  deployRouter,
   TIMEOUT,
   deployPair,
   // eslint-disable-next-line node/no-missing-import
@@ -17,7 +16,6 @@ describe("Pair Creation Variations Test", function () {
   let token0Contract: StarknetContract;
   let token1Contract: StarknetContract;
   let factoryContract: StarknetContract;
-  let routerContract: StarknetContract;
 
   before(async () => {
     const preDeployedAccounts = await starknet.devnet.getPredeployedAccounts();
@@ -35,18 +33,11 @@ describe("Pair Creation Variations Test", function () {
     token0Contract = await deployToken(deployerAccount, "Token 0", "TKN0");
     token1Contract = await deployToken(deployerAccount, "Token 1", "TKN1");
     factoryContract = await deployFactory(deployerAccount.address);
-    routerContract = await deployRouter(factoryContract.address);
   });
 
   it("Should fail when creating pair using zero address for both tokens", async () => {
     try {
-      await deployPair(
-        deployerAccount,
-        "0",
-        "0",
-        routerContract,
-        factoryContract
-      );
+      await deployPair(deployerAccount, "0", "0", factoryContract);
       expect.fail("Should have failed on passing wrong token address");
     } catch (err: any) {
       expect(
@@ -61,7 +52,6 @@ describe("Pair Creation Variations Test", function () {
         deployerAccount,
         "0",
         token1Contract.address,
-        routerContract,
         factoryContract
       );
       expect.fail("Should have failed on passing wrong token address");
@@ -75,7 +65,6 @@ describe("Pair Creation Variations Test", function () {
         deployerAccount,
         token0Contract.address,
         "0",
-        routerContract,
         factoryContract
       );
       expect.fail("Should have failed on passing wrong token address");
@@ -92,7 +81,6 @@ describe("Pair Creation Variations Test", function () {
         deployerAccount,
         token0Contract.address,
         token0Contract.address,
-        routerContract,
         factoryContract
       );
       expect.fail("Should have failed on passing same token address twice");
@@ -108,7 +96,6 @@ describe("Pair Creation Variations Test", function () {
       deployerAccount,
       token0Contract.address,
       token1Contract.address,
-      routerContract,
       factoryContract
     );
     try {
@@ -116,7 +103,6 @@ describe("Pair Creation Variations Test", function () {
         deployerAccount,
         token0Contract.address,
         token1Contract.address,
-        routerContract,
         factoryContract
       );
       expect.fail(
@@ -134,7 +120,6 @@ describe("Pair Creation Variations Test", function () {
         deployerAccount,
         token1Contract.address,
         token0Contract.address,
-        routerContract,
         factoryContract
       );
       expect.fail(
