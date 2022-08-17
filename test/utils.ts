@@ -331,6 +331,19 @@ export async function swapTokensForExactTokens(
   return txHash;
 }
 
+export async function setFeeTo(
+  caller: Account,
+  factoryContract: StarknetContract,
+  recipient: string
+) {
+  const txHash = await caller.invoke(factoryContract, "set_fee_to", {
+    fee_to_address: recipient,
+  });
+
+  console.log("New fee to address:", recipient, "\nTx Hash:", txHash);
+  return txHash;
+}
+
 // Swap Test Utils
 export async function initializePairs(
   factoryContract: StarknetContract,
