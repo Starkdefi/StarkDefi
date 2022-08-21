@@ -114,7 +114,7 @@ describe("Protocol Fee Test", function () {
     // Approve required tokens to be spent by router
     const token0Amount = ethers.utils.parseUnits(
       "2",
-      await tokenDecimals(user2Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     await approve(
       user2Account,

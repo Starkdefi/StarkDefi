@@ -94,11 +94,11 @@ describe("Add and Remove Liquidity Test", function () {
     // Approve required tokens to be spent by router
     let token0Amount = ethers.utils.parseUnits(
       "11",
-      await tokenDecimals(user1Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     let token1Amount = ethers.utils.parseUnits(
       "23",
-      await tokenDecimals(user1Account, token1Contract)
+      await tokenDecimals(token1Contract)
     );
     await approve(
       user1Account,
@@ -172,11 +172,11 @@ describe("Add and Remove Liquidity Test", function () {
     // Approve more tokens to be spent by router
     token0Amount = ethers.utils.parseUnits(
       "38",
-      await tokenDecimals(user1Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     token1Amount = ethers.utils.parseUnits(
       "22",
-      await tokenDecimals(user1Account, token1Contract)
+      await tokenDecimals(token1Contract)
     );
     await approve(
       user1Account,

@@ -134,7 +134,7 @@ describe("Swap Tokens Test", function () {
     // Approve required tokens to be spent by router
     const token0Amount = ethers.utils.parseUnits(
       "12",
-      await tokenDecimals(user2Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     await approve(
       user2Account,
@@ -283,7 +283,7 @@ describe("Swap Tokens Test", function () {
 
     const token1Amount = ethers.utils.parseUnits(
       "2",
-      await tokenDecimals(user2Account, token1Contract)
+      await tokenDecimals(token1Contract)
     );
 
     // Swap
@@ -445,7 +445,7 @@ describe("Swap Tokens Test", function () {
     // Approve required tokens to be spent by router
     const token0Amount = ethers.utils.parseUnits(
       "5",
-      await tokenDecimals(user2Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     await approve(
       user2Account,
@@ -615,7 +615,7 @@ describe("Swap Tokens Test", function () {
     // Approve required tokens to be spent by router
     const token1Amount = ethers.utils.parseUnits(
       "7",
-      await tokenDecimals(user2Account, token1Contract)
+      await tokenDecimals(token1Contract)
     );
     await approve(
       user2Account,
