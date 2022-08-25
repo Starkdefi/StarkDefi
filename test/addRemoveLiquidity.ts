@@ -94,11 +94,11 @@ describe("Add and Remove Liquidity Test", function () {
     // Approve required tokens to be spent by router
     let token0Amount = ethers.utils.parseUnits(
       "11",
-      await tokenDecimals(user1Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     let token1Amount = ethers.utils.parseUnits(
       "23",
-      await tokenDecimals(user1Account, token1Contract)
+      await tokenDecimals(token1Contract)
     );
     await approve(
       user1Account,
@@ -125,10 +125,6 @@ describe("Add and Remove Liquidity Test", function () {
       Math.round(Date.now() / 1000) + 60 * 15
     );
 
-    // Check events are emitted
-    let eventData = await getEventData(txHash, "Mint");
-    assert(eventData.length !== 0);
-
     const { token0, token1 } = await user1Account.call(
       routerContract,
       "sort_tokens",
@@ -151,6 +147,10 @@ describe("Add and Remove Liquidity Test", function () {
     );
     const pairContract = pairFactory.getContractAt(pairAddress);
 
+    // Check events are emitted
+    // let eventData = await getEventData(txHash, pairContract, "Mint");
+    // assert(eventData.length !== 0);
+
     // Check reserves and total supply conform to the expected values
     let reserves = await user1Account.call(pairContract, "get_reserves");
     let reserve0, reserve1;
@@ -172,11 +172,11 @@ describe("Add and Remove Liquidity Test", function () {
     // Approve more tokens to be spent by router
     token0Amount = ethers.utils.parseUnits(
       "38",
-      await tokenDecimals(user1Account, token0Contract)
+      await tokenDecimals(token0Contract)
     );
     token1Amount = ethers.utils.parseUnits(
       "22",
-      await tokenDecimals(user1Account, token1Contract)
+      await tokenDecimals(token1Contract)
     );
     await approve(
       user1Account,
@@ -204,7 +204,7 @@ describe("Add and Remove Liquidity Test", function () {
     );
 
     // Check events are emitted
-    eventData = await getEventData(txHash, "Mint");
+    let eventData = await getEventData(txHash, pairContract, "Mint");
     assert(eventData.length !== 0);
 
     // Check reserves and total supply conform to the expected values
@@ -275,7 +275,7 @@ describe("Add and Remove Liquidity Test", function () {
     );
 
     // Check events are emitted
-    eventData = await getEventData(txHash, "Burn");
+    eventData = await getEventData(txHash, pairContract, "Burn");
     assert(eventData.length !== 0);
 
     // Check user's LP balance is 0

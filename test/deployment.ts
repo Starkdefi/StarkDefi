@@ -95,7 +95,6 @@ describe("Deployment Test", function () {
       deployerAccount,
       token0Contract.address,
       token1Contract.address,
-      routerContract,
       factoryContract
     );
 

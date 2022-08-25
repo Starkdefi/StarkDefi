@@ -18,7 +18,7 @@ from starkware.cairo.common.bool import FALSE
 
 # Pair created event
 @event
-func PairCreated(event_name : felt, tokenA : felt, tokenB : felt, pair : felt, pair_count : felt):
+func PairCreated(tokenA : felt, tokenB : felt, pair : felt, pair_count : felt):
 end
 
 #
@@ -232,6 +232,6 @@ func create_pair{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _all_pairs.write(pair_count, pair)
 
     # Emit event
-    PairCreated.emit(event_name=97174080259686752580822372, tokenA=token0, tokenB=token1, pair=pair, pair_count=pair_count + 1)
+    PairCreated.emit(tokenA=token0, tokenB=token1, pair=pair, pair_count=pair_count + 1)
     return (pair)
 end
