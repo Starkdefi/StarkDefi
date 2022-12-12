@@ -2,7 +2,7 @@
 
 # @author StarkDefi
 # @license MIT
-# @description port of uniswap router
+# @description StarkDefi Router
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq, uint256_le, is_le
@@ -175,14 +175,14 @@ func remove_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_ch
 
     let (is_amountA_ge_amountAMin) = uint256_le(amountAMin, amountA)
 
-    # require(amountA >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+    # require(amountA >= amountAMin, 'StarkDSwapRouter: INSUFFICIENT_A_AMOUNT');
     with_attr error_message("insufficient A amount"):
         assert is_amountA_ge_amountAMin = TRUE
     end
 
     let (is_amountB_ge_amountBMin) = uint256_le(amountBMin, amountB)
 
-    # require(amountB >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+    # require(amountB >= amountBMin, 'StarkDSwapRouter: INSUFFICIENT_B_AMOUNT');
     with_attr error_message("insufficient B amount"):
         assert is_amountB_ge_amountBMin = TRUE
     end
@@ -210,7 +210,7 @@ func swap_exact_tokens_for_tokens{
         amountOutMin, [amounts + (path_len - 1) * Uint256.SIZE]
     )
 
-    # require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+    # require(amounts[amounts.length - 1] >= amountOutMin, 'StarkDSwapRouter: INSUFFICIENT_OUTPUT_AMOUNT');
     with_attr error_message("insufficient output amount"):
         assert is_amount_last_gel_amountOutMin = TRUE
     end
@@ -242,7 +242,7 @@ func swap_tokens_for_exact_tokens{
     let (local amounts : Uint256*) = StarkDefiLib.get_amounts_in(factory, amountOut, path_len, path)
     let (is_amount_first_le_amountInMax) = uint256_le([amounts], amountInMax)
 
-    # require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+    # require(amounts[0] <= amountInMax, 'StarkDSwapRouter: EXCESSIVE_INPUT_AMOUNT');
     with_attr error_message("excessive input amount"):
         assert is_amount_first_le_amountInMax = 1
     end
@@ -298,7 +298,7 @@ func _add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
         if is_amountBOptimal_le_amountBDesired == TRUE:
             let (is_amountBOptimal_ge_amountBMin) = uint256_le(amountBMin, amountBOptimal)
 
-            # require(amountBOptimal >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+            # require(amountBOptimal >= amountBMin, 'StarkDSwapRouter: INSUFFICIENT_B_AMOUNT');
             with_attr error_message("insufficient B amount"):
                 assert is_amountBOptimal_ge_amountBMin = TRUE
             end
@@ -312,7 +312,7 @@ func _add_liquidity{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_chec
             assert is_amountAOptimal_le_amountADesired = TRUE
             let (is_amountAOptimal_ge_amountAMin) = uint256_le(amountAMin, amountAOptimal)
 
-            # require(amountAOptimal >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+            # require(amountAOptimal >= amountAMin, 'StarkDSwapRouter: INSUFFICIENT_A_AMOUNT');
             with_attr error_message("insufficient A amount"):
                 assert is_amountAOptimal_ge_amountAMin = TRUE
             end
@@ -344,7 +344,7 @@ func _swap{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
         assert amount1Out = Uint256(0, 0)
     end
 
-    # address to = i < path.length - 2 ? UniswapV2Library.pairFor(factory, output, path[i + 2]) : _to;
+    # address to = i < path.length - 2 ? StarkDSwapLibrary.pairFor(factory, output, path[i + 2]) : _to;
     local to
     let (is_index_lt_len_2) = is_le(current_index, amounts_len - 3)
 

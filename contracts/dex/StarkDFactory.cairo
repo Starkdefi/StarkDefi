@@ -2,7 +2,7 @@
 
 # @author StarkDefi
 # @license MIT
-# @description port of uniswap factory
+# @description StarkDefi Factory Contract
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.alloc import alloc
