@@ -72,7 +72,7 @@ namespace StarkDefiLib:
         alloc_locals
         let (is_amountA_gt_zero) = uint256_lt(Uint256(0, 0), amountA)
 
-        # require(amountA > 0, 'UniswapV2Library: INSUFFICIENT_AMOUNT');
+        # require(amountA > 0, 'StarkDSwapLibrary: INSUFFICIENT_AMOUNT');
         with_attr error_message("insufficient amount"):
             assert is_amountA_gt_zero = TRUE
         end
@@ -80,7 +80,7 @@ namespace StarkDefiLib:
         let (is_reserveA_gt_zero) = uint256_lt(Uint256(0, 0), reserveA)
         let (is_reserveB_gt_zero) = uint256_lt(Uint256(0, 0), reserveB)
 
-        # require(reserveA > 0 && reserveB > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        # require(reserveA > 0 && reserveB > 0, 'StarkDSwapLibrary: INSUFFICIENT_LIQUIDITY');
         with_attr error_message("insufficient liquidity"):
             assert is_reserveA_gt_zero = 1
             assert is_reserveB_gt_zero = 1
@@ -98,7 +98,7 @@ namespace StarkDefiLib:
         alloc_locals
         let (is_amountIn_gt_zero) = uint256_lt(Uint256(0, 0), amountIn)
 
-        # require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
+        # require(amountIn > 0, 'StarkDSwapLibrary: INSUFFICIENT_INPUT_AMOUNT');
         with_attr error_message("insufficient input amount"):
             assert is_amountIn_gt_zero = TRUE
         end
@@ -106,7 +106,7 @@ namespace StarkDefiLib:
         let (is_reserveIn_gt_zero) = uint256_lt(Uint256(0, 0), reserveIn)
         let (is_reserveOut_gt_zero) = uint256_lt(Uint256(0, 0), reserveOut)
 
-        # require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        # require(reserveIn > 0 && reserveOut > 0, 'StarkDSwapLibrary: INSUFFICIENT_LIQUIDITY');
         with_attr error_message("insufficient liquidity"):
             assert is_reserveIn_gt_zero = TRUE
             assert is_reserveOut_gt_zero = TRUE
@@ -127,7 +127,7 @@ namespace StarkDefiLib:
         alloc_locals
         let (is_amountOut_gt_zero) = uint256_lt(Uint256(0, 0), amountOut)
 
-        # require(amountOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
+        # require(amountOut > 0, 'StarkDSwapLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
         with_attr error_message("insufficient output amount"):
             assert is_amountOut_gt_zero = TRUE
         end
@@ -135,7 +135,7 @@ namespace StarkDefiLib:
         let (is_reserveIn_gt_zero) = uint256_lt(Uint256(0, 0), reserveIn)
         let (is_reserveOut_gt_zero) = uint256_lt(Uint256(0, 0), reserveOut)
 
-        # require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        # require(reserveIn > 0 && reserveOut > 0, 'StarkDSwapLibrary: INSUFFICIENT_LIQUIDITY');
         with_attr error_message("insufficient liquidity"):
             assert is_reserveIn_gt_zero = TRUE
             assert is_reserveOut_gt_zero = TRUE
@@ -157,7 +157,7 @@ namespace StarkDefiLib:
     ) -> (amounts : Uint256*):
         alloc_locals
 
-        # require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
+        # require(path.length >= 2, 'StarkDSwapLibrary: INVALID_PATH');
         with_attr error_message("invalid path"):
             assert_le(2, path_len)
         end
@@ -212,7 +212,7 @@ namespace StarkDefiLib:
     ) -> (amounts : Uint256*):
         alloc_locals
 
-        # require(path.length >= 2, 'UniswapV2Library: INVALID_PATH');
+        # require(path.length >= 2, 'StarkDSwapLibrary: INVALID_PATH');
         with_attr error_message("invalid path"):
             assert_le(2, path_len)
         end
