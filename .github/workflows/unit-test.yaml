@@ -12,6 +12,6 @@ jobs:
 
       - name: Run Test
         run: |
-          npm i
-          npx hardhat starknet-compile 
-          npx hardhat test --starknet-network integrated-devnet
+          npm run setup
+          npm run test
+          
