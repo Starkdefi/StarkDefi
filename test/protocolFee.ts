@@ -17,7 +17,7 @@ import {
   setFeeTo,
   removeLiquidity,
   // eslint-disable-next-line node/no-missing-import
-} from "./utils";
+} from "../scripts/utils";
 
 describe("Protocol Fee Test", function () {
   this.timeout(TIMEOUT); // 15 mins

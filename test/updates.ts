@@ -6,7 +6,7 @@ import {
   TIMEOUT,
   addressToFelt,
   // eslint-disable-next-line node/no-missing-import
-} from "./utils";
+} from "../scripts/utils";
 
 describe("Update Test", function () {
   this.timeout(TIMEOUT); // 15 mins

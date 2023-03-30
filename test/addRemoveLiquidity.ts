@@ -18,7 +18,7 @@ import {
   addressToFelt,
   tokenDecimals,
   // eslint-disable-next-line node/no-missing-import
-} from "./utils";
+} from "../scripts/utils";
 
 describe("Add and Remove Liquidity Test", function () {
   this.timeout(TIMEOUT); // 15 mins

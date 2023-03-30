@@ -2,6 +2,12 @@ import { FeeEstimation } from "@shardlabs/starknet-hardhat-plugin/dist/src/stark
 import { BigNumber, ethers } from "ethers";
 import { starknet } from "hardhat";
 import { Account, StarknetContract, StringMap } from "hardhat/types/runtime";
+import * as dotenv from "dotenv";
+import { AccountImplementationType } from "@shardlabs/starknet-hardhat-plugin/dist/src/types";
+
+dotenv.config();
+
+const DEFAULT_SALT = process.env.DEPLOYMENT_SALT ?? "0x42";
 
 export const TIMEOUT = 900_000;
 export const MINIMUM_LIQUIDITY = 1000;
@@ -19,6 +25,33 @@ export const USDC = {
 export const DAI = {
   address: "insert_dai_address_here",
 };
+
+export async function getAccount(): Promise<Account> {
+  if (!process.env.DEPLOYER_PKEY || !process.env.DEPLOYER_ADDRESS) {
+    throw new Error("Invalid DEPLOYER_ADDRESS or DEPLOYER_PKEY");
+  }
+
+  if (!process.env.DEPLOYER_ACCOUNT_TYPE) {
+    throw new Error("DEPLOYER_ACCOUNT_TYPE not set");
+  }
+
+  let deployerAccount: Account;
+  const accountType = process.env
+    .DEPLOYER_ACCOUNT_TYPE as AccountImplementationType;
+  try {
+    deployerAccount = await starknet.getAccountFromAddress(
+      process.env.DEPLOYER_ADDRESS,
+      process.env.DEPLOYER_PKEY,
+      accountType
+    );
+  } catch {
+    deployerAccount = await starknet.deployAccount(accountType, {
+      privateKey: process.env.DEPLOYER_PKEY,
+    });
+  }
+
+  return deployerAccount;
+}
 
 export type CairoUint = {
   low: bigint | number | BigNumber;
@@ -61,7 +94,7 @@ export async function deployToken(
       decimals: 18,
       recipient: deployerAccount.address,
     },
-    { salt: "0x42" }
+    { salt: DEFAULT_SALT }
   );
   console.log(name, "deployed at", tokenContract.address);
   return tokenContract;
@@ -82,7 +115,7 @@ export async function deployFactory(
       class_hash_pair_contract: declaredPairClass,
       fee_to_setter: feeToAddress,
     },
-    { salt: "0x42" }
+    { salt: DEFAULT_SALT }
   );
   console.log("Factory deployed at", factoryContract.address);
   return factoryContract;
@@ -96,7 +129,7 @@ export async function deployRouter(
   );
   const routerContract = await routerContractFactory.deploy(
     { factory: factoryAddress },
-    { salt: "0x42" }
+    { salt: DEFAULT_SALT }
   );
   console.log("Router deployed at", routerContract.address);
   return routerContract;
@@ -136,7 +169,7 @@ export async function deployRouterAggregator(
   );
   const routerAggregatorContract = await routerAggregatorContractFactory.deploy(
     { factory: factoryAddress },
-    { salt: "0x42" }
+    { salt: DEFAULT_SALT }
   );
   console.log(
     "Router Aggregator deployed at",
@@ -163,7 +196,7 @@ export async function deployPathFinder(
       daiAddress,
       wethAddress,
     },
-    { salt: "0x42" }
+    { salt: DEFAULT_SALT }
   );
   console.log("Path Finder deployed at", pathFinderContract.address);
   return pathFinderContract;
