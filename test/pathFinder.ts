@@ -13,7 +13,7 @@ import {
   findPath,
   addLiquidity,
   // eslint-disable-next-line node/no-missing-import
-} from "./utils";
+} from "../scripts/utils";
 
 // Path array return in reverse synchronous order (from destination to source)
 // so if multiple elements in path array, path is from source, path[len-1], ..., path[0], destination

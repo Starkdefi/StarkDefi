@@ -1,10 +1,19 @@
 import { starknet } from "hardhat";
+import * as dotenv from "dotenv";
+import {
+  deployFactory,
+  deployPair,
+  deployRouter,
+  getAccount,
+  TIMEOUT,
+} from "./utils";
 
-async function main() {
-  const contractFactory = await starknet.getContractFactory("contract");
-  const contract = await contractFactory.deploy({ initial_balance: 0 });
-  console.log("Deployed to:", contract.address);
-}
+dotenv.config();
+
+const FEE_TO_SETTER = process.env.FEE_TO_SETTER;
+const FEE_TO = process.env.FEE_TO;
+
+async function main() {}
 
 main().catch((error) => {
   console.error(error);

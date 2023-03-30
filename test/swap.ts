@@ -18,7 +18,7 @@ import {
   swapExactTokensForTokens,
   MAX_INT,
   // eslint-disable-next-line node/no-missing-import
-} from "./utils";
+} from "../scripts/utils";
 
 describe("Swap Tokens Test", function () {
   this.timeout(TIMEOUT); // 15 mins
