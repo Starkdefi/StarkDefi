@@ -1,0 +1,6 @@
+version: '3.7'
+services:
+  starknet-devnet:
+    image: shardlabs/starknet-devnet:latest
+    ports:
+      - 127.0.0.1:5050:5050
