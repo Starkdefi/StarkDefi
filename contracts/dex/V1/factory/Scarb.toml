@@ -1,0 +1,6 @@
+[package]
+name = "factory"
+version = "0.1.0"
+
+[dependencies]
+
