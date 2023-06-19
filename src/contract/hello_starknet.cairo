@@ -20,6 +20,6 @@ mod HelloStarknet {
     // Calls a function defined in outside module
     #[view]
     fn get_two() -> felt252 {
-        StarkDefi::utils::util::returns_two()
+        starkDefi::utils::util::returns_two()
     }
 }
