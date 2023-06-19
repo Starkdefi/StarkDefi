@@ -6,13 +6,16 @@
 #[contract]
 mod Factory {
     use array::ArrayTrait;
+    use traits::PartialOrd;
     use starknet::ClassHash;
     use zeroable::Zeroable;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
+    use starknet::get_contract_address;
     use starknet::contract_address_const;
     use starknet::syscalls::deploy_syscall;
-
+    use starknet::contract_address_to_felt252;
+    use starkDefi::utils::ContractAddressPartialOrd; // implentation of PartialOrd for ContractAddress
 
     //
     // Events
@@ -42,8 +45,8 @@ mod Factory {
 
     #[constructor]
     fn constructor(fee_to_setter: ContractAddress, class_hash_pair_contract: ClassHash) {
-        assert(!fee_to_setter.is_zero(), 'invalid fee to setter');
-        assert(!class_hash_pair_contract.is_zero(), 'invalid classhash');
+        assert(fee_to_setter.is_non_zero(), 'invalid fee to setter');
+        assert(class_hash_pair_contract.is_non_zero(), 'invalid classhash');
 
         _all_pairs_length::write(0);
         _class_hash_for_pair_contract::write(class_hash_pair_contract);
@@ -58,8 +61,9 @@ mod Factory {
     // @returns  address of pair
     #[view]
     fn get_pair(tokenA: ContractAddress, tokenB: ContractAddress) -> ContractAddress {
-        let pair = _pair::read((tokenA, tokenB));
-        assert(!pair.is_zero(), 'StarkDefi: PAIR_NOT_FOUND');
+        let sorted_tokens = sort_tokens(tokenA, tokenB);
+        let pair = _pair::read(sorted_tokens);
+        assert(pair.is_non_zero(), 'StarkDefi: PAIR_NOT_FOUND');
         pair
     }
 
@@ -130,7 +134,7 @@ mod Factory {
         let caller = get_caller_address();
         let allowed_setter = fee_to_setter();
         assert(caller == allowed_setter, 'not allowed');
-        assert(!fee_to_setter_address.is_zero(), 'invalid fee to setter');
+        assert(fee_to_setter_address.is_non_zero(), 'invalid fee to setter');
         _fee_to_setter::write(fee_to_setter_address);
     }
 
@@ -140,8 +144,64 @@ mod Factory {
     // @return pair ContractAddress of the new pair
     #[external]
     fn create_pair(tokenA: ContractAddress, tokenB: ContractAddress) -> ContractAddress {
-        // TODO: sort tokens, create pair using pair class_hash
-        contract_address_const::<0>()
+        assert(tokenA.is_non_zero() & tokenB.is_non_zero(), 'invalid token address');
+        assert(tokenA != tokenB, 'identical addresses');
+
+        let found_pair = get_pair(tokenA, tokenB);
+        assert(found_pair.is_zero(), 'pair exists');
+
+        let (token0, token1) = sort_tokens(tokenA, tokenB);
+        let pair_class_hash = _class_hash_for_pair_contract::read();
+        let this_address = get_contract_address();
+
+        let mut pair_constructor_calldata = ArrayTrait::new();
+        pair_constructor_calldata.append(contract_address_to_felt252(token0));
+        pair_constructor_calldata.append(contract_address_to_felt252(token1));
+        pair_constructor_calldata.append(contract_address_to_felt252(this_address));
+
+        let address_salt = pedersen(
+            contract_address_to_felt252(token0), contract_address_to_felt252(token1)
+        );
+
+        let (pair, _) = deploy_syscall(
+            pair_class_hash, address_salt, pair_constructor_calldata.span(), false
+        )
+            .unwrap_syscall();
+
+        _pair::write((token0, token1), pair);
+        let pair_count = _all_pairs_length::read();
+        _all_pairs::write(pair_count, pair);
+        _all_pairs_length::write(pair_count + 1);
+
+        PairCreated(token0, token1, pair, pair_count + 1);
+
+        pair
+    }
+
+    // 
+    // libs
+    //
+
+    // @notice Sort tokens by address
+    // @param tokenA ContractAddress of tokenA
+    // @param tokenB ContractAddress of tokenB
+    // @return (token0, token1)
+    fn sort_tokens(
+        tokenA: ContractAddress, tokenB: ContractAddress
+    ) -> (ContractAddress, ContractAddress) {
+        assert(tokenA != tokenB, 'identical addresses');
+        let mut token0 = contract_address_const::<0>();
+        let mut token1 = contract_address_const::<0>();
+
+        if tokenA < tokenB {
+            token0 = tokenA;
+            token1 = tokenB;
+        } else {
+            token0 = tokenB;
+            token1 = tokenA;
+        }
+        assert(token0.is_non_zero(), 'invalid token0');
+        (token0, token1)
     }
 }
 
