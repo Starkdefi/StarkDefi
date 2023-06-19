@@ -1,76 +1,50 @@
 # StarkDefi
 
-This is the official contract repository for StarkDefi. This project uses hardhat (TypeScript) alongside the **starknet-hardhat-plugin** to run compile, run, deploy and test cairo/starknet contracts.
+This is the official contract repository for StarkDefi.
 
 ## Getting Started
 
-To get started, you need to clone the repository. And install the dependencies.
+This project (Cairo1) uses [Protostar](https://docs.swmansion.com/protostar/) - a Starknet smart contract development toolchain - for development and testing.
 
-Run:
+### Get Protostar
+First [install](https://docs.swmansion.com/protostar/docs/cairo-1/installation) Protostar and confirm that it is working by following these steps:
+
+1. Install Protostar
 
 ```bash
-npm install
+curl -L https://raw.githubusercontent.com/software-mansion/protostar/master/install.sh | bash
 ```
 
-or
+2. Restart termnial
+
+3. Confirm installation
 
 ```bash
-yarn install
+protostar -v
+```
+
+## Testing & Development
+
+### Protostar
+
+Run the following command to install the Protostar dependencies:
+
+```bash
+protostar install
 ```
 
 Compile the contracts by running the following command:
 
 ```bash
-npx hardhat run scripts/compileContract.ts 
+protostar build
 ```
 
 Run the tests by running the following command:
 
 ```bash
-npx hardhat test
+protostar test
 ```
 
-Try running some of the following tasks:
+### Scripts
 
-```shell
-npx hardhat check                         Check whatever you need
-npx hardhat clean                         Clears the cache and deletes all artifacts
-npx hardhat compile                       Compiles the entire project, building all artifacts
-npx hardhat console                       Opens a hardhat console
-npx hardhat flatten                       Flattens and prints contracts and their dependencies
-npx hardhat help                          Prints this message
-npx hardhat node                          Starts a JSON-RPC server on top of Hardhat Network
-npx hardhat run                           Runs a user-defined script after compiling the project
-npx hardhat starknet-call                 Invokes a function on a contract in the provided address.
-npx hardhat starknet-compile              Compiles Starknet contracts
-npx hardhat starknet-deploy               Deploys Starknet contracts which have been compiled.
-npx hardhat starknet-deploy-account       Deploys a new account according to the parameters.
-npx hardhat starknet-estimate-fee         Estimates the gas fee of a function execution.
-npx hardhat starknet-invoke               Invokes a function on a contract in the provided address.
-npx hardhat starknet-verify               Verifies a contract on a Starknet network.
-npx hardhat test                          Runs mocha tests
-```
-
-# FYI
-
-Notice that this plugin relies on `--starknet-network` (or `STARKNET_NETWORK` environment variable) and not on Hardhat's `--network`. So if you define
-
-```javascript
-module.exports = {
-    networks: {
-        myNetwork: {
-            url: "http://127.0.0.1:5050"
-        }
-    }
-};
-```
-
-You can use it by calling `npx hardhat starknet-deploy --starknet-network myNetwork`.
-
-The Alpha networks and integrated Devnet are available by default, you don't need to define them in the config file; just pass:
-
-- `--starknet-network alpha` or `--starknet-network alpha-goerli` for Alpha Testnet (on Goerli)
-- `--starknet-network alpha-mainnet` for Alpha Mainnet
-- `--starknet-network integrated-devnet` for integrated Devnet
-
-By default the integrated Devnet, it will spawn Devnet using its Docker image and listening on <http://127.0.0.1:5050>. **To use this, you must have Docker installed on your machine**.
+TODO: Add scripts for deploying and interacting with the contracts.
