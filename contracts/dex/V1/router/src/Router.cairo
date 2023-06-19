@@ -4,6 +4,4 @@
 // @description Based on UniswapV2 Router Contract
 
 #[contract]
-mod Router {
-   
-}
+mod Router {}
