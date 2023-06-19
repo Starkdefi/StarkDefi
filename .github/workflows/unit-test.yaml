@@ -1,6 +1,13 @@
 name: Run Test on PRs
 
-on: [pull_request]
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
 
 jobs:
   unit-test:
@@ -10,8 +17,17 @@ jobs:
       - name: Check Out
         uses: actions/checkout@v3
 
+      - name: Install Protostar
+        uses: curl -L https://raw.githubusercontent.com/software-mansion/protostar/master/install.sh | bash
+
+      - name: Add to GITHUB_PATH
+        run: echo "/home/runner/.protostar/dist/protostar" >> $GITHUB_PATH
+
+      - name: Install dependencies (Protostar)
+        run: protostar install
+
+      - name: Compile the contracts
+        run: protostar build
+
       - name: Run Test
-        run: |
-          npm run setup
-          npm run test
-          
+        run: protostar test
