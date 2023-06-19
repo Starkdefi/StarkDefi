@@ -1,5 +1,5 @@
 [package]
-name = "StarkDefi"
+name = "starkDefi"
 version = "1.0.0"
 
 [[target.starknet-contract]]

@@ -3,7 +3,7 @@ protostar-version = "0.13.0"
 lib-path = "lib"
 
 [contracts]
-StarkDefi = ["src"]
+starkDefi = ["src"]
 factory = ["contracts/dex/V1/factory/src"]
 router = ["contracts/dex/V1/router/src"]
 pair = ["contracts/dex/V1/pair/src"]
