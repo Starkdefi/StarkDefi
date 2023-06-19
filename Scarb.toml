@@ -1,0 +1,19 @@
+[package]
+name = "StarkDefi"
+version = "1.0.0"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+casm-add-pythonic-hints = true
+
+[dependencies]
+starknet = ">=1.1.0"
+factory = {path = "./contracts/dex/V1/factory"}
+router = {path = "./contracts/dex/V1/router"}
+pair = {path = "./contracts/dex/V1/pair"}
+
+[scripts]
+build = "protostar build"
+test = "protostar test"
+devnet = "docker-compose up -d"
