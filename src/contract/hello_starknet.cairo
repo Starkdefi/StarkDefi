@@ -17,9 +17,9 @@ mod HelloStarknet {
         balance::read()
     }
 
-    // Calls a function defined in outside module
-    #[view]
-    fn get_two() -> felt252 {
-        starkDefi::utils::util::returns_two()
-    }
+    // // Calls a function defined in outside module
+    // #[view]
+    // fn get_two() -> felt252 {
+    //     starkDefi::utils::util::returns_two()
+    // }
 }
