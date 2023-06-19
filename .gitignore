@@ -1,11 +1,18 @@
 .DS_Store
 .temp/
+.vscode
 
 node_modules
 .env
+.docker
+.protostar_cache
 coverage
 coverage.json
 typechain
+*.account
+build/
+dist/
+*.log
 
 #Hardhat files
 cache
