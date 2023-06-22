@@ -264,9 +264,31 @@ mod StarkDPair {
         (_reserve0::read(), _reserve1::read(), _block_timestamp_last::read())
     }
 
-    fn _mint_fee(reserve0: u256, reserve1: u256) -> (u256, u256) {
-        // TODO: implement mint fee
-        (0, 0)
+    fn _mint_fee(reserve0: u256, reserve1: u256) -> bool {
+        let fee_to = IStarkDFactoryDispatcher { contract_address: _factory::read() }.fee_to();
+        let fee_on = fee_to != Zeroable::zero();
+        let k_last: u256 = _klast::read();
+
+        if fee_on {
+            if k_last != 0 {
+                let root_k = u256 { low: u256_sqrt(reserve0 * reserve1), high: 0 };
+                let root_k_last = u256 { low: u256_sqrt(k_last), high: 0 };
+
+                if root_k > root_k_last {
+                    let numerator = totalSupply() * (root_k - root_k_last);
+                    let denominator = (root_k * 5) + root_k_last;
+                    let liquidity = numerator / denominator;
+
+                    if liquidity > 0 {
+                        ERC20::_mint(fee_to, liquidity);
+                    }
+                }
+            }
+        } else if k_last != 0 {
+            _klast::write(0);
+        }
+
+        fee_on
     }
 
     fn _update(balance0: u256, balance1: u256, reserve0: u256, reserve1: u256) {
