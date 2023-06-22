@@ -191,9 +191,11 @@ mod ERC20 {
     #[internal]
     fn _mint(recipient: ContractAddress, amount: u256) {
         assert(!recipient.is_zero(), 'ERC20: mint to 0');
-        _totalSupply::write(_totalSupply::read() + amount);
-        _balances::write(recipient, _balances::read(recipient) + amount);
-        Transfer(Zeroable::zero(), recipient, amount);
+        if amount > 0 {
+            _totalSupply::write(_totalSupply::read() + amount);
+            _balances::write(recipient, _balances::read(recipient) + amount);
+            Transfer(Zeroable::zero(), recipient, amount);
+        }
     }
 
     #[internal]
