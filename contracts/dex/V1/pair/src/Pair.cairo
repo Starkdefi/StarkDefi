@@ -207,6 +207,7 @@ mod StarkDPair {
     fn burn(to: ContractAddress) -> (u256, u256) {
         _lock();
         let (reserve0, reserve1, _) = _get_reserves();
+        let this_address = get_contract_address();
         let token0Dispatcher = IERC20Dispatcher { contract_address: _token0::read() };
         let token1Dispatcher = IERC20Dispatcher { contract_address: _token1::read() };
 
