@@ -1,2 +1,2 @@
-mod erc20;
-use erc20::ERC20;
+mod _ERC20;
+use _ERC20::ERC20;
