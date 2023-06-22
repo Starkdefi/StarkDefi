@@ -9,6 +9,7 @@ mod StarkDPair {
     use token::ERC20;
     use array::ArrayTrait;
     use starknet::ContractAddress;
+    use starknet::get_caller_address;
 
     //
     // Events
@@ -78,7 +79,7 @@ mod StarkDPair {
     //
 
     #[contructor]
-    fn constructor(tokenA: ContractAddress, tokenB: ContractAddress, factory: ContractAddress) {
+    fn constructor(tokenA: ContractAddress, tokenB: ContractAddress) {
         assert(
             tokenA.is_not_zero() & tokenB.is_not_zero() & factory.is_not_zero(), 'invalid address'
         );
@@ -86,7 +87,7 @@ mod StarkDPair {
         _entry_locked::write(false);
         _token0::write(tokenA);
         _token1::write(tokenB);
-        _factory::write(factory);
+        _factory::write(get_caller_address());
     }
 
     // 
