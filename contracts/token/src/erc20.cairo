@@ -79,9 +79,7 @@ mod ERC20 {
             true
         }
 
-        fn transferFrom(
-            sender: ContractAddress, recipient: ContractAddress, amount: u256
-        ) -> bool {
+        fn transferFrom(sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool {
             let caller = get_caller_address();
             _spend_allowance(sender, caller, amount);
             _transfer(sender, recipient, amount);
