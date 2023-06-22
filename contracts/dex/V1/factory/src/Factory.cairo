@@ -4,7 +4,7 @@
 // @description Based on UniswapV2 Factory Contract
 
 #[contract]
-mod Factory {
+mod StarkDFactory {
     use array::ArrayTrait;
     use traits::PartialOrd;
     use starknet::ClassHash;
@@ -166,7 +166,7 @@ mod Factory {
         let (pair, _) = deploy_syscall(
             pair_class_hash, address_salt, pair_constructor_calldata.span(), false
         )
-            .unwrap_syscall();
+            .unwrap_syscall(); // deploy_syscall never panics
 
         _pair::write((token0, token1), pair);
         let pair_count = _all_pairs_length::read();

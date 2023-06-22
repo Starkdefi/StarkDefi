@@ -4,4 +4,4 @@
 // @description Based on UniswapV2 Pair Contract
 
 #[contract]
-mod Pair {}
+mod StarkDPair {}
