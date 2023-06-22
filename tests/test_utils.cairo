@@ -2,9 +2,10 @@ use starknet::ContractAddress;
 use traits::TryInto;
 use zeroable::Zeroable;
 use option::OptionTrait;
-use starkDefi::utils::ContractAddressPartialOrd;
 use debug::PrintTrait;
-use starkDefi::utils::MinMax;
+use array::ArrayTrait;
+use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd, MinMax};
+
 
 #[test]
 fn test_return_is_le() {
@@ -51,5 +52,21 @@ fn test_max() {
 
     MinMax::max(a, b).print();
     assert(MinMax::max(a, b) == b, 'max');
+}
+
+#[test]
+fn test_reverse_u256() {
+    let mut arr = ArrayTrait::<u256>::new();
+    arr.append(5);
+    arr.append(10);
+    arr.append(15);
+    arr.append(20);
+    arr.append(25);
+
+    let reversed = arr.reverse();
+    (*arr[0]).print();
+    (*reversed[0]).print();
+
+    assert(*arr.at(0) == *reversed.at(0), 'reverse');
 }
 
