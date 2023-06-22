@@ -13,10 +13,12 @@ mod StarkDPair {
     use array::ArrayTrait;
     use option::OptionTrait;
     use starknet::ContractAddress;
+    use starknet::contract_address_const;
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
     use starknet::get_contract_address;
     use integer::u128_try_from_felt252;
+    use starkDefi::utils::MinMax;
 
     //
     // Events
@@ -199,8 +201,42 @@ mod StarkDPair {
     #[external]
     fn mint(to: ContractAddress) -> u256 {
         _lock();
-        // TODO: implement pair mint
-        0
+        let (reserve0, reserve1, _) = _get_reserves();
+        let this_address = get_contract_address();
+        let balance0 = IERC20Dispatcher {
+            contract_address: _token0::read()
+        }.balanceOf(this_address);
+        let balance1 = IERC20Dispatcher {
+            contract_address: _token1::read()
+        }.balanceOf(this_address);
+        let amount0 = balance0 - reserve0;
+        let amount1 = balance1 - reserve1;
+
+        let feeOn = _mint_fee(reserve0, reserve1);
+        let totalSupply = totalSupply();
+
+        let mut lockedLiquidity: u256 = 0;
+        let liquidity = if (totalSupply == 0) {
+            lockedLiquidity = 1000; // calling ERC20::_mint here doesn't work
+            u256 { low: u256_sqrt(amount0 * amount1) - 1000, high: 0 }
+        } else {
+            let liquidity0 = (amount0 * totalSupply) / reserve0;
+            let liquidity1 = (amount1 * totalSupply) / reserve1;
+            MinMax::min(liquidity0, liquidity1)
+        };
+
+        assert(liquidity > 0, 'insufficient liquidity minted');
+        ERC20::_mint(contract_address_const::<1>(), lockedLiquidity); // ignored in ERC20::_mint if lockedLiquidity == 0
+        ERC20::_mint(to, liquidity);
+
+        _update(balance0, balance1, reserve0, reserve1);
+        if feeOn {
+            _klast::write(reserve0 * reserve1);
+        }
+
+        Mint(get_caller_address(), amount0, amount1);
+        _unlock();
+        liquidity
     }
 
     #[external]
