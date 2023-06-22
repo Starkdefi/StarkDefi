@@ -7,9 +7,11 @@
 mod StarkDPair {
     // use 
     use token::ERC20;
+    use traits::Into;
     use integer::u256_sqrt;
     use zeroable::Zeroable;
     use array::ArrayTrait;
+    use option::OptionTrait;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
@@ -267,9 +269,29 @@ mod StarkDPair {
         (0, 0)
     }
 
-    fn _update(
-        balance0: u256, balance1: u256, reserve0: u256, reserve1: u256
-    ) { // TODO: implement update
+    fn _update(balance0: u256, balance1: u256, reserve0: u256, reserve1: u256) {
+        assert(balance0.high == 0 & balance1.high == 0, 'overflow');
+
+        let block_timestamp = get_block_timestamp();
+        let timeElapsed = block_timestamp - _block_timestamp_last::read();
+
+        if (timeElapsed > 0 & reserve0 != 0 & reserve1 != 0) {
+            _price_0_cumulative_last::write(
+                _price_0_cumulative_last::read() + (reserve1 / reserve0) * u256 {
+                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
+                }
+            );
+            _price_1_cumulative_last::write(
+                _price_1_cumulative_last::read() + (reserve0 / reserve1) * u256 {
+                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
+                }
+            );
+        }
+
+        _reserve0::write(balance0);
+        _reserve1::write(balance1);
+        _block_timestamp_last::write(block_timestamp);
+        Sync(reserve0, reserve1);
     }
 
     //
