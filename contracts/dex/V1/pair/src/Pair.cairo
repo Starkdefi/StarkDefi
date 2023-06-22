@@ -7,9 +7,13 @@
 mod StarkDPair {
     // use 
     use token::ERC20;
+    use integer::u256_sqrt;
+    use zeroable::Zeroable;
     use array::ArrayTrait;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
+    use starknet::get_block_timestamp;
+    use starknet::get_contract_address;
 
     //
     // Events
@@ -80,9 +84,7 @@ mod StarkDPair {
 
     #[contructor]
     fn constructor(tokenA: ContractAddress, tokenB: ContractAddress) {
-        assert(
-            tokenA.is_not_zero() & tokenB.is_not_zero() & factory.is_not_zero(), 'invalid address'
-        );
+        assert(tokenA.is_non_zero() & tokenB.is_non_zero(), 'invalid address');
         ERC20::initializer('StarkDefi Pair', 'STARKD-P');
         _entry_locked::write(false);
         _token0::write(tokenA);
@@ -206,7 +208,7 @@ mod StarkDPair {
     }
 
     #[external]
-    fn swap(amount0Out: u256, amount1Out: u256, to: u256, data: Array::<felt256>) {
+    fn swap(amount0Out: u256, amount1Out: u256, to: u256, data: Array::<felt252>) {
         _lock();
     // TODO: implement pair swap
     }
@@ -220,7 +222,18 @@ mod StarkDPair {
     #[external]
     fn sync() {
         _lock();
-    // TODO: implement pair sync
+        let token0 = _token0::read();
+        let token1 = _token1::read();
+        let this_address = get_contract_address();
+
+        let balance0 = IERC20Dispatcher { contract_address: token0 }.balanceOf(this_address);
+        let balance1 = IERC20Dispatcher { contract_address: token1 }.balanceOf(this_address);
+
+        let (reserve0, reserve1, _) = _get_reserves();
+
+        _update(balance0, balance1, reserve0, reserve1);
+
+        _unlock();
     }
 
 
