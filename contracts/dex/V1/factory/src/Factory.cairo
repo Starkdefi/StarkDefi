@@ -12,7 +12,6 @@ mod StarkDFactory {
     use starknet::ContractAddress;
     use starknet::get_caller_address;
     use starknet::get_contract_address;
-    use starknet::contract_address_const;
     use starknet::syscalls::deploy_syscall;
     use starknet::contract_address_to_felt252;
     use starkDefi::utils::ContractAddressPartialOrd; // implentation of PartialOrd for ContractAddress
@@ -190,8 +189,8 @@ mod StarkDFactory {
         tokenA: ContractAddress, tokenB: ContractAddress
     ) -> (ContractAddress, ContractAddress) {
         assert(tokenA != tokenB, 'identical addresses');
-        let mut token0 = contract_address_const::<0>();
-        let mut token1 = contract_address_const::<0>();
+        let mut token0: ContractAddress  = Zeroable::zero();
+        let mut token1: ContractAddress = Zeroable::zero();
 
         if tokenA < tokenB {
             token0 = tokenA;
