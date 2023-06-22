@@ -151,12 +151,10 @@ mod StarkDFactory {
 
         let (token0, token1) = sort_tokens(tokenA, tokenB);
         let pair_class_hash = _class_hash_for_pair_contract::read();
-        let this_address = get_contract_address();
 
         let mut pair_constructor_calldata = ArrayTrait::new();
         pair_constructor_calldata.append(contract_address_to_felt252(token0));
         pair_constructor_calldata.append(contract_address_to_felt252(token1));
-        pair_constructor_calldata.append(contract_address_to_felt252(this_address));
 
         let address_salt = pedersen(
             contract_address_to_felt252(token0), contract_address_to_felt252(token1)
