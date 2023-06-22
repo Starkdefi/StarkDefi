@@ -206,8 +206,37 @@ mod StarkDPair {
     #[external]
     fn burn(to: ContractAddress) -> (u256, u256) {
         _lock();
-        // TODO: implement pair burn
-        (0, 0)
+        let (reserve0, reserve1, _) = _get_reserves();
+        let token0Dispatcher = IERC20Dispatcher { contract_address: _token0::read() };
+        let token1Dispatcher = IERC20Dispatcher { contract_address: _token1::read() };
+
+        let mut balance0 = token0Dispatcher.balanceOf(this_address);
+        let mut balance1 = token1Dispatcher.balanceOf(this_address);
+        let liquidity = balanceOf(this_address);
+
+        let feeOn = _mint_fee(reserve0, reserve1);
+        let totalSupply = totalSupply();
+        let amount0 = (liquidity * balance0) / totalSupply;
+        let amount1 = (liquidity * balance1) / totalSupply;
+        assert(amount0 > 0 & amount1 > 0, 'insufficient liquidity burned');
+
+        ERC20::_burn(get_contract_address(), liquidity);
+
+        token0Dispatcher.transfer(to, amount0);
+        token1Dispatcher.transfer(to, amount1);
+
+        balance0 = token0Dispatcher.balanceOf(this_address);
+        balance1 = token1Dispatcher.balanceOf(this_address);
+
+        _update(balance0, balance1, reserve0, reserve1);
+        if feeOn {
+            _klast::write(reserve0 * reserve1);
+        }
+
+        Burn(get_caller_address(), amount0, amount1, to);
+
+        _unlock();
+        (amount0, amount1)
     }
 
     #[external]
@@ -307,7 +336,6 @@ mod StarkDPair {
 
         _unlock();
     }
-
 
     //
     // Internals
