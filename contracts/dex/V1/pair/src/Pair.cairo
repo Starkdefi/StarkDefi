@@ -14,6 +14,7 @@ mod StarkDPair {
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
     use starknet::get_contract_address;
+    use integer::u128_try_from_felt252;
 
     //
     // Events
@@ -216,18 +217,34 @@ mod StarkDPair {
     #[external]
     fn skim(to: ContractAddress) {
         _lock();
-    // TODO: implement pair skim
+
+        let (reserve0, reserve1, _) = _get_reserves();
+        let this_address = get_contract_address();
+
+        let token0Dispatcher = IERC20Dispatcher { contract_address: _token0::read() };
+        let token1Dispatcher = IERC20Dispatcher { contract_address: _token1::read() };
+
+        let balance0 = token0Dispatcher.balanceOf(this_address);
+        let balance1 = token1Dispatcher.balanceOf(this_address);
+
+        token0Dispatcher.transfer(to, balance0 - reserve0);
+        token1Dispatcher.transfer(to, balance1 - reserve1);
+
+        _unlock();
     }
 
     #[external]
     fn sync() {
         _lock();
-        let token0 = _token0::read();
-        let token1 = _token1::read();
         let this_address = get_contract_address();
 
-        let balance0 = IERC20Dispatcher { contract_address: token0 }.balanceOf(this_address);
-        let balance1 = IERC20Dispatcher { contract_address: token1 }.balanceOf(this_address);
+        let balance0 = IERC20Dispatcher {
+            contract_address: _token0::read()
+        }.balanceOf(this_address);
+
+        let balance1 = IERC20Dispatcher {
+            contract_address: _token1::read()
+        }.balanceOf(this_address);
 
         let (reserve0, reserve1, _) = _get_reserves();
 
