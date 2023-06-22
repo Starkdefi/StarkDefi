@@ -211,9 +211,62 @@ mod StarkDPair {
     }
 
     #[external]
-    fn swap(amount0Out: u256, amount1Out: u256, to: u256, data: Array::<felt252>) {
+    fn swap(amount0Out: u256, amount1Out: u256, to: ContractAddress, data: Array::<felt252>) {
         _lock();
-    // TODO: implement pair swap
+
+        assert(amount0Out > 0 | amount1Out > 0, 'insufficient output amount');
+        let (reserve0, reserve1, _) = _get_reserves();
+        assert(amount0Out < reserve0 & amount1Out < reserve1, 'insufficient liquidity');
+
+        let token0 = _token0::read();
+        let token1 = _token1::read();
+        assert(to != token0 & to != token1, 'invalid to');
+
+        let this_address = get_contract_address();
+
+        let token0Dispatcher = IERC20Dispatcher { contract_address: token0 };
+        let token1Dispatcher = IERC20Dispatcher { contract_address: token1 };
+
+        if amount0Out > 0 {
+            token0Dispatcher.transfer(to, amount0Out);
+        }
+        if amount1Out > 0 {
+            token1Dispatcher.transfer(to, amount1Out);
+        }
+        if data.len() > 0 {
+            IStarkDCalleeDispatcher {
+                contract_address: to
+            }.starkd_call(get_caller_address(), amount0Out, amount1Out, data);
+        }
+
+        let balance0 = token0Dispatcher.balanceOf(this_address);
+        let balance1 = token1Dispatcher.balanceOf(this_address);
+
+        let amount0In = if balance0 > reserve0 - amount0Out {
+            balance0 - (reserve0 - amount0Out)
+        } else {
+            0
+        };
+
+        let amount1In = if balance1 > reserve1 - amount1Out {
+            balance1 - (reserve1 - amount1Out)
+        } else {
+            0
+        };
+
+        assert(amount0In > 0 | amount1In > 0, 'insufficient input amount');
+
+        let balance0Adjusted = (balance0 * 1000) - (amount0In * 3);
+        let balance1Adjusted = (balance1 * 1000) - (amount1In * 3);
+        assert(
+            balance0Adjusted * balance1Adjusted >= reserve0 * reserve1 * 1000 * 1000, 'invariant K'
+        );
+
+        _update(balance0, balance1, reserve0, reserve1);
+
+        Swap(get_caller_address(), amount0In, amount1In, amount0Out, amount1Out, to);
+
+        _unlock();
     }
 
     #[external]
