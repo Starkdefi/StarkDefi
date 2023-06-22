@@ -242,7 +242,6 @@ mod StarkDPair {
     #[external]
     fn swap(amount0Out: u256, amount1Out: u256, to: ContractAddress, data: Array::<felt252>) {
         _lock();
-
         assert(amount0Out > 0 | amount1Out > 0, 'insufficient output amount');
         let (reserve0, reserve1, _) = _get_reserves();
         assert(amount0Out < reserve0 & amount1Out < reserve1, 'insufficient liquidity');
@@ -301,7 +300,6 @@ mod StarkDPair {
     #[external]
     fn skim(to: ContractAddress) {
         _lock();
-
         let (reserve0, reserve1, _) = _get_reserves();
         let this_address = get_contract_address();
 
