@@ -113,7 +113,7 @@ mod StarkDFactory {
         _class_hash_for_pair_contract::read()
     }
     //
-    // Setters
+    // External
     //
 
     // @notice Set fee to address
@@ -189,7 +189,7 @@ mod StarkDFactory {
         tokenA: ContractAddress, tokenB: ContractAddress
     ) -> (ContractAddress, ContractAddress) {
         assert(tokenA != tokenB, 'identical addresses');
-        let mut token0: ContractAddress  = Zeroable::zero();
+        let mut token0: ContractAddress = Zeroable::zero();
         let mut token1: ContractAddress = Zeroable::zero();
 
         if tokenA < tokenB {
