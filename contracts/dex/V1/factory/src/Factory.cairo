@@ -187,16 +187,11 @@ mod StarkDFactory {
         tokenA: ContractAddress, tokenB: ContractAddress
     ) -> (ContractAddress, ContractAddress) {
         assert(tokenA != tokenB, 'identical addresses');
-        let mut token0: ContractAddress = Zeroable::zero();
-        let mut token1: ContractAddress = Zeroable::zero();
-
-        if tokenA < tokenB {
-            token0 = tokenA;
-            token1 = tokenB;
+        let (token0, token1) = if tokenA < tokenB {
+            (tokenA, tokenB)
         } else {
-            token0 = tokenB;
-            token1 = tokenA;
-        }
+            (tokenB, tokenA)
+        };
         assert(token0.is_non_zero(), 'invalid token0');
         (token0, token1)
     }
