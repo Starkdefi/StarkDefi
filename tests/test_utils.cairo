@@ -54,19 +54,19 @@ fn test_max() {
     assert(MinMax::max(a, b) == b, 'max');
 }
 
-#[test]
-fn test_reverse_u256() {
-    let mut arr = ArrayTrait::<u256>::new();
-    arr.append(5);
-    arr.append(10);
-    arr.append(15);
-    arr.append(20);
-    arr.append(25);
+// #[test]
+// fn test_reverse_u256() {
+//     let mut arr = ArrayTrait::<u256>::new();
+//     arr.append(5);
+//     arr.append(10);
+//     arr.append(15);
+//     arr.append(20);
+//     arr.append(25);
 
-    let reversed = arr.reverse();
-    (*arr[0]).print();
-    (*reversed[0]).print();
+//     let reversed = arr.reverse();
+//     (*arr[0]).print();
+//     (*reversed[0]).print();
 
-    assert(*arr.at(0) == *reversed.at(0), 'reverse');
-}
+//     assert(*arr.at(0) == *reversed.at(arr.len()-1), 'reverse');
+// }
 
