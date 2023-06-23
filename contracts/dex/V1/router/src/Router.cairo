@@ -9,6 +9,7 @@ mod StarkDRouter {
     use array::ArrayTrait;
     use zeroable::Zeroable;
     use option::OptionTrait;
+    use starknet::get_block_timestamp;
     use starknet::ContractAddress;
     use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
 
@@ -100,6 +101,10 @@ mod StarkDRouter {
     // 
     // Internals
     //
+
+    fn _ensure(deadline: u64) {
+        assert(get_block_timestamp() <= deadline, 'expired');
+    }
 
     fn _sort_tokens(
         tokenA: ContractAddress, tokenB: ContractAddress
