@@ -118,7 +118,33 @@ mod StarkDRouter {
     }
 
     // @dev requires the initial amount to have already been sent to the first pair
-    fn _swap(amounts: Span::<u256>, path: Span::<ContractAddress>, _to: ContractAddress) {}
+    fn _swap(amounts: Span::<u256>, path: Span::<ContractAddress>, _to: ContractAddress) {
+        let mut index: u32 = 0;
+        loop {
+            if index == path.len() - 1 { // path len 2 [0, 1], len - 1 = 1
+                break ();
+            }
+            let (token0, _) = _sort_tokens(*path[index], *path[index + 1]);
+            let mut amount0Out: u256 = 0;
+            let mut amount1Out: u256 = 0;
+
+            if *path[index] == token0 {
+                amount1Out = *amounts[index + 1];
+            } else {
+                amount0Out = *amounts[index + 1];
+            }
+
+            let mut to: ContractAddress = _to;
+            if index < path.len() - 2 {
+                to = _pair_for(*path[index + 1], *path[index + 2]);
+            }
+
+            IStarkDPairDispatcher {
+                contract_address: _pair_for(*path[index], *path[index + 1])
+            }.swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
+            index += 1;
+        }
+    }
 
     fn _pair_for(tokenA: ContractAddress, tokenB: ContractAddress) -> ContractAddress {
         let (token0, token1) = _sort_tokens(tokenA, tokenB);
