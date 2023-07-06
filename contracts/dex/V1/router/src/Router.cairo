@@ -99,11 +99,30 @@ mod StarkDRouter {
     // 
 
     // 
-    // Internals
+    // Internals & Libs
     //
 
     fn _ensure(deadline: u64) {
         assert(get_block_timestamp() <= deadline, 'expired');
+    }
+
+    fn _add_liquidity(
+        tokenA: ContractAddress,
+        tokenB: ContractAddress,
+        amountADesired: u256,
+        amountBDesired: u256,
+        amountAMin: u256,
+        amountBMin: u256
+    ) -> (u256, u256) {
+        (0, 0)
+    }
+
+    // @dev requires the initial amount to have already been sent to the first pair
+    fn _swap(amounts: Span::<u256>, path: Span::<ContractAddress>, _to: ContractAddress) {}
+
+    fn _pair_for(tokenA: ContractAddress, tokenB: ContractAddress) -> ContractAddress {
+        let (token0, token1) = _sort_tokens(tokenA, tokenB);
+        IStarkDFactoryDispatcher { contract_address: _factory::read() }.get_pair(token0, token1)
     }
 
     fn _sort_tokens(
@@ -117,11 +136,6 @@ mod StarkDRouter {
         };
         assert(token0.is_non_zero(), 'invalid token0');
         (token0, token1)
-    }
-
-    fn _pair_for(tokenA: ContractAddress, tokenB: ContractAddress) -> ContractAddress {
-        let (token0, token1) = _sort_tokens(tokenA, tokenB);
-        IStarkDFactoryDispatcher { contract_address: _factory::read() }.get_pair(token0, token1)
     }
 
     fn _get_reserves(tokenA: ContractAddress, tokenB: ContractAddress) -> (u256, u256) {
