@@ -109,19 +109,18 @@ mod StarkDRouter {
         amountBMin: u256,
         to: ContractAddress,
         deadline: u64
-    ) -> (u256, u256, u256) {}
-
-    #[external]
-    fn zap(
-        tokenToZap: ContractAddress,
-        pair: ContractAddress,
-        amountADesired: u256,
-        amountBDesired: u256,
-        amountAMin: u256,
-        amountBMin: u256,
-        to: ContractAddress,
-        deadline: u64
-    ) -> (u256, u256, u256) {}
+    ) -> (u256, u256, u256) {
+        _ensure(deadline);
+        let (amountA, amountB) = _add_liquidity(
+            tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin
+        );
+        let pair = _pair_for(tokenA, tokenB);
+        let sender = get_caller_address();
+        IERC20Dispatcher { contract_address: tokenA }.transferFrom(sender, pair, amountA);
+        IERC20Dispatcher { contract_address: tokenB }.transferFrom(sender, pair, amountB);
+        let liquidity = IStarkDPairDispatcher { contract_address: pair }.mint(to);
+        (amountA, amountB, liquidity)
+    }
 
     #[external]
     fn remove_liquidity(
