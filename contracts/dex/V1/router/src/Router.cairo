@@ -9,9 +9,10 @@ mod StarkDRouter {
     use array::ArrayTrait;
     use zeroable::Zeroable;
     use option::OptionTrait;
+    use starknet::ContractAddress;
+    use starknet::get_caller_address;
     use starknet::get_block_timestamp;
     use starknet::contract_address_const;
-    use starknet::ContractAddress;
     use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
 
     // 
@@ -131,7 +132,26 @@ mod StarkDRouter {
         amountBMin: u256,
         to: ContractAddress,
         deadline: u64
-    ) -> (u256, u256) {}
+    ) -> (u256, u256) {
+        _ensure(deadline);
+        let pair = _pair_for(tokenA, tokenB);
+        let sender = get_caller_address();
+        IERC20Dispatcher { contract_address: pair }.transferFrom(sender, pair, liquidity);
+        let (amoun0, amount1) = IStarkDPairDispatcher { contract_address: pair }.burn(to);
+        let (token0, _) = _sort_tokens(tokenA, tokenB);
+        let mut amountA = 0;
+        let mut amountB = 0;
+        if token0 == tokenA {
+            amountA = amount0;
+            amountB = amount1;
+        } else {
+            amountA = amount1;
+            amountB = amount0;
+        }
+        assert(amountA >= amountAMin, 'insufficient A amount');
+        assert(amountB >= amountBMin, 'insufficient B amount');
+        (amountA, amountB)
+    }
 
     #[external]
     fn swap_exact_tokens_for_tokens(
@@ -196,7 +216,7 @@ mod StarkDRouter {
     fn _swap(amounts: Span::<u256>, path: Span::<ContractAddress>, _to: ContractAddress) {
         let mut index: u32 = 0;
         loop {
-            if index == path.len() - 1 { // path len 2 [0, 1], len - 1 = 1
+            if index == path.len() - 1 {
                 break ();
             }
             let (token0, _) = _sort_tokens(*path[index], *path[index + 1]);
