@@ -10,6 +10,7 @@ mod StarkDRouter {
     use zeroable::Zeroable;
     use option::OptionTrait;
     use starknet::get_block_timestamp;
+    use starknet::contract_address_const;
     use starknet::ContractAddress;
     use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
 
@@ -114,8 +115,58 @@ mod StarkDRouter {
         amountAMin: u256,
         amountBMin: u256
     ) -> (u256, u256) {
-        (0, 0)
+        let factory = _factory::read();
+        let factoryDispatcher = IStarkDFactoryDispatcher { contract_address: factory };
+
+        if (factoryDispatcher.get_pair(tokenA, tokenB) == contract_address_const::<0>()) {
+            factoryDispatcher.create_pair(tokenA, tokenB);
+        }
+
+        let (reserveA, reserveB) = _get_reserves(tokenA, tokenB);
+
+        if (reserveA == 0 & reserveB == 0) {
+            (amountADesired, amountBDesired)
+        } else {
+            let amountBOptimal = _quote(amountADesired, reserveA, reserveB);
+            if (amountBOptimal <= amountBDesired) {
+                assert(amountBOptimal >= amountBMin, 'INSUFFICIENT_B_AMOUNT');
+                (amountADesired, amountBOptimal)
+            } else {
+                let amountAOptimal = _quote(amountBDesired, reserveB, reserveA);
+                assert(amountAOptimal <= amountADesired, 'INSUFFICIENT_A_AMOUNT');
+                assert(amountAOptimal >= amountAMin, 'INSUFFICIENT_A_AMOUNT');
+                (amountAOptimal, amountBDesired)
+            }
+        }
     }
+    // function _addLiquidity(
+    //     address tokenA,
+    //     address tokenB,
+    //     uint amountADesired,
+    //     uint amountBDesired,
+    //     uint amountAMin,
+    //     uint amountBMin
+    // ) private returns (uint amountA, uint amountB) {
+    //     // create the pair if it doesn't exist yet
+    //     if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
+    //         IUniswapV2Factory(factory).createPair(tokenA, tokenB);
+    //     }
+    //     (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+    //     if (reserveA == 0 && reserveB == 0) {
+    //         (amountA, amountB) = (amountADesired, amountBDesired);
+    //     } else {
+    //         uint amountBOptimal = UniswapV2Library.quote(amountADesired, reserveA, reserveB);
+    //         if (amountBOptimal <= amountBDesired) {
+    //             require(amountBOptimal >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+    //             (amountA, amountB) = (amountADesired, amountBOptimal);
+    //         } else {
+    //             uint amountAOptimal = UniswapV2Library.quote(amountBDesired, reserveB, reserveA);
+    //             assert(amountAOptimal <= amountADesired);
+    //             require(amountAOptimal >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+    //             (amountA, amountB) = (amountAOptimal, amountBDesired);
+    //         }
+    //     }
+    // }
 
     // @dev requires the initial amount to have already been sent to the first pair
     fn _swap(amounts: Span::<u256>, path: Span::<ContractAddress>, _to: ContractAddress) {
