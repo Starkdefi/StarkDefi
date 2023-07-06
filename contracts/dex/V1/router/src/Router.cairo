@@ -137,10 +137,11 @@ mod StarkDRouter {
         let pair = _pair_for(tokenA, tokenB);
         let sender = get_caller_address();
         IERC20Dispatcher { contract_address: pair }.transferFrom(sender, pair, liquidity);
-        let (amoun0, amount1) = IStarkDPairDispatcher { contract_address: pair }.burn(to);
+        let (amount0, amount1) = IStarkDPairDispatcher { contract_address: pair }.burn(to);
         let (token0, _) = _sort_tokens(tokenA, tokenB);
-        let mut amountA = 0;
-        let mut amountB = 0;
+        let mut amountA: u256 = 0;
+        let mut amountB: u256 = 0;
+
         if token0 == tokenA {
             amountA = amount0;
             amountB = amount1;
@@ -148,6 +149,7 @@ mod StarkDRouter {
             amountA = amount1;
             amountB = amount0;
         }
+
         assert(amountA >= amountAMin, 'insufficient A amount');
         assert(amountB >= amountBMin, 'insufficient B amount');
         (amountA, amountB)
@@ -160,7 +162,16 @@ mod StarkDRouter {
         path: Array::<ContractAddress>,
         to: ContractAddress,
         deadline: u64
-    ) -> Array::<u256> {}
+    ) -> Array::<u256> {
+        _ensure(deadline);
+        let amounts = _get_amounts_out(amountIn, path.span());
+        assert(*amounts[amounts.len() - 1] >= amountOutMin, 'insufficient output amount');
+        let pair = _pair_for(*path[0], *path[1]);
+        let sender = get_caller_address();
+        IERC20Dispatcher { contract_address: *path[0] }.transferFrom(sender, pair, *amounts[0]);
+        _swap(amounts.span(), path.span(), to);
+        amounts
+    }
 
     #[external]
     fn swap_tokens_for_exact_tokens(
@@ -169,7 +180,16 @@ mod StarkDRouter {
         path: Array::<ContractAddress>,
         to: ContractAddress,
         deadline: u64
-    ) -> Array::<u256> {}
+    ) -> Array::<u256> {
+        _ensure(deadline);
+        let amounts = _get_amounts_in(amountOut, path.span());
+        assert(*amounts[0] <= amountInMax, 'excessive input amount');
+        let pair = _pair_for(*path[0], *path[1]);
+        let sender = get_caller_address();
+        IERC20Dispatcher { contract_address: *path[0] }.transferFrom(sender, pair, *amounts[0]);
+        _swap(amounts.span(), path.span(), to);
+        amounts
+    }
 
     // 
     // Internals & Libs
@@ -301,7 +321,7 @@ mod StarkDRouter {
         let mut amounts = ArrayTrait::<u256>::new();
         amounts.append(amountIn);
 
-        let mut index = 0;
+        let mut index: u32 = 0;
 
         loop {
             if index == (path.len() - 1) {
