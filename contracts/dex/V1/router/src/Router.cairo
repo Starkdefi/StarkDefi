@@ -99,6 +99,59 @@ mod StarkDRouter {
     // Externals
     // 
 
+    #[external]
+    fn add_liquidity(
+        tokenA: ContractAddress,
+        tokenB: ContractAddress,
+        amountADesired: u256,
+        amountBDesired: u256,
+        amountAMin: u256,
+        amountBMin: u256,
+        to: ContractAddress,
+        deadline: u64
+    ) -> (u256, u256, u256) {}
+
+    #[external]
+    fn zap(
+        tokenToZap: ContractAddress,
+        pair: ContractAddress,
+        amountADesired: u256,
+        amountBDesired: u256,
+        amountAMin: u256,
+        amountBMin: u256,
+        to: ContractAddress,
+        deadline: u64
+    ) -> (u256, u256, u256) {}
+
+    #[external]
+    fn remove_liquidity(
+        tokenA: ContractAddress,
+        tokenB: ContractAddress,
+        liquidity: u256,
+        amountAMin: u256,
+        amountBMin: u256,
+        to: ContractAddress,
+        deadline: u64
+    ) -> (u256, u256) {}
+
+    #[external]
+    fn swap_exact_tokens_for_tokens(
+        amountIn: u256,
+        amountOutMin: u256,
+        path: Array::<ContractAddress>,
+        to: ContractAddress,
+        deadline: u64
+    ) -> Array::<u256> {}
+
+    #[external]
+    fn swap_tokens_for_exact_tokens(
+        amountOut: u256,
+        amountInMax: u256,
+        path: Array::<ContractAddress>,
+        to: ContractAddress,
+        deadline: u64
+    ) -> Array::<u256> {}
+
     // 
     // Internals & Libs
     //
