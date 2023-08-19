@@ -20,3 +20,4 @@ artifacts
 venv
 
 starknet-artifacts
+old_test
