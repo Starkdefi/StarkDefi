@@ -42,6 +42,7 @@ trait IStarkDPair<TContractState> {
     fn sync(ref self: TContractState);
 }
 
+
 #[starknet::interface]
 trait IStarkDCallee<TContractState> {
     fn starkd_call(

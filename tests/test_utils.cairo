@@ -53,7 +53,6 @@ fn test_max() {
     MinMax::max(a, b).print();
     assert(MinMax::max(a, b) == b, 'max');
 }
-
 // #[test]
 // fn test_reverse_u256() {
 //     let mut arr = ArrayTrait::<u256>::new();
@@ -69,4 +68,5 @@ fn test_max() {
 
 //     assert(*arr.at(0) == *reversed.at(arr.len()-1), 'reverse');
 // }
+
 

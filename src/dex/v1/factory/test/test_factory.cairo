@@ -18,9 +18,7 @@ fn get_factory() -> (felt252, @felt252) {
     (factory, @pair_class_hash)
 }
 
-fn creat_pair(
-    _factory: @felt252, pair_class_hash: @felt252, _tokens: Span<felt252>
-) {
+fn creat_pair(_factory: @felt252, pair_class_hash: @felt252, _tokens: Span<felt252>) {
     let mut pair_constructor_calldata = ArrayTrait::new();
     let tokens = _tokens.snapshot;
     pair_constructor_calldata.append(*tokens[0]);
