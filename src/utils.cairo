@@ -1,7 +1,7 @@
-mod ContractAddressPartialOrd;
-
+mod PartialOrdContractAddress;
 mod min_max;
-use min_max::{U256MinMax, MinMax};
-
 mod array_ext;
-use array_ext::{ArrayTraitExt};
+
+use PartialOrdContractAddress::ContractAddressPartialOrd;
+use min_max::{U256MinMax, MinMax};
+use array_ext::ArrayTraitExt;
