@@ -2,36 +2,13 @@
 // @author StarkDefi Labs
 // @license MIT
 // @description Based on UniswapV2 Factory Contract
-use starknet::{ContractAddress, ClassHash};
-
-#[starknet::interface]
-trait IStarkDFactory<TContractState> {
-    fn fee_to(self: @TContractState) -> ContractAddress;
-    fn fee_to_setter(self: @TContractState) -> ContractAddress;
-
-    fn get_pair(
-        self: @TContractState, tokenA: ContractAddress, tokenB: ContractAddress
-    ) -> ContractAddress;
-    fn all_pairs(self: @TContractState) -> (u32, Array::<ContractAddress>);
-    fn all_pairs_length(self: @TContractState) -> u32;
-    fn class_hash_for_pair_contract(self: @TContractState) -> ClassHash;
-
-    fn create_pair(
-        ref self: TContractState, tokenA: ContractAddress, tokenB: ContractAddress
-    ) -> ContractAddress;
-
-    fn set_fee_to(ref self: TContractState, fee_to_address: ContractAddress);
-    fn set_fee_to_setter(ref self: TContractState, fee_to_setter_address: ContractAddress);
-}
 
 #[starknet::contract]
 mod StarkDFactory {
+    use starkDefi::dex::v1::factory::interface::IStarkDFactory;
     use array::ArrayTrait;
     use traits::Into;
-    use starknet::{
-        ClassHash, ContractAddress, get_caller_address, get_contract_address,
-        contract_address_to_felt252
-    };
+    use starknet::{ClassHash, ContractAddress, get_caller_address, contract_address_to_felt252};
     use zeroable::Zeroable;
     use starknet::syscalls::deploy_syscall;
 
@@ -75,7 +52,7 @@ mod StarkDFactory {
 
 
     #[external(v0)]
-    impl StarkDFactory of super::IStarkDFactory<ContractState> {
+    impl StarkDFactory of IStarkDFactory<ContractState> {
         // @notice Get fee to address
         // @returns  address
         fn fee_to(self: @ContractState) -> ContractAddress {
@@ -164,7 +141,10 @@ mod StarkDFactory {
             self._all_pairs.write(pair_count, pair);
             self._all_pairs_length.write(pair_count + 1);
 
-            self.emit(Event::PairCreated(PairCreated{tokenA: token0, tokenB: token1, pair, pair_count: pair_count + 1}));
+            self
+                .emit(
+                    PairCreated { tokenA: token0, tokenB: token1, pair, pair_count: pair_count + 1 }
+                );
 
             pair
         }
@@ -202,8 +182,8 @@ mod StarkDFactory {
             self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
             assert(tokenA != tokenB, 'identical addresses');
-            let lhs_token: u256 =  contract_address_to_felt252(tokenA).into();
-            let rhs_token: u256 =  contract_address_to_felt252(tokenB).into();
+            let lhs_token: u256 = contract_address_to_felt252(tokenA).into();
+            let rhs_token: u256 = contract_address_to_felt252(tokenB).into();
             let (token0, token1) = if lhs_token < rhs_token {
                 (tokenA, tokenB)
             } else {
