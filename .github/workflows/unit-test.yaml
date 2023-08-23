@@ -17,17 +17,13 @@ jobs:
       - name: Check Out
         uses: actions/checkout@v3
 
-      - name: Install Protostar
-        uses: curl -L https://raw.githubusercontent.com/software-mansion/protostar/master/install.sh | bash
+      - name: Get Scarb
+        uses: software-mansion/setup-scarb@v1
+        with:
+          scarb-version: "0.7.0"
 
-      - name: Add to GITHUB_PATH
-        run: echo "/home/runner/.protostar/dist/protostar" >> $GITHUB_PATH
+      - name: check format
+        run: scarb fmt --check
 
-      - name: Install dependencies (Protostar)
-        run: protostar install
-
-      - name: Compile the contracts
-        run: protostar build
-
-      - name: Run Test
-        run: protostar test
+      - name: scar Test
+        run: scarb test
