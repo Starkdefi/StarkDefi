@@ -11,6 +11,7 @@ mod StarkDFactory {
     use starknet::{ClassHash, ContractAddress, get_caller_address, contract_address_to_felt252};
     use zeroable::Zeroable;
     use starknet::syscalls::deploy_syscall;
+    use starkDefi::utils::{ContractAddressPartialOrd};
 
     #[event]
     #[derive(Drop, starknet::Event)]
@@ -182,9 +183,7 @@ mod StarkDFactory {
             self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
             assert(tokenA != tokenB, 'identical addresses');
-            let lhs_token: u256 = contract_address_to_felt252(tokenA).into();
-            let rhs_token: u256 = contract_address_to_felt252(tokenB).into();
-            let (token0, token1) = if lhs_token < rhs_token {
+            let (token0, token1) = if tokenA < tokenB {
                 (tokenA, tokenB)
             } else {
                 (tokenB, tokenA)

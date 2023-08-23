@@ -12,6 +12,7 @@ typechain
 *.account
 build/
 dist/
+target/
 *.log
 
 #Hardhat files
