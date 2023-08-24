@@ -17,13 +17,11 @@ jobs:
       - name: Check Out
         uses: actions/checkout@v3
 
-      - name: Get Scarb
-        uses: software-mansion/setup-scarb@v1
-        with:
-          scarb-version: "0.7.0"
-
-      - name: check format
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1.2.0
+  
+      - name: Check formatting
         run: scarb fmt --check
 
-      - name: scar Test
+      - name: Run Test
         run: scarb test

@@ -85,9 +85,9 @@ mod StarkDPair {
         _entry_locked: bool,
     }
 
-    #[contructor]
+    #[constructor]
     fn constructor(ref self: ContractState, tokenA: ContractAddress, tokenB: ContractAddress) {
-        assert(tokenA.is_non_zero() & tokenB.is_non_zero(), 'invalid address');
+        assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid address');
         let mut erc20_state = ERC20::unsafe_new_contract_state();
         ERC20::InternalImpl::initializer(ref erc20_state, 'StarkDefi Pair', 'STARKD-P');
 
@@ -270,7 +270,7 @@ mod StarkDPair {
             let totalSupply = InternalFunctions::_total_supply(@self);
             let amount0 = (liquidity * balance0) / totalSupply;
             let amount1 = (liquidity * balance1) / totalSupply;
-            assert((amount0 > 0) & (amount1 > 0), 'insufficient liquidity burned');
+            assert(amount0 > 0 && amount1 > 0, 'insufficient liquidity burned');
 
             let mut erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::InternalImpl::_burn(ref erc20_state, get_contract_address(), liquidity);
@@ -300,13 +300,13 @@ mod StarkDPair {
             data: Array::<felt252>
         ) {
             Modifiers::_lock(ref self);
-            assert((amount0Out > 0) | (amount1Out > 0), 'insufficient output amount');
+            assert(amount0Out > 0 || amount1Out > 0, 'insufficient output amount');
             let (reserve0, reserve1, _) = InternalFunctions::_get_reserves(@self);
-            assert((amount0Out < reserve0) & (amount1Out < reserve1), 'insufficient liquidity');
+            assert(amount0Out < reserve0 && amount1Out < reserve1, 'insufficient liquidity');
 
             let token0 = self._token0.read();
             let token1 = self._token1.read();
-            assert((to != token0) & (to != token1), 'invalid to');
+            assert(to != token0 && to != token1, 'invalid to');
 
             let this_address = get_contract_address();
 
@@ -340,7 +340,7 @@ mod StarkDPair {
                 0
             };
 
-            assert((amount0In > 0) | (amount1In > 0), 'insufficient input amount');
+            assert(amount0In > 0 || amount1In > 0, 'insufficient input amount');
 
             let balance0Adjusted = (balance0 * 1000) - (amount0In * 3);
             let balance1Adjusted = (balance1 * 1000) - (amount1In * 3);
@@ -453,12 +453,12 @@ mod StarkDPair {
         fn _update(
             ref self: ContractState, balance0: u256, balance1: u256, reserve0: u256, reserve1: u256
         ) {
-            assert((balance0.high == 0) & (balance1.high == 0), 'overflow');
+            assert(balance0.high == 0 && balance1.high == 0, 'overflow');
 
             let block_timestamp = get_block_timestamp();
             let timeElapsed = block_timestamp - self._block_timestamp_last.read();
 
-            if ((timeElapsed > 0) & (reserve0 != 0) & (reserve1 != 0)) {
+            if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0) {
                 self
                     ._price_0_cumulative_last
                     .write(
