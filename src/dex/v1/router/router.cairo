@@ -26,7 +26,7 @@ mod StarkDRouter {
         _factory: ContractAddress, 
     }
 
-    #[contructor]
+    #[constructor]
     fn constructor(ref self: ContractState, factory: ContractAddress) {
         assert(factory.is_non_zero(), 'invalid factory');
         self._factory.write(factory);
@@ -42,7 +42,7 @@ mod StarkDRouter {
         fn sort_tokens(
             self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
-            assert(tokenA.is_non_zero() & tokenB.is_non_zero(), 'invalid pair');
+            assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid pair');
             InternalFunctions::_sort_tokens(tokenA, tokenB)
         }
 
