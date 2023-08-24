@@ -20,5 +20,5 @@ fn deploy_router() {
 
     let factory = deploy(prepared).unwrap();
     factory.print();
-    // assert(factory != address_0, 'address 0');
+// assert(factory != address_0, 'address 0');
 }
