@@ -21,5 +21,5 @@ fn deploy_pair() {
 
     let pair = deploy(prepared).unwrap();
     pair.print();
-    // assert(pair != address_0, 'address 0');
+// assert(pair != address_0, 'address 0');
 }

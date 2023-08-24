@@ -79,7 +79,7 @@ fn create_pair_test() {
 }
 
 #[test]
-#[should_panic(expected: ('invalid token address',))]
+#[should_panic(expected: ('invalid token address', ))]
 fn create_pair_0() {
     let token0 = contract_address_const::<0>();
     let token1 = contract_address_const::<3>();
@@ -87,7 +87,7 @@ fn create_pair_0() {
 }
 
 #[test]
-#[should_panic(expected: ('identical addresses',))]
+#[should_panic(expected: ('identical addresses', ))]
 fn create_pair_same_address() {
     let token0 = contract_address_const::<3>();
     let token1 = contract_address_const::<3>();
@@ -157,7 +157,7 @@ fn set_fee_to() {
 }
 
 #[test]
-#[should_panic(expected: ('not allowed',))]
+#[should_panic(expected: ('not allowed', ))]
 fn set_fee_to_setter_fail() {
     let ADDRESS_TWO = contract_address_const::<2>();
 
@@ -168,7 +168,7 @@ fn set_fee_to_setter_fail() {
 }
 
 #[test]
-#[should_panic(expected: ('invalid fee to setter',))]
+#[should_panic(expected: ('invalid fee to setter', ))]
 fn set_fee_to_setter_address_0() {
     let ADDRESS_ZERO = contract_address_const::<0>();
     let ADDRESS_ONE = contract_address_const::<1>();
@@ -181,7 +181,7 @@ fn set_fee_to_setter_address_0() {
 }
 
 #[test]
-#[should_panic(expected: ('not allowed',))]
+#[should_panic(expected: ('not allowed', ))]
 fn set_fee_to_fail() {
     let ADDRESS_ONE = contract_address_const::<1>();
 
