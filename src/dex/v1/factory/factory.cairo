@@ -115,7 +115,7 @@ mod StarkDFactory {
         fn create_pair(
             ref self: ContractState, tokenA: ContractAddress, tokenB: ContractAddress
         ) -> ContractAddress {
-            assert(tokenA.is_non_zero() & tokenB.is_non_zero(), 'invalid token address');
+            assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid token address');
             assert(tokenA != tokenB, 'identical addresses');
 
             let found_pair = self._pair.read((tokenA, tokenB));
@@ -124,13 +124,14 @@ mod StarkDFactory {
             let (token0, token1) = self.sort_tokens(tokenA, tokenB);
             let pair_class_hash = self._class_hash_for_pair_contract.read();
 
-            let mut pair_constructor_calldata = ArrayTrait::new();
-            pair_constructor_calldata.append(contract_address_to_felt252(token0));
-            pair_constructor_calldata.append(contract_address_to_felt252(token1));
+            let mut pair_constructor_calldata = Default::default();
+            Serde::serialize(@token0, ref pair_constructor_calldata);
+            Serde::serialize(@token1, ref pair_constructor_calldata);
 
-            let address_salt = pedersen(
-                contract_address_to_felt252(token0), contract_address_to_felt252(token1)
-            );
+            let token0_felt252 = contract_address_to_felt252(token0);
+            let token1_felt252 = contract_address_to_felt252(token1);
+
+            let address_salt = pedersen(token0_felt252, token1_felt252);
 
             let (pair, _) = deploy_syscall(
                 pair_class_hash, address_salt, pair_constructor_calldata.span(), false
