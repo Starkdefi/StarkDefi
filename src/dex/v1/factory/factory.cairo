@@ -53,7 +53,7 @@ mod StarkDFactory {
 
 
     #[external(v0)]
-    impl StarkDFactory of IStarkDFactory<ContractState> {
+    impl StarkDFactoryImpl of IStarkDFactory<ContractState> {
         // @notice Get fee to address
         // @returns  address
         fn fee_to(self: @ContractState) -> ContractAddress {
