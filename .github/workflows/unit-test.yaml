@@ -22,11 +22,13 @@ jobs:
         with:
           scarb-version: "0.6.2"
 
-      # - name: Install Starknet-foundry
-      #   uses: curl -L https://raw.githubusercontent.com/foundry-rs/starknet-foundry/master/scripts/install.sh | sh
-
       - name: Check formatting
         run: scarb fmt --check
 
       - name: Run Test
         run: scarb test
+        
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
