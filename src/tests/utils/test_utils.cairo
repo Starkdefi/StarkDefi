@@ -41,7 +41,6 @@ fn test_min() {
     let a: u256 = 10;
     let b: u256 = 20;
 
-    MinMax::min(a, b).print();
     assert(MinMax::min(a, b) == a, 'min');
 }
 
@@ -50,7 +49,6 @@ fn test_max() {
     let a: u256 = 10;
     let b: u256 = 20;
 
-    MinMax::max(a, b).print();
     assert(MinMax::max(a, b) == b, 'max');
 }
 // #[test]
