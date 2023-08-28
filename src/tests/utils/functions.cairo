@@ -1,6 +1,8 @@
 use starkDefi::token::erc20::ERC20;
 use starkDefi::token::erc20::ERC20::Transfer;
 use starkDefi::token::erc20::ERC20::Approval;
+use starkDefi::token::erc20::ERC20ABIDispatcher;
+use starkDefi::token::erc20::ERC20ABIDispatcherTrait;
 use starkDefi::tests::utils::constants::{OWNER, ADDRESS_ZERO};
 use array::ArrayTrait;
 use array::SpanTrait;
@@ -18,6 +20,19 @@ fn deploy(contract_class_hash: felt252, calldata: Array<felt252>) -> ContractAdd
         .unwrap();
     address
 }
+
+fn deploy_erc20(
+    name: felt252, symbol: felt252, initial_supply: u256, recipient: ContractAddress
+) -> ERC20ABIDispatcher {
+    let mut calldata = array![];
+    Serde::serialize(@name, ref calldata);
+    Serde::serialize(@symbol, ref calldata);
+    Serde::serialize(@initial_supply, ref calldata);
+    Serde::serialize(@recipient, ref calldata);
+    let address = deploy(ERC20::TEST_CLASS_HASH, calldata);
+    ERC20ABIDispatcher { contract_address: address }
+}
+
 
 // OZ
 /// Pop the earliest unpopped logged event for the contract as the requested type
@@ -41,12 +56,12 @@ fn drop_event(address: ContractAddress) {
 }
 
 
-fn ERC20_STATE() -> ERC20::ContractState {
+fn erc20_state() -> ERC20::ContractState {
     ERC20::contract_state_for_testing()
 }
 
 fn setup_erc20(name: felt252, symbol: felt252, supply: u256) -> ERC20::ContractState {
-    let mut state = ERC20_STATE();
+    let mut state = erc20_state();
     ERC20::constructor(ref state, name, symbol, supply, OWNER());
     drop_event(ADDRESS_ZERO());
     state
