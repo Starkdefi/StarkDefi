@@ -6,8 +6,10 @@ use starkDefi::dex::v1::factory::StarkDFactory;
 use starkDefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
 use starkDefi::dex::v1::factory::StarkDFactory::InternalFunctions;
 use starkDefi::dex::v1::factory::StarkDFactory::PairCreated;
+use starkDefi::dex::v1::factory::IStarkDFactoryDispatcher;
+use starkDefi::dex::v1::factory::IStarkDFactoryDispatcherTrait;
 use starkDefi::tests::utils::constants::{
-    FEE_TO_SETTER, FEE_TO, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO,ADDRESS_THREE, PAIR_CLASS_HASH
+    FEE_TO_SETTER, FEE_TO, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH
 };
 use starkDefi::tests::utils::functions::{drop_event, pop_log, deploy};
 use starkDefi::utils::{ContractAddressPartialOrd};
@@ -16,6 +18,14 @@ use starknet::testing;
 //
 // Setup
 //
+
+fn deploy_factory() -> IStarkDFactoryDispatcher {
+    let mut calldata = array![];
+    Serde::serialize(@FEE_TO_SETTER(), ref calldata);
+    Serde::serialize(@PAIR_CLASS_HASH(), ref calldata);
+    let address = deploy(StarkDFactory::TEST_CLASS_HASH, calldata);
+    IStarkDFactoryDispatcher { contract_address: address }
+}
 
 fn STATE() -> StarkDFactory::ContractState {
     StarkDFactory::contract_state_for_testing()
@@ -46,6 +56,22 @@ fn test_constructor() {
         'class_hash eq pair_class_hash'
     );
     assert(StarkDFactoryImpl::all_pairs_length(@state) == 0, 'pair_len eq 0');
+}
+
+#[test]
+#[available_gas(2000000)]
+fn test_deployed_factory() {
+    let factory = deploy_factory();
+
+     assert(factory.fee_to() == ADDRESS_ZERO(), 'FeeTo eq 0');
+    assert(
+        factory.fee_to_setter() == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER'
+    );
+    assert(
+        factory.class_hash_for_pair_contract() == PAIR_CLASS_HASH(),
+        'class_hash eq pair_class_hash'
+    );
+    assert(factory.all_pairs_length() == 0, 'pair_len eq 0');
 }
 
 //
@@ -135,6 +161,19 @@ fn test_create_pair() {
 
 #[test]
 #[available_gas(2000000)]
+fn test_deployed_create_pair() {
+    let factory = deploy_factory();
+
+    let pair = factory.create_pair(ADDRESS_ONE(), ADDRESS_THREE());
+
+    let event = testing::pop_log::<PairCreated>(factory.contract_address).unwrap();
+
+    assert(event.pair == pair, 'pair eq `pair`');
+    assert(event.pair_count == 1, 'pair_count eq 1');
+}
+
+#[test]
+#[available_gas(2000000)]
 fn test_create_pair_twice() {
     let mut state = setup();
     let pair1 = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO());
@@ -212,9 +251,7 @@ fn test_set_fee_to_setter() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
     StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_ONE());
-    assert(
-        StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE'
-    );
+    assert(StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE');
 }
 
 #[test]
@@ -223,14 +260,10 @@ fn test_set_fee_to_setter_new_setter() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
     StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_ONE());
-    assert(
-        StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE'
-    );
+    assert(StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE');
     testing::set_caller_address(ADDRESS_ONE());
     StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_TWO());
-    assert(
-        StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_TWO(), 'FeeToSetter eq ADDRESS_TWO'
-    );
+    assert(StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_TWO(), 'FeeToSetter eq ADDRESS_TWO');
 }
 
 #[test]
