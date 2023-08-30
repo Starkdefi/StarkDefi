@@ -1,13 +1,9 @@
 use starknet::ContractAddress;
 use option::OptionTrait;
-use array::ArrayTrait;
 use array::SpanTrait;
 use starknet::SyscallResult;
 use starknet::SyscallResultTrait;
-use starknet::call_contract_syscall;
-use starknet::contract_address_to_felt252;
 use traits::TryInto;
-use traits::Into;
 
 // from OpenZeppelin Contracts
 trait UnwrapAndCast<T> {
