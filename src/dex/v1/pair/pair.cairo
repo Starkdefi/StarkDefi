@@ -98,7 +98,7 @@ mod StarkDPair {
     }
 
     #[external(v0)]
-    impl StarkDPair of IStarkDPair<ContractState> {
+    impl StarkDPairImpl of IStarkDPair<ContractState> {
         fn name(self: @ContractState) -> felt252 {
             let erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::name(@erc20_state)
@@ -227,7 +227,7 @@ mod StarkDPair {
 
             let mut lockedLiquidity: u256 = 0;
             let liquidity = if (totalSupply == 0) {
-                lockedLiquidity = 1000; // calling ERC20::_mint here doesn't work
+                lockedLiquidity = 1000;
                 u256 { low: u256_sqrt(amount0 * amount1) - 1000, high: 0 }
             } else {
                 let liquidity0 = (amount0 * totalSupply) / reserve0;

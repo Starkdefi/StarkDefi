@@ -33,7 +33,7 @@ mod StarkDRouter {
     }
 
     #[external(v0)]
-    impl StarkDRouter of IStarkDRouter<ContractState> {
+    impl StarkDRouterImp of IStarkDRouter<ContractState> {
         fn factory(self: @ContractState) -> ContractAddress {
             self._factory.read()
         }
