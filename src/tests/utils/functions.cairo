@@ -33,6 +33,11 @@ fn deploy_erc20(
     ERC20ABIDispatcher { contract_address: address }
 }
 
+fn token_at(address: ContractAddress) -> ERC20ABIDispatcher {
+    ERC20ABIDispatcher { contract_address: address }
+}
+
+
 
 // OZ
 /// Pop the earliest unpopped logged event for the contract as the requested type
@@ -89,4 +94,16 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, value: u256
 fn assert_only_event_transfer(from: ContractAddress, to: ContractAddress, value: u256) {
     assert_event_transfer(from, to, value);
     assert_no_events_left(ADDRESS_ZERO());
+}
+
+use serde::Serde;
+
+trait SerializedAppend<T> {
+    fn append_serde(ref self: Array<felt252>, value: T);
+}
+
+impl SerializedAppendImpl<T, impl TSerde: Serde<T>, impl TDrop: Drop<T>> of SerializedAppend<T> {
+    fn append_serde(ref self: Array<felt252>, value: T) {
+        value.serialize(ref self);
+    }
 }
