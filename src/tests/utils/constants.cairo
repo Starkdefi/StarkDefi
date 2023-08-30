@@ -25,6 +25,10 @@ fn ADDRESS_THREE() -> ContractAddress {
     contract_address_const::<3>()
 }
 
+fn ADDRESS_FOUR() -> ContractAddress {
+    contract_address_const::<4>()
+}
+
 fn OWNER() -> ContractAddress {
     contract_address_const::<'OWNER'>()
 }
@@ -47,4 +51,24 @@ fn FEE_TO_SETTER() -> ContractAddress {
 
 fn FEE_TO() -> ContractAddress {
     contract_address_const::<'FEE_TO'>()
+}
+
+fn TOKEN_0() -> ContractAddress {
+    contract_address_const::<'token0'>()
+}
+
+fn TOKEN_1() -> ContractAddress {
+    contract_address_const::<'token1'>()
+}
+
+fn FACTORY() -> ContractAddress {
+    contract_address_const::<'factory'>()
+}
+
+fn PAIR() -> ContractAddress {
+    contract_address_const::<'pair'>()
+}
+
+fn ROUTER() -> ContractAddress {
+    contract_address_const::<'router'>()
 }
