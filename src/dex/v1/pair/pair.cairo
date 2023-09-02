@@ -225,9 +225,7 @@ mod StarkDPair {
             let feeOn = InternalFunctions::_mint_fee(ref self, reserve0, reserve1);
             let totalSupply = InternalFunctions::_total_supply(@self);
 
-            let mut lockedLiquidity: u256 = 0;
             let liquidity = if (totalSupply == 0) {
-                lockedLiquidity = 1000;
                 u256 { low: u256_sqrt(amount0 * amount1) - 1000, high: 0 }
             } else {
                 let liquidity0 = (amount0 * totalSupply) / reserve0;
@@ -240,7 +238,7 @@ mod StarkDPair {
 
             if totalSupply == 0 {
                 ERC20::InternalImpl::_mint(
-                    ref erc20_state, contract_address_const::<1>(), lockedLiquidity
+                    ref erc20_state, contract_address_const::<'deAd'>(), 1000
                 );
             }
             ERC20::InternalImpl::_mint(ref erc20_state, to, liquidity);
@@ -434,7 +432,7 @@ mod StarkDPair {
 
                     if root_k > root_k_last {
                         let numerator = self._total_supply() * (root_k - root_k_last);
-                        let denominator = (root_k * 5) + root_k_last;
+                        let denominator = (root_k * 10) + root_k_last;
                         let liquidity = numerator / denominator;
 
                         if liquidity > 0 {
