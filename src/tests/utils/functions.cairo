@@ -37,8 +37,6 @@ fn token_at(address: ContractAddress) -> ERC20ABIDispatcher {
     ERC20ABIDispatcher { contract_address: address }
 }
 
-
-
 // OZ
 /// Pop the earliest unpopped logged event for the contract as the requested type
 /// and checks there's no more data left on the event, preventing unaccounted params.
