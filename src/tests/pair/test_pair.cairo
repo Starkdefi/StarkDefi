@@ -1,6 +1,4 @@
 use array::ArrayTrait;
-use option::OptionTrait;
-use core::traits::Into;
 use starknet::account::Call;
 use starknet::ContractAddress;
 use starknet::get_caller_address;
@@ -8,34 +6,24 @@ use starknet::contract_address_const;
 
 use starkDefi::dex::v1::pair::StarkDPair;
 use starkDefi::dex::v1::pair::StarkDPair::StarkDPairImpl;
-use starkDefi::dex::v1::pair::StarkDPair::InternalFunctions;
 use starkDefi::dex::v1::pair::StarkDPair::Mint;
 use starkDefi::dex::v1::pair::StarkDPair::Burn;
 use starkDefi::dex::v1::pair::StarkDPair::Swap;
 use starkDefi::dex::v1::pair::StarkDPair::Sync;
 
-use starkDefi::dex::v1::pair::interface::IStarkDPair;
 use starkDefi::dex::v1::pair::IStarkDPairDispatcher;
 use starkDefi::dex::v1::pair::IStarkDPairDispatcherTrait;
 
-use starkDefi::dex::v1::factory::StarkDFactory;
-use starkDefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
 use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcher;
 use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcherTrait;
 
-use starkDefi::token::erc20::ERC20;
 use starkDefi::token::erc20::selectors;
-use starkDefi::token::erc20::ERC20::ERC20Impl;
-use starkDefi::token::erc20::ERC20::Transfer;
+use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
 use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
 
-
-use starkDefi::tests::helper_account::Account;
 use starkDefi::tests::helper_account::AccountABIDispatcher;
 use starkDefi::tests::helper_account::interface::AccountABIDispatcherTrait;
 
-
-use starkDefi::tests::factory::factory_setup;
 use starkDefi::tests::factory::deploy_factory;
 
 use starkDefi::tests::utils::constants;
@@ -59,7 +47,6 @@ fn deploy_pair() -> (IStarkDPairDispatcher, AccountABIDispatcher) {
 
     (IStarkDPairDispatcher { contract_address: pair }, account)
 }
-
 
 fn STATE() -> StarkDPair::ContractState {
     StarkDPair::contract_state_for_testing()
@@ -97,7 +84,6 @@ fn test_constructor() {
     assert(StarkDPairImpl::decimals(@state) == 18, 'Decimals eq 18');
     assert(StarkDPairImpl::total_supply(@state) == 0, 'Total supply eq 0');
 }
-
 
 //
 // deployed pair
