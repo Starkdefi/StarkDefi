@@ -19,9 +19,13 @@ use starknet::testing;
 // Setup
 //
 
-fn deploy_factory() -> IStarkDFactoryDispatcher {
+fn deploy_factory(address: ContractAddress) -> IStarkDFactoryDispatcher {
     let mut calldata = array![];
-    Serde::serialize(@FEE_TO_SETTER(), ref calldata);
+    if address != ADDRESS_ZERO() {
+        Serde::serialize(@address, ref calldata);
+    } else {
+        Serde::serialize(@FEE_TO_SETTER(), ref calldata);
+    }
     Serde::serialize(@PAIR_CLASS_HASH(), ref calldata);
     let address = deploy(StarkDFactory::TEST_CLASS_HASH, calldata);
     IStarkDFactoryDispatcher { contract_address: address }
@@ -61,15 +65,12 @@ fn test_constructor() {
 #[test]
 #[available_gas(2000000)]
 fn test_deployed_factory() {
-    let factory = deploy_factory();
+    let factory = deploy_factory(ADDRESS_ZERO());
 
-     assert(factory.fee_to() == ADDRESS_ZERO(), 'FeeTo eq 0');
+    assert(factory.fee_to() == ADDRESS_ZERO(), 'FeeTo eq 0');
+    assert(factory.fee_to_setter() == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER');
     assert(
-        factory.fee_to_setter() == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER'
-    );
-    assert(
-        factory.class_hash_for_pair_contract() == PAIR_CLASS_HASH(),
-        'class_hash eq pair_class_hash'
+        factory.class_hash_for_pair_contract() == PAIR_CLASS_HASH(), 'class_hash eq pair_class_hash'
     );
     assert(factory.all_pairs_length() == 0, 'pair_len eq 0');
 }
@@ -162,7 +163,7 @@ fn test_create_pair() {
 #[test]
 #[available_gas(2000000)]
 fn test_deployed_create_pair() {
-    let factory = deploy_factory();
+    let factory = deploy_factory(ADDRESS_ZERO());
 
     let pair = factory.create_pair(ADDRESS_ONE(), ADDRESS_THREE());
 
