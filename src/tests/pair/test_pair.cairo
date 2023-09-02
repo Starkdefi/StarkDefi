@@ -567,5 +567,102 @@ fn test_burn() {
         token1Dispatcher.balance_of(accountDispatcher.contract_address) == 5576,
         'Token1 balance eq 5576'
     )
-    
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_burn_remove_all_liquidity() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    let token0Dispatcher = token_at(pairDispatcher.token0());
+    let token1Dispatcher = token_at(pairDispatcher.token1());
+
+    assert(pairDispatcher.total_supply() == 3872, 'Total supply eq 3872');
+
+    // remove liquidity
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 2872);
+    assert(pairDispatcher.total_supply() == 1000, 'Total supply eq 1000');
+
+    // 5000 + (2872*5000)/3872
+    assert(
+        token0Dispatcher.balance_of(accountDispatcher.contract_address) == 8708,
+        'Token0 balance eq 8708'
+    );
+    // 7000 + (2872*3000)/3872
+    assert(
+        token1Dispatcher.balance_of(accountDispatcher.contract_address) == 9225,
+        'Token1 balance eq 9225'
+    )
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(
+    expected: ('insufficient liquidity burned', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
+fn test_burn_insufficient_liquidity() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    // remove liquidity
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 0);
+}
+
+//
+// skim
+//
+#[test]
+#[available_gas(20000000)]
+fn test_skim() {
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    let token0Dispatcher = token_at(pairDispatcher.token0());
+
+    // transfer token0 to pair
+    let mut calls = array![];
+    calls
+        .append(
+            transfer_erc20(token0Dispatcher.contract_address, pairDispatcher.contract_address, 1000)
+        );
+
+    accountDispatcher.__execute__(calls);
+
+    assert(
+        token0Dispatcher.balance_of(pairDispatcher.contract_address) == 6000,
+        'Token0 balance eq 6000'
+    );
+
+    // skim
+    pairDispatcher.skim(accountDispatcher.contract_address);
+
+    assert(
+        token0Dispatcher.balance_of(pairDispatcher.contract_address) == 5000,
+        'Token0 balance eq 5000'
+    );
+}
+
+//
+// sync
+//
+
+#[test]
+#[available_gas(20000000)]
+fn test_sync() {
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    let token0Dispatcher = token_at(pairDispatcher.token0());
+
+    // transfer token0 to pair
+    let mut calls = array![];
+    calls
+        .append(
+            transfer_erc20(token0Dispatcher.contract_address, pairDispatcher.contract_address, 1000)
+        );
+
+    accountDispatcher.__execute__(calls);
+
+    let (res1, _, _) = pairDispatcher.get_reserves();
+    assert(res1 == 5000, 'Reserve 1 eq 5000');
+
+    // sync
+    pairDispatcher.sync();
+
+    let (res1, _, _) = pairDispatcher.get_reserves();
+    assert(res1 == 6000, 'Reserve 1 eq 6000');
+//
 }

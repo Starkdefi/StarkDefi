@@ -381,7 +381,7 @@ mod StarkDPair {
             Modifiers::_unlock(ref self);
         }
 
-        fn sync(ref self: ContractState, ) {
+        fn sync(ref self: ContractState ) {
             Modifiers::_lock(ref self);
             let this_address = get_contract_address();
 
