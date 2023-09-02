@@ -380,7 +380,7 @@ mod StarkDPair {
             Modifiers::_unlock(ref self);
         }
 
-        fn sync(ref self: ContractState ) {
+        fn sync(ref self: ContractState) {
             Modifiers::_lock(ref self);
             let this_address = get_contract_address();
 
@@ -433,7 +433,7 @@ mod StarkDPair {
                         let numerator = self._total_supply() * (root_k - root_k_last);
                         let denominator = (root_k * 10) + root_k_last;
                         let liquidity = numerator / denominator;
-                        
+
                         if liquidity > 0 {
                             let mut erc20_state = ERC20::unsafe_new_contract_state();
                             ERC20::InternalImpl::_mint(ref erc20_state, fee_to, liquidity);
