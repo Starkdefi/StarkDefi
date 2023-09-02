@@ -9,10 +9,9 @@ use starkDefi::dex::v1::factory::StarkDFactory::PairCreated;
 use starkDefi::dex::v1::factory::IStarkDFactoryDispatcher;
 use starkDefi::dex::v1::factory::IStarkDFactoryDispatcherTrait;
 use starkDefi::tests::utils::constants::{
-    FEE_TO_SETTER, FEE_TO, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH
+    FEE_TO_SETTER, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH
 };
 use starkDefi::tests::utils::functions::{drop_event, pop_log, deploy};
-use starkDefi::utils::{ContractAddressPartialOrd};
 use starknet::testing;
 
 //

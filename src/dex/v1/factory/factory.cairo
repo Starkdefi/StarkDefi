@@ -7,7 +7,6 @@
 mod StarkDFactory {
     use starkDefi::dex::v1::factory::interface::IStarkDFactory;
     use array::ArrayTrait;
-    use traits::Into;
     use starknet::{ClassHash, ContractAddress, get_caller_address, contract_address_to_felt252};
     use zeroable::Zeroable;
     use starknet::syscalls::deploy_syscall;

@@ -14,7 +14,6 @@ mod StarkDPair {
     use traits::Into;
 
     use starkDefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
-    use integer::u256_sqrt;
     use zeroable::Zeroable;
     use array::ArrayTrait;
     use option::OptionTrait;
@@ -434,7 +433,7 @@ mod StarkDPair {
                         let numerator = self._total_supply() * (root_k - root_k_last);
                         let denominator = (root_k * 10) + root_k_last;
                         let liquidity = numerator / denominator;
-
+                        
                         if liquidity > 0 {
                             let mut erc20_state = ERC20::unsafe_new_contract_state();
                             ERC20::InternalImpl::_mint(ref erc20_state, fee_to, liquidity);
