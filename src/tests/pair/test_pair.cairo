@@ -294,6 +294,36 @@ fn test_mint() {
 
 #[test]
 #[available_gas(20000000)]
+fn test_mint_more_lp() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    let token0Dispatcher = token_at(pairDispatcher.token0());
+    let token1Dispatcher = token_at(pairDispatcher.token1());
+
+    let (res0, res1, _) = pairDispatcher.get_reserves();
+    assert(res0 == 5000, 'Reserve 1 eq 5000');
+    assert(res1 == 3000, 'Reserve 2 eq 3000');
+    // sqrt (5000 * 3000) = 3872
+    assert(pairDispatcher.total_supply() == 3872, 'Total supply eq 3872');
+
+    // add more liquidity
+    add_more_liquidity(ref pairDispatcher, ref accountDispatcher, 1000, 2000);
+    let (res0, res1, _) = pairDispatcher.get_reserves();
+    assert(res0 == 6000, 'Reserve 1 eq 6000');
+    assert(res1 == 5000, 'Reserve 2 eq 5000');
+    // (3872+(1000*3872)/5000)
+    assert(pairDispatcher.total_supply() == 4646, 'Total supply eq 4646');
+
+    // add more liqudity
+    add_more_liquidity(ref pairDispatcher, ref accountDispatcher, 2000, 500);
+    let (res0, res1, _) = pairDispatcher.get_reserves();
+    assert(res0 == 8000, 'Reserve 1 eq 8000');
+    assert(res1 == 5500, 'Reserve 2 eq 5500');
+    // (4646+(500*4646)/5000)
+    assert(pairDispatcher.total_supply() == 5110, 'Total supply eq 5110');
+}
+
+#[test]
+#[available_gas(20000000)]
 #[should_panic(expected: ('u128_sub Overflow', 'ENTRYPOINT_FAILED'))]
 fn test_mint_no_zero_tokens() {
     let (pairDispatcher, accountDispatcher) = deploy_pair();
@@ -467,4 +497,75 @@ fn test_swap_invariant_k() {
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
     // swap
     swap(ref pairDispatcher, ref accountDispatcher, 50, 100, 0, false);
+}
+
+//
+// burn
+//
+
+fn remove_liqudity(
+    ref pairDispatcher: IStarkDPairDispatcher,
+    ref accountDispatcher: AccountABIDispatcher,
+    amount: u256
+) {
+    let mut calls = array![];
+
+    // transfer lp to pair
+    calls
+        .append(
+            transfer_erc20(pairDispatcher.contract_address, pairDispatcher.contract_address, amount)
+        );
+
+    // burn
+    let mut burn_calldata = array![];
+    Serde::serialize(@accountDispatcher.contract_address, ref burn_calldata);
+
+    calls
+        .append(
+            Call {
+                to: pairDispatcher.contract_address,
+                selector: selectors::burn,
+                calldata: burn_calldata
+            }
+        );
+
+    // multicall
+    accountDispatcher.__execute__(calls);
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_burn() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    let token0Dispatcher = token_at(pairDispatcher.token0());
+    let token1Dispatcher = token_at(pairDispatcher.token1());
+
+    // add more liquidity
+    add_more_liquidity(ref pairDispatcher, ref accountDispatcher, 1000, 2000);
+    add_more_liquidity(ref pairDispatcher, ref accountDispatcher, 2000, 500);
+
+    assert(pairDispatcher.total_supply() == 5110, 'Total supply eq 5110');
+    assert(
+        pairDispatcher.balance_of(accountDispatcher.contract_address) == (5110 - 1000),
+        'Balance eq 5110'
+    );
+
+    // remove liquidity
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 1000);
+    assert(pairDispatcher.total_supply() == 4110, 'Total supply eq 4110');
+    assert(
+        pairDispatcher.balance_of(accountDispatcher.contract_address) == (4110 - 1000),
+        'Balance eq 4110'
+    );
+    // 2000 + (1000*8000)/5110
+    assert(
+        token0Dispatcher.balance_of(accountDispatcher.contract_address) == 3565,
+        'Token0 balance eq 3565'
+    );
+    // 4500 + (1000*5500)/5110
+    assert(
+        token1Dispatcher.balance_of(accountDispatcher.contract_address) == 5576,
+        'Token1 balance eq 5576'
+    )
+    
 }
