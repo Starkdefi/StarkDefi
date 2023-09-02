@@ -366,10 +366,10 @@ fn test_swap_token0_for_token1() {
 
     // swap
     swap(ref pairDispatcher, ref accountDispatcher, 30, 0, 17);
-    let (res0, res, _) = pairDispatcher.get_reserves();
+    let (res0, res1, _) = pairDispatcher.get_reserves();
 
     assert(res0 == 5030, 'Reserve 1 eq 5030');
-    assert(res == 2983, 'Reserve 2 eq 2983');
+    assert(res1 == 2983, 'Reserve 2 eq 2983');
     assert(
         token0Dispatcher.balance_of(pairDispatcher.contract_address) == 5030,
         'Token0 balance eq 5030'
@@ -385,5 +385,36 @@ fn test_swap_token0_for_token1() {
     assert(
         token1Dispatcher.balance_of(accountDispatcher.contract_address) == 7017,
         'Token1 balance eq 7017'
+    )
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_swap_token1_for_token0() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    let token0Dispatcher = token_at(pairDispatcher.token0());
+    let token1Dispatcher = token_at(pairDispatcher.token1());
+
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, 50, 81, 0);
+    let (res0, res1, _) = pairDispatcher.get_reserves();
+
+    assert(res0 == 4919, 'Reserve 1 eq 4919');
+    assert(res1 == 3050, 'Reserve 2 eq 3050');
+    assert(
+        token0Dispatcher.balance_of(pairDispatcher.contract_address) == 4919,
+        'Token0 balance eq 4919'
+    );
+    assert(
+        token1Dispatcher.balance_of(pairDispatcher.contract_address) == 3050,
+        'Token1 balance eq 3050'
+    );
+    assert(
+        token0Dispatcher.balance_of(accountDispatcher.contract_address) == 5081,
+        'Token0 balance eq 5081'
+    );
+    assert(
+        token1Dispatcher.balance_of(accountDispatcher.contract_address) == 6950,
+        'Token1 balance eq 6950'
     )
 }
