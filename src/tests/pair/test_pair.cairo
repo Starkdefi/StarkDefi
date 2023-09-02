@@ -319,7 +319,8 @@ fn swap(
     ref accountDispatcher: AccountABIDispatcher,
     amountToSwap: u256,
     amount0Out: u256,
-    amount1Out: u256
+    amount1Out: u256,
+    test_invalid_to: bool
 ) {
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -342,7 +343,11 @@ fn swap(
     let mut swap_calldata = array![];
     Serde::serialize(@amount0Out, ref swap_calldata);
     Serde::serialize(@amount1Out, ref swap_calldata);
-    Serde::serialize(@accountDispatcher.contract_address, ref swap_calldata);
+    if test_invalid_to {
+        Serde::serialize(@pairDispatcher.token0(), ref swap_calldata);
+    } else {
+        Serde::serialize(@accountDispatcher.contract_address, ref swap_calldata);
+    }
     Serde::serialize(@data, ref swap_calldata);
     calls
         .append(
@@ -365,7 +370,7 @@ fn test_swap_token0_for_token1() {
     let token1Dispatcher = token_at(pairDispatcher.token1());
 
     // swap
-    swap(ref pairDispatcher, ref accountDispatcher, 30, 0, 17);
+    swap(ref pairDispatcher, ref accountDispatcher, 30, 0, 17, false);
     let (res0, res1, _) = pairDispatcher.get_reserves();
 
     assert(res0 == 5030, 'Reserve 1 eq 5030');
@@ -396,7 +401,7 @@ fn test_swap_token1_for_token0() {
     let token1Dispatcher = token_at(pairDispatcher.token1());
 
     // swap
-    swap(ref pairDispatcher, ref accountDispatcher, 50, 81, 0);
+    swap(ref pairDispatcher, ref accountDispatcher, 50, 81, 0, false);
     let (res0, res1, _) = pairDispatcher.get_reserves();
 
     assert(res0 == 4919, 'Reserve 1 eq 4919');
@@ -417,4 +422,49 @@ fn test_swap_token1_for_token0() {
         token1Dispatcher.balance_of(accountDispatcher.contract_address) == 6950,
         'Token1 balance eq 6950'
     )
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('insufficient output amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_swap_insufficient_output_amount() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, 50, 0, 0, false);
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_swap_insufficient_liquidity() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(2500, 2500, false);
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, 5000, 5000, 0, false);
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('invalid to', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_swap_invalid_to() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, 50, 81, 0, true);
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('insufficient input amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_swap_insufficient_input_amount() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, 0, 81, 0, false);
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('invariant K', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_swap_invariant_k() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, false);
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, 50, 100, 0, false);
 }
