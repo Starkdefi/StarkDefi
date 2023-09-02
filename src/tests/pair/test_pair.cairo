@@ -666,3 +666,41 @@ fn test_sync() {
     assert(res1 == 6000, 'Reserve 1 eq 6000');
 //
 }
+
+
+//
+// fee
+//
+
+#[test]
+#[available_gas(30000000)]
+fn test_fee_on() {
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(5000, 3000, true);
+
+    // swaps
+    // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
+    swap(ref pairDispatcher, ref accountDispatcher, 3000, 0, 1122, false);
+    swap(ref pairDispatcher, ref accountDispatcher, 4000, 5438, 0, false);
+    swap(ref pairDispatcher, ref accountDispatcher, 5000, 0, 3882, false);
+    swap(ref pairDispatcher, ref accountDispatcher, 6000, 5670, 0, false);
+
+    // add more liqudity
+    add_more_liquidity(ref pairDispatcher, ref accountDispatcher, 500, 200);
+
+    assert(pairDispatcher.balance_of(constants::FEE_TO()) == 0, 'Fee to balance eq 0');
+    // calculate fee
+    let (res0, res1, _) = pairDispatcher.get_reserves();
+    let Klast = pairDispatcher.kLast();
+    let totalSupply = pairDispatcher.total_supply();
+
+    let rootK = u256 { low: u256_sqrt(res0 * res1), high: 0 };
+    let rootKLast = u256 { low: u256_sqrt(Klast), high: 0 };
+
+    let liqudity = (totalSupply * (rootK - rootKLast)) / ((rootK * 10) + rootKLast);
+
+    // remove liquidity
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 1000);
+    assert(
+        pairDispatcher.balance_of(constants::FEE_TO()) == liqudity, 'Fee to balance eq liqudity'
+    );
+}
