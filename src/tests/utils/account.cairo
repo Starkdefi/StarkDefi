@@ -1,15 +1,7 @@
 use array::ArrayTrait;
-use core::traits::Into;
 use starkDefi::tests::helper_account::Account;
 use starkDefi::tests::helper_account::AccountABIDispatcher;
-use starkDefi::tests::helper_account::AccountABIDispatcherTrait;
-use starkDefi::tests::helper_account::QUERY_VERSION;
 use starkDefi::tests::helper_account::TRANSACTION_VERSION;
-use starkDefi::tests::helper_account::interface::ISRC6_ID;
-use starkDefi::tests::helper_account::introspection::interface::ISRC5_ID;
-use starknet::ContractAddress;
-use starknet::account::Call;
-use starknet::contract_address_const;
 use option::OptionTrait;
 use starknet::testing;
 use starkDefi::tests::utils::functions::deploy;

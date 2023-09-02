@@ -8,7 +8,6 @@ mod StarkDRouter {
     use starkDefi::dex::v1::router::interface::IStarkDRouter;
     use starkDefi::dex::v1::router::call_contract_with_selector_fallback;
 
-    use starkDefi::dex::v1::router::utils::UnwrapFelt;
     use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
     use starkDefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
     use starkDefi::token::erc20::selectors::{transfer_from, transferFrom};
