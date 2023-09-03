@@ -16,5 +16,14 @@ const transfer: felt252 = 0x83afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740ec
 const mint: felt252 = 0x2f0b3c5710379609eb5495f1ecd348cb28167711b73609fe565a72734550354;
 const burn: felt252 = 0x3e8cfd4725c1e28fa4a6e3e468b4fcf75367166b850ac5f04e33ec843e82c1;
 const swap: felt252 = 0x15543c3708653cda9d418b4ccd3be11368e40636c10c44b18cfe756b6d88b29;
+
 // factory
 const set_fee_to: felt252 = 0x153e811796fd29adf07681d04a6618c084929e386c032ec9ee7ec4fee076634;
+
+// router
+const add_liquidity: felt252 = 0x2cfb12ff9e08412ec5009c65ea06e727119ad948d25c8a8cc2c86fec4adee70;
+const remove_liqudity: felt252 = 0x2e875d1c86df033547c5c7839d8b6e3641de29ee1f708bbce99743b34272ada;
+const swap_exact_tokens_for_tokens: felt252 =
+    0x3276861cf5e05d6daf8f352cabb47df623eb10c383ab742fcc7abea94d5c5cc;
+const swap_tokens_for_exact_tokens: felt252 =
+    0x3b1bf5248b545038b97fc53525d5be840cf237a3faddfcaa7b9e4c8439fdaad;
