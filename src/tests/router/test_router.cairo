@@ -186,6 +186,9 @@ fn add_liquidity(
 
     let mut call1_ret = *ret.at(0);
     let call1_retval = Serde::<(u256, u256, u256)>::deserialize(ref call1_ret);
+    // let (a, b, c) = call1_retval.unwrap();
+    // c.print();
+
     call1_retval.unwrap()
 }
 
@@ -222,3 +225,44 @@ fn test_router_add_new_liquidity() {
     );
     assert(liquidity == expected_liquidity, 'liquidity eq expected_liquidity');
 }
+
+#[test]
+#[available_gas(20000000)]
+fn test_router_add_more_liquidity() {
+    let (router, account) = deploy_router();
+    let (token0, token1, _, _) = deploy_tokens();
+
+    let amount0Desired = 300_000_000;
+    let amount1Desired = 300_000_000;
+    let slipTolerance = 100; // 1%
+    let deadline = 1;
+
+    approve_spend(account, router.contract_address, 1_000_000_000);
+
+    // add first liquidity
+    add_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        amount0Desired,
+        amount1Desired,
+        slipTolerance,
+        deadline
+    );
+
+    // add more liquidity
+    let (_, _, liquidity) = add_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        amount0Desired - 500_999,
+        amount1Desired - 234_732,
+        slipTolerance,
+        deadline
+    );
+
+    assert(liquidity == u256 {low:299499001 * pow(10, 18), high:0}, 'liquidity eq expected_liquidity');
+}
+
