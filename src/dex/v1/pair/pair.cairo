@@ -10,7 +10,6 @@ mod StarkDPair {
     use starkDefi::dex::v1::pair::interface::{
         IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher
     };
-    use starkDefi::utils::MinMax;
     use traits::Into;
 
     use starkDefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
@@ -229,7 +228,7 @@ mod StarkDPair {
             } else {
                 let liquidity0 = (amount0 * totalSupply) / reserve0;
                 let liquidity1 = (amount1 * totalSupply) / reserve1;
-                MinMax::min(liquidity0, liquidity1)
+                cmp::min(liquidity0, liquidity1)
             };
 
             assert(liquidity > 0, 'insufficient liquidity minted');

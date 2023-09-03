@@ -27,7 +27,7 @@ use starkDefi::tests::helper_account::interface::AccountABIDispatcherTrait;
 use starkDefi::tests::factory::deploy_factory;
 
 use starkDefi::tests::utils::constants;
-use starkDefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, deploy};
+use starkDefi::tests::utils::functions::{drop_event, pop_log, setup_erc20};
 use starkDefi::tests::utils::{deploy_erc20, token_at};
 use starkDefi::tests::utils::account::setup_account;
 use starknet::testing;
