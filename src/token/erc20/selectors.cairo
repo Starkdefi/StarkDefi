@@ -4,6 +4,8 @@ const totalSupply: felt252 = 0x80aa9fdbfaf9615e4afc7f5f722e265daca5ccc655360fa5c
 const balance_of: felt252 = 0x35a73cd311a05d46deda634c5ee045db92f811b4e74bca4437fcb5302b7af33;
 const balanceOf: felt252 = 0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e;
 
+const approve: felt252 = 0x219209e083275171774dab1df80982e9df2096516f06319c5c6d71ae0a8480c;
+
 const transfer_from: felt252 = 0x3704ffe8fba161be0e994951751a5033b1462b918ff785c0a636be718dfdb68;
 const transferFrom: felt252 = 0x41b033f4a31df8067c24d1e9b550a2ce75fd4a29e1147af9752174f0e6cb20;
 const safe_transfer_from: felt252 =
