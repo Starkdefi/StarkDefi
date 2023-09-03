@@ -72,7 +72,6 @@ mod StarkDFactory {
         ) -> ContractAddress {
             let sorted_tokens = self.sort_tokens(tokenA, tokenB);
             let pair = self._pair.read(sorted_tokens);
-            assert(pair.is_non_zero(), 'StarkDefi: PAIR_NOT_FOUND');
             pair
         }
 

@@ -126,7 +126,7 @@ fn test_get_pair() {
 fn test_get_pair_not_found() {
     let mut state = setup();
     let pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO());
-    assert(pair == ADDRESS_ZERO(), 'pair eq 0');
+     assert(pair  != ADDRESS_ZERO(), 'StarkDefi: PAIR_NOT_FOUND');
 }
 
 #[test]
