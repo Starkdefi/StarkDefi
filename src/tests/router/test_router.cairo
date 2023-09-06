@@ -212,7 +212,7 @@ fn add_initial_liquidity() -> (
 
     approve_spend(account, router.contract_address, 1_000_000_000);
 
-    let (amount0, amount1, liquidity) = add_liquidity(
+    add_liquidity(
         router,
         account,
         token0.contract_address,
@@ -224,6 +224,163 @@ fn add_initial_liquidity() -> (
     );
 
     (router, account, factory, token0, token1)
+}
+
+fn add_multiple_liquidity() -> (
+    IStarkDRouterDispatcher,
+    AccountABIDispatcher,
+    IStarkDFactoryDispatcher,
+    ERC20ABIDispatcher,
+    ERC20ABIDispatcher,
+    ERC20ABIDispatcher,
+    ERC20ABIDispatcher
+) {
+    let (router, account) = deploy_router();
+    let factory = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let (token0, token1, token2, token3) = deploy_tokens();
+
+    let amount0Desired = with_decimals(100_000_000);
+    let amount1Desired = with_decimals(100_000_000);
+    let minAmount = with_decimals(0);
+    let deadline = 1;
+
+    approve_spend(account, router.contract_address, 1_000_000_000);
+
+    let mut calls = array![];
+
+    // token0, token1
+    let mut t0t1_calldata = array![];
+    Serde::serialize(@token0.contract_address, ref t0t1_calldata);
+    Serde::serialize(@token1.contract_address, ref t0t1_calldata);
+    Serde::serialize(@amount0Desired, ref t0t1_calldata);
+    Serde::serialize(@amount1Desired, ref t0t1_calldata);
+    Serde::serialize(@minAmount, ref t0t1_calldata);
+    Serde::serialize(@minAmount, ref t0t1_calldata);
+    Serde::serialize(@account.contract_address, ref t0t1_calldata);
+    Serde::serialize(@deadline, ref t0t1_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::add_liquidity,
+                calldata: t0t1_calldata
+            }
+        );
+
+    // token0, token2
+    let mut t0t2_calldata = array![];
+    let amount0 = amount0Desired + with_decimals(10_222_789);
+    let amount1 = amount1Desired + with_decimals(10_222_789);
+    Serde::serialize(@token0.contract_address, ref t0t2_calldata);
+    Serde::serialize(@token2.contract_address, ref t0t2_calldata);
+    Serde::serialize(@amount0, ref t0t2_calldata);
+    Serde::serialize(@amount1, ref t0t2_calldata);
+    Serde::serialize(@minAmount, ref t0t2_calldata);
+    Serde::serialize(@minAmount, ref t0t2_calldata);
+    Serde::serialize(@account.contract_address, ref t0t2_calldata);
+    Serde::serialize(@deadline, ref t0t2_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::add_liquidity,
+                calldata: t0t2_calldata
+            }
+        );
+
+    // token0, token3
+    let mut t0t3_calldata = array![];
+    let amount0 = amount0Desired + with_decimals(6_222_789);
+    let amount1 = amount1Desired + with_decimals(20_222_789);
+    Serde::serialize(@token0.contract_address, ref t0t3_calldata);
+    Serde::serialize(@token3.contract_address, ref t0t3_calldata);
+    Serde::serialize(@amount0, ref t0t3_calldata);
+    Serde::serialize(@amount1, ref t0t3_calldata);
+    Serde::serialize(@minAmount, ref t0t3_calldata);
+    Serde::serialize(@minAmount, ref t0t3_calldata);
+    Serde::serialize(@account.contract_address, ref t0t3_calldata);
+    Serde::serialize(@deadline, ref t0t3_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::add_liquidity,
+                calldata: t0t3_calldata
+            }
+        );
+
+    // token1, token2
+    let mut t1t2_calldata = array![];
+    let amount0 = amount0Desired + with_decimals(80_222_789);
+    let amount1 = amount1Desired + with_decimals(80_222_789);
+    Serde::serialize(@token1.contract_address, ref t1t2_calldata);
+    Serde::serialize(@token2.contract_address, ref t1t2_calldata);
+    Serde::serialize(@amount0, ref t1t2_calldata);
+    Serde::serialize(@amount1, ref t1t2_calldata);
+    Serde::serialize(@minAmount, ref t1t2_calldata);
+    Serde::serialize(@minAmount, ref t1t2_calldata);
+    Serde::serialize(@account.contract_address, ref t1t2_calldata);
+    Serde::serialize(@deadline, ref t1t2_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::add_liquidity,
+                calldata: t1t2_calldata
+            }
+        );
+
+    // token1, token3
+    let mut t1t3_calldata = array![];
+    let amount0 = amount0Desired + with_decimals(999_704);
+    let amount1 = amount1Desired + with_decimals(10_257_832);
+    Serde::serialize(@token1.contract_address, ref t1t3_calldata);
+    Serde::serialize(@token3.contract_address, ref t1t3_calldata);
+    Serde::serialize(@amount0, ref t1t3_calldata);
+    Serde::serialize(@amount1, ref t1t3_calldata);
+    Serde::serialize(@minAmount, ref t1t3_calldata);
+    Serde::serialize(@minAmount, ref t1t3_calldata);
+    Serde::serialize(@account.contract_address, ref t1t3_calldata);
+    Serde::serialize(@deadline, ref t1t3_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::add_liquidity,
+                calldata: t1t3_calldata
+            }
+        );
+
+    // token2, token3
+    let mut t2t3_calldata = array![];
+    let amount0 = amount0Desired + with_decimals(64_235_889);
+
+    Serde::serialize(@token2.contract_address, ref t2t3_calldata);
+    Serde::serialize(@token3.contract_address, ref t2t3_calldata);
+    Serde::serialize(@amount0, ref t2t3_calldata);
+    Serde::serialize(@amount1Desired, ref t2t3_calldata);
+    Serde::serialize(@minAmount, ref t2t3_calldata);
+    Serde::serialize(@minAmount, ref t2t3_calldata);
+    Serde::serialize(@account.contract_address, ref t2t3_calldata);
+    Serde::serialize(@deadline, ref t2t3_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::add_liquidity,
+                calldata: t2t3_calldata
+            }
+        );
+
+    account.__execute__(calls);
+
+    (router, account, factory, token0, token1, token2, token3)
 }
 
 #[test]
@@ -585,5 +742,104 @@ fn test_router_get_amount_in() {
     assert(amountIn == 100401304012136509628988, 'amountIn eq amount');
 }
 
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient output amount', 'ENTRYPOINT_FAILED'))]
+fn test_router_get_amount_in_insufficient_amount() {
+    let (router, _, _, _, _) = add_initial_liquidity();
+
+    router.get_amount_in(0, 1, 1);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED'))]
+fn test_router_get_amount_in_insufficient_liquidity() {
+    let (router, _, _, _, _) = add_initial_liquidity();
+
+    router.get_amount_in(1, 0, 1);
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_get_amounts_out() {
+    let (router, _, _, token0, token1, token2, token3) = add_multiple_liquidity();
+
+    let amountIn = with_decimals(1_000);
+    let path: Array::<ContractAddress> = array![
+        token0.contract_address,
+        token3.contract_address,
+        token2.contract_address,
+        token1.contract_address
+    ];
+
+    let amounts = router.get_amounts_out(amountIn, path);
+
+    let expected_amounts = array![
+        amountIn, 1128392473536953390081, 1847644947951066853782, 1842083184716188827615
+    ];
+    assert(*amounts.at(0) == *expected_amounts.at(0), 'amount0 eq expected_amount @0');
+    assert(*amounts.at(1) == *expected_amounts.at(1), 'amount1 eq expected_amount @1');
+    assert(*amounts.at(2) == *expected_amounts.at(2), 'amount2 eq expected_amount @2');
+    assert(*amounts.at(3) == *expected_amounts.at(3), 'amount3 eq expected_amount @3');
+}
+
+#[test]
+#[available_gas(200000000)]
+#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED'))]
+fn test_router_get_amounts_out_invalid_path() {
+    let (router, _, _, token0, _, _, _) = add_multiple_liquidity();
+
+    let amountIn = with_decimals(1_000);
+    let path: Array::<ContractAddress> = array![token0.contract_address];
+
+    router.get_amounts_out(amountIn, path);
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_get_amounts_in() {
+    let (router, _, _, token0, token1, token2, token3) = add_multiple_liquidity();
+
+    let amountOut = with_decimals(100);
+    let path: Array::<ContractAddress> = array![
+        token1.contract_address,
+        token0.contract_address,
+        token3.contract_address,
+        token2.contract_address,
+    ];
+
+    let amounts = router.get_amounts_in(amountOut, path);
+    let expected_amounts = array![
+        54284779846611302760, 54121896215259116214, 61071282525469751980, amountOut
+    ];
+
+    assert(*amounts.at(0) == *expected_amounts.at(0), 'amount0 eq expected_amount @0');
+    assert(*amounts.at(1) == *expected_amounts.at(1), 'amount1 eq expected_amount @1');
+    assert(*amounts.at(2) == *expected_amounts.at(2), 'amount2 eq expected_amount @2');
+    assert(*amounts.at(3) == *expected_amounts.at(3), 'amount3 eq expected_amount @3');
+}
+
+#[test]
+#[available_gas(200000000)]
+#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED'))]
+fn test_router_get_amounts_in_invalid_path() {
+    let (router, _, _, token0, _, _, _) = add_multiple_liquidity();
+
+    let amountOut = with_decimals(100);
+    let path: Array::<ContractAddress> = array![token0.contract_address];
+
+    router.get_amounts_in(amountOut, path);
+}
+
+//
+// swap
+//
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_swap() {
+    let (router, account, factory, token0, token1, token2, token3) = add_multiple_liquidity();
+}
 
 
