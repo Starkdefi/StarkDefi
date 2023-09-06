@@ -24,6 +24,26 @@ The repository is organized into several directories, each serving a specific pu
 
 The repository uses Scarb for building and testing the StarkDefi contracts. Scarb is a build toolchain and package manager for Cairo and Starknet ecosystems.
 
+A Dockerfile is provided in the repository for building the StarkDefi contracts. The Dockerfile uses the version 0.6.2 as of 6th Sept 2023. The Dockerfile can be used to build the StarkDefi contracts without installing Scarb on your local machine.
+
+To build the StarkDefi contracts using the Dockerfile, run the following command:
+
+```bash
+docker build -t starkdefi .
+```
+
+To run the tests, run the following command:
+
+```bash
+docker run starkdefi test
+```
+
+You can access the Scarb CLI by running the following command:
+
+```bash
+docker run starkdefi scarb <command>
+```
+
 To install Scarb, you can use the installation script provided in the Scarb documentation [1](https://docs.swmansion.com/scarb/download.html). Here is how you can install the latest stable release of Scarb:
 
 ```bash
