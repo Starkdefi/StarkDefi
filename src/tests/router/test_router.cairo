@@ -81,7 +81,7 @@ fn deploy_tokens() -> (
 
 fn approve_spend(account: AccountABIDispatcher, spender: ContractAddress, amount: u128) {
     let mut calls = array![];
-    let amount = u256 { low: amount * pow(10, 18), high: 0 };
+    let amount = with_decimals(amount);
     // approve all tokens
     let mut token0 = array![];
     Serde::serialize(@spender, ref token0);
@@ -127,6 +127,10 @@ fn approve_spend(account: AccountABIDispatcher, spender: ContractAddress, amount
     account.__execute__(calls);
 }
 
+fn with_decimals(amount: u128) -> u256 {
+    u256 { low: amount * pow(10, 18), high: 0 }
+}
+
 //
 // constructor
 //
@@ -157,8 +161,8 @@ fn add_liquidity(
     slipTolerance: u256,
     deadline: u64
 ) -> (u256, u256, u256) {
-    let amountA: u256 = u256 { low: amountADesired * pow(10, 18), high: 0 };
-    let amountB: u256 = u256 { low: amountBDesired * pow(10, 18), high: 0 };
+    let amountA: u256 = with_decimals(amountADesired);
+    let amountB: u256 = with_decimals(amountBDesired);
 
     let amountAMin: u256 = amountA * (10000 - slipTolerance) / 10000;
     let amountBMin: u256 = amountB * (10000 - slipTolerance) / 10000;
@@ -186,10 +190,40 @@ fn add_liquidity(
 
     let mut call1_ret = *ret.at(0);
     let call1_retval = Serde::<(u256, u256, u256)>::deserialize(ref call1_ret);
-    // let (a, b, c) = call1_retval.unwrap();
-    // c.print();
 
     call1_retval.unwrap()
+}
+
+fn add_initial_liquidity() -> (
+    IStarkDRouterDispatcher,
+    AccountABIDispatcher,
+    IStarkDFactoryDispatcher,
+    ERC20ABIDispatcher,
+    ERC20ABIDispatcher
+) {
+    let (router, account) = deploy_router();
+    let factory = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let (token0, token1, _, _) = deploy_tokens();
+
+    let amount0Desired = 100_000_000;
+    let amount1Desired = 100_000_000;
+    let slipTolerance = 100; // 1%
+    let deadline = 1;
+
+    approve_spend(account, router.contract_address, 1_000_000_000);
+
+    let (amount0, amount1, liquidity) = add_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        amount0Desired,
+        amount1Desired,
+        slipTolerance,
+        deadline
+    );
+
+    (router, account, factory, token0, token1)
 }
 
 #[test]
@@ -217,29 +251,47 @@ fn test_router_add_new_liquidity() {
     );
 
     let expected_liquidity = 999999999999999999999000;
-    assert(
-        amount0 == u256 { low: amount0Desired * pow(10, 18), high: 0 }, 'amount0 eq amount0Desired'
-    );
-    assert(
-        amount1 == u256 { low: amount1Desired * pow(10, 18), high: 0 }, 'amount1 eq amount1Desired'
-    );
+    assert(amount0 == with_decimals(amount0Desired), 'amount0 eq amount0Desired');
+    assert(amount1 == with_decimals(amount1Desired), 'amount1 eq amount1Desired');
     assert(liquidity == expected_liquidity, 'liquidity eq expected_liquidity');
 }
 
 #[test]
 #[available_gas(20000000)]
 fn test_router_add_more_liquidity() {
-    let (router, account) = deploy_router();
-    let (token0, token1, _, _) = deploy_tokens();
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
 
-    let amount0Desired = 300_000_000;
-    let amount1Desired = 300_000_000;
+    let amount0Desired = 100_000_000;
+    let amount1Desired = 100_000_000;
     let slipTolerance = 100; // 1%
     let deadline = 1;
 
-    approve_spend(account, router.contract_address, 1_000_000_000);
+    // add more liquidity
+    let (_, _, liquidity) = add_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        amount0Desired - 80_222_789,
+        amount1Desired - 80_222_789,
+        slipTolerance,
+        deadline
+    );
 
-    // add first liquidity
+    assert(liquidity == with_decimals(19777211), 'liquidity eq expected_liquidity');
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('INSUFFICIENT_B_AMOUNT', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_add_liquidity_insufficient_b() {
+    let (router, account, _, token0, token1) = add_initial_liquidity();
+
+    let amount0Desired = 100_000_000;
+    let amount1Desired = 100_000_000;
+    let slipTolerance = 100; // 1%
+    let deadline = 1;
+
     add_liquidity(
         router,
         account,
@@ -257,12 +309,281 @@ fn test_router_add_more_liquidity() {
         account,
         token0.contract_address,
         token1.contract_address,
-        amount0Desired - 500_999,
-        amount1Desired - 234_732,
+        amount0Desired - 80_222_789,
+        amount1Desired - 40_222_789,
+        slipTolerance,
+        deadline
+    );
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('INSUFFICIENT_A_AMOUNT', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_add_liquidity_insufficient_a() {
+    let (router, account, _, token0, token1) = add_initial_liquidity();
+
+    let amount0Desired = 100_000_000;
+    let amount1Desired = 100_000_000;
+    let slipTolerance = 100; // 1%
+    let deadline = 1;
+
+    add_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        amount0Desired,
+        amount1Desired,
         slipTolerance,
         deadline
     );
 
-    assert(liquidity == u256 {low:299499001 * pow(10, 18), high:0}, 'liquidity eq expected_liquidity');
+    // add more liquidity
+    let (_, _, liquidity) = add_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        amount0Desired - 40_222_789,
+        amount1Desired - 80_222_789,
+        slipTolerance,
+        deadline
+    );
 }
+
+//
+// remove_liquidity
+//
+
+fn remove_liquidity(
+    router: IStarkDRouterDispatcher,
+    account: AccountABIDispatcher,
+    tokenA: ContractAddress,
+    tokenB: ContractAddress,
+    liquidity: u256,
+    amountAMin: u256,
+    amountBMin: u256,
+    deadline: u64
+) -> (u256, u256) {
+    let factoryDispatcher = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let lp_token_address = factoryDispatcher.get_pair(tokenA, tokenB);
+
+    let mut calls = array![];
+
+    // approve lp tokens
+    let mut approve_calldata = array![];
+    Serde::serialize(@router.contract_address, ref approve_calldata);
+    Serde::serialize(@liquidity, ref approve_calldata);
+
+    calls
+        .append(
+            Call { to: lp_token_address, selector: selectors::approve, calldata: approve_calldata }
+        );
+
+    // remove liquidity
+    let mut remove_calldata = array![];
+    Serde::serialize(@tokenA, ref remove_calldata);
+    Serde::serialize(@tokenB, ref remove_calldata);
+    Serde::serialize(@liquidity, ref remove_calldata);
+    Serde::serialize(@amountAMin, ref remove_calldata);
+    Serde::serialize(@amountBMin, ref remove_calldata);
+    Serde::serialize(@account.contract_address, ref remove_calldata);
+    Serde::serialize(@deadline, ref remove_calldata);
+
+    calls
+        .append(
+            Call {
+                to: router.contract_address,
+                selector: selectors::remove_liquidity,
+                calldata: remove_calldata
+            }
+        );
+
+    let ret = account.__execute__(calls);
+
+    let mut call1_ret = *ret.at(1);
+    let call1_retval = Serde::<(u256, u256)>::deserialize(ref call1_ret);
+
+    call1_retval.unwrap()
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_router_remove_all_liquidity() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    let pairDispatcher = IStarkDPairDispatcher {
+        contract_address: factoryDispatcher
+            .get_pair(token0.contract_address, token1.contract_address)
+    };
+    let lp_balance = pairDispatcher.balance_of(account.contract_address);
+
+    let (amount0, amount1) = remove_liquidity(
+        router, account, token0.contract_address, token1.contract_address, lp_balance, 0, 0, 1
+    );
+
+    let expected_amounts = 99999999999999999999999000;
+    assert(amount0 == expected_amounts, 'amount0 eq expected_amounts');
+    assert(amount1 == expected_amounts, 'amount1 eq expected_amounts');
+    assert(pairDispatcher.balance_of(account.contract_address) == 0, 'lp_balance eq 0');
+    assert(pairDispatcher.total_supply() == 1000, 'total_supply eq 1000');
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_router_remove_liqudity_some() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    let pairDispatcher = IStarkDPairDispatcher {
+        contract_address: factoryDispatcher
+            .get_pair(token0.contract_address, token1.contract_address)
+    };
+    let lp_balance = pairDispatcher.balance_of(account.contract_address);
+
+    let (amount0, amount1) = remove_liquidity(
+        router, account, token0.contract_address, token1.contract_address, lp_balance / 2, 0, 0, 1
+    );
+
+    let expected_amounts = 49999999999999999999999500;
+    assert(amount0 == expected_amounts, 'amount0 eq expected_amounts');
+    assert(amount1 == expected_amounts, 'amount1 eq expected_amounts');
+
+    assert(
+        pairDispatcher.balance_of(account.contract_address) == expected_amounts,
+        'lp_balance eq expected_amounts'
+    );
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient A amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_remove_liqudity_less_A() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    remove_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        with_decimals(99_000_000),
+        with_decimals(100_000_000),
+        0,
+        1
+    );
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient B amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_remove_liqudity_less_B() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    remove_liquidity(
+        router,
+        account,
+        token0.contract_address,
+        token1.contract_address,
+        with_decimals(99_000_000),
+        0,
+        with_decimals(100_000_000),
+        1
+    );
+}
+
+//
+// Getters
+//
+
+#[test]
+#[available_gas(20000000)]
+fn test_router_quote() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    let pairDispatcher = IStarkDPairDispatcher {
+        contract_address: factoryDispatcher
+            .get_pair(token0.contract_address, token1.contract_address)
+    };
+
+    let (res0, res1, _) = pairDispatcher.get_reserves();
+    let amount = with_decimals(100_000);
+
+    let amountOut = router.quote(amount, res0, res1);
+
+    assert(amountOut == with_decimals(100_000), 'amountOut eq amount');
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient amount', 'ENTRYPOINT_FAILED'))]
+fn test_router_quote_insufficient_amount() {
+    let (router, _, _, _, _) = add_initial_liquidity();
+
+    router.quote(0, 1, 1);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED'))]
+fn test_router_quote_insufficient_liquidity() {
+    let (router, _, _, _, _) = add_initial_liquidity();
+
+    router.quote(1, 0, 1);
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_router_get_amount_out() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    let pairDispatcher = IStarkDPairDispatcher {
+        contract_address: factoryDispatcher
+            .get_pair(token0.contract_address, token1.contract_address)
+    };
+
+    let (resIn, resOut, _) = pairDispatcher.get_reserves();
+
+    let amountIn = with_decimals(100_000);
+    let amountOut = router.get_amount_out(amountIn, resIn, resOut);
+
+    assert(amountOut == 99600698103990321649315, 'amountOut eq amount');
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient input amount', 'ENTRYPOINT_FAILED'))]
+fn test_router_get_amount_out_insufficient_amount() {
+    let (router, _, _, _, _) = add_initial_liquidity();
+
+    router.get_amount_out(0, 1, 1);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED'))]
+fn test_router_get_amount_out_insufficient_liquidity() {
+    let (router, _, _, _, _) = add_initial_liquidity();
+
+    router.get_amount_out(1, 0, 1);
+}
+
+#[test]
+#[available_gas(20000000)]
+fn test_router_get_amount_in() {
+    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity();
+
+    let pairDispatcher = IStarkDPairDispatcher {
+        contract_address: factoryDispatcher
+            .get_pair(token0.contract_address, token1.contract_address)
+    };
+
+    let (resIn, resOut, _) = pairDispatcher.get_reserves();
+
+    let amountOut = with_decimals(100_000);
+
+    let amountIn = router.get_amount_in(amountOut, resIn, resOut);
+
+    assert(amountIn == 100401304012136509628988, 'amountIn eq amount');
+}
+
+
 
