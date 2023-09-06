@@ -22,7 +22,7 @@ const set_fee_to: felt252 = 0x153e811796fd29adf07681d04a6618c084929e386c032ec9ee
 
 // router
 const add_liquidity: felt252 = 0x2cfb12ff9e08412ec5009c65ea06e727119ad948d25c8a8cc2c86fec4adee70;
-const remove_liqudity: felt252 = 0x2e875d1c86df033547c5c7839d8b6e3641de29ee1f708bbce99743b34272ada;
+const remove_liquidity: felt252 = 0x2e875d1c86df033547c5c7839d8b6e3641de29ee1f708bbce99743b34272ada;
 const swap_exact_tokens_for_tokens: felt252 =
     0x3276861cf5e05d6daf8f352cabb47df623eb10c383ab742fcc7abea94d5c5cc;
 const swap_tokens_for_exact_tokens: felt252 =
