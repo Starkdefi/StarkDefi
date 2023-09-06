@@ -1,4 +1,5 @@
 use array::ArrayTrait;
+use clone::Clone;
 use option::OptionTrait;
 use result::ResultTrait;
 use starknet::account::Call;
@@ -836,10 +837,166 @@ fn test_router_get_amounts_in_invalid_path() {
 // swap
 //
 
-#[test]
-#[available_gas(200000000)]
-fn test_router_swap() {
-    let (router, account, factory, token0, token1, token2, token3) = add_multiple_liquidity();
+fn swap_exact_tokens_for_tokens(
+    router: IStarkDRouterDispatcher,
+    account: AccountABIDispatcher,
+    amountIn: u256,
+    amountOutMin: u256,
+    path: Array::<ContractAddress>,
+    to: ContractAddress,
+    deadline: u64
+) -> Array::<u256> {
+    let mut calldata = array![];
+    Serde::serialize(@amountIn, ref calldata);
+    Serde::serialize(@amountOutMin, ref calldata);
+    Serde::serialize(@path, ref calldata);
+    Serde::serialize(@to, ref calldata);
+    Serde::serialize(@deadline, ref calldata);
+
+    let ret = account
+        .__execute__(
+            array![
+                Call {
+                    to: router.contract_address,
+                    selector: selectors::swap_exact_tokens_for_tokens,
+                    calldata: calldata
+                }
+            ]
+        );
+
+    let mut call1_ret = *ret.at(0);
+    let call1_retval = Serde::<Array<u256>>::deserialize(ref call1_ret);
+
+    call1_retval.unwrap()
 }
 
+#[test]
+#[available_gas(200000000)]
+fn test_router_swap_exact_tokens_for_tokens() {
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity();
+    let slipTolerance = 100; // 1%
 
+    let amountIn: u256 = with_decimals(10_000);
+    let path: Array::<ContractAddress> = array![
+        token0.contract_address,
+        token3.contract_address,
+        token2.contract_address,
+        token1.contract_address
+    ];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(3) * (10000 - slipTolerance) / 10000;
+
+    let swap_amounts = swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
+
+    assert(*swap_amounts.at(3) >= amountOutMin, 'amountOutMin <= swap_amounts[3]');
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_swap_exact_tokens_for_tokens_3() {
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity();
+    let slipTolerance = 00; // 0.5%
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<ContractAddress> = array![
+        token0.contract_address, token3.contract_address, token1.contract_address
+    ];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(2) * (10000 - slipTolerance) / 10000;
+
+    let swap_amounts = swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
+
+    assert(*swap_amounts.at(2) >= amountOutMin, 'amountOutMin <= swap_amounts[3]');
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_swap_exact_tokens_for_tokens_2() {
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity();
+    let slipTolerance = 00; // 0.5%
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<ContractAddress> = array![token2.contract_address, token0.contract_address];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    let swap_amounts = swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
+
+    assert(*swap_amounts.at(1) >= amountOutMin, 'amountOutMin <= swap_amounts[3]');
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_swap_exact_tokens_for_tokens_multiple() {
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity();
+    let slipTolerance = 50; // 0.5%
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<ContractAddress> = array![token2.contract_address, token0.contract_address];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    let swap_amounts1 = swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 2
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 3
+    let amounts = router.get_amounts_out(amountIn * 8, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens(
+        router, account, amountIn * 8, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 4
+    let amounts = router.get_amounts_out(amountIn * 10, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens(
+        router, account, amountIn * 10, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 5
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    let swap_amounts5 = swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
+
+    assert(*swap_amounts1.at(1) != *swap_amounts5.at(1), 'first & last swap amounts')
+}
+
+#[test]
+#[available_gas(200000000)]
+#[should_panic(expected: ('insufficient output amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_swap_exact_tokens_for_tokens_invalid() {
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity();
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<ContractAddress> = array![token2.contract_address, token0.contract_address];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * 3;
+    swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path.clone(), account.contract_address, 1
+    );
+}
