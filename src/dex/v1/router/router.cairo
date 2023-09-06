@@ -389,11 +389,12 @@ mod StarkDRouter {
                 amounts
                     .append(
                         InternalFunctions::_get_amount_in(
-                            *amounts[path.len() - index], reserveIn, reserveOut
+                            *amounts[(path.len()-1)-index], reserveIn, reserveOut
                         )
                     );
                 index -= 1;
             };
+          
             amounts.reverse()
         }
     }
