@@ -318,7 +318,7 @@ mod StarkDPair {
             if data.len() > 0 {
                 IStarkDCalleeDispatcher {
                     contract_address: to
-                }.starkd_call(get_caller_address(), amount0Out, amount1Out, data);
+                }.hook(get_caller_address(), amount0Out, amount1Out, data);
             }
 
             let balance0 = token0Dispatcher.balance_of(this_address);

@@ -45,7 +45,7 @@ trait IStarkDPair<TContractState> {
 
 #[starknet::interface]
 trait IStarkDCallee<TContractState> {
-    fn starkd_call(
+    fn hook(
         ref self: TContractState,
         sender: ContractAddress,
         amount0Out: u256,
