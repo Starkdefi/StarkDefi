@@ -3,6 +3,8 @@
 // @license MIT
 // @description Based on UniswapV2 Pair Contract
 
+const _1000: u256 = 1000;
+
 #[starknet::contract]
 mod StarkDPair {
     use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
@@ -211,20 +213,19 @@ mod StarkDPair {
             Modifiers::_lock(ref self);
             let (reserve0, reserve1, _) = InternalFunctions::_get_reserves(@self);
             let this_address = get_contract_address();
-            let balance0 = ERC20ABIDispatcher {
-                contract_address: self._token0.read()
-            }.balance_of(this_address);
-            let balance1 = ERC20ABIDispatcher {
-                contract_address: self._token1.read()
-            }.balance_of(this_address);
+            let balance0 = ERC20ABIDispatcher { contract_address: self._token0.read() }
+                .balance_of(this_address);
+            let balance1 = ERC20ABIDispatcher { contract_address: self._token1.read() }
+                .balance_of(this_address);
             let amount0 = balance0 - reserve0;
             let amount1 = balance1 - reserve1;
 
             let feeOn = InternalFunctions::_mint_fee(ref self, reserve0, reserve1);
             let totalSupply = InternalFunctions::_total_supply(@self);
+            let min_liquidity = super::_1000;
 
             let liquidity = if (totalSupply == 0) {
-                u256 { low: u256_sqrt(amount0 * amount1) - 1000, high: 0 }
+                u256 { low: u256_sqrt(amount0 * amount1) - min_liquidity.low, high: 0 }
             } else {
                 let liquidity0 = (amount0 * totalSupply) / reserve0;
                 let liquidity1 = (amount1 * totalSupply) / reserve1;
@@ -236,7 +237,7 @@ mod StarkDPair {
 
             if totalSupply == 0 {
                 ERC20::InternalImpl::_mint(
-                    ref erc20_state, contract_address_const::<'deAd'>(), 1000
+                    ref erc20_state, contract_address_const::<'deAd'>(), min_liquidity
                 );
             }
             ERC20::InternalImpl::_mint(ref erc20_state, to, liquidity);
@@ -316,9 +317,8 @@ mod StarkDPair {
                 token1Dispatcher.transfer(to, amount1Out);
             }
             if data.len() > 0 {
-                IStarkDCalleeDispatcher {
-                    contract_address: to
-                }.hook(get_caller_address(), amount0Out, amount1Out, data);
+                IStarkDCalleeDispatcher { contract_address: to }
+                    .hook(get_caller_address(), amount0Out, amount1Out, data);
             }
 
             let balance0 = token0Dispatcher.balance_of(this_address);
@@ -338,10 +338,14 @@ mod StarkDPair {
 
             assert(amount0In > 0 || amount1In > 0, 'insufficient input amount');
 
-            let balance0Adjusted = (balance0 * 1000) - (amount0In * 3);
-            let balance1Adjusted = (balance1 * 1000) - (amount1In * 3);
+            let balance0Adjusted = (balance0 * super::_1000) - (amount0In * 3);
+            let balance1Adjusted = (balance1 * super::_1000) - (amount1In * 3);
             assert(
-                balance0Adjusted * balance1Adjusted >= reserve0 * reserve1 * 1000 * 1000,
+                balance0Adjusted
+                    * balance1Adjusted >= reserve0
+                    * reserve1
+                    * super::_1000
+                    * super::_1000,
                 'invariant K'
             );
 
@@ -383,13 +387,11 @@ mod StarkDPair {
             Modifiers::_lock(ref self);
             let this_address = get_contract_address();
 
-            let balance0 = ERC20ABIDispatcher {
-                contract_address: self._token0.read()
-            }.balance_of(this_address);
+            let balance0 = ERC20ABIDispatcher { contract_address: self._token0.read() }
+                .balance_of(this_address);
 
-            let balance1 = ERC20ABIDispatcher {
-                contract_address: self._token1.read()
-            }.balance_of(this_address);
+            let balance1 = ERC20ABIDispatcher { contract_address: self._token1.read() }
+                .balance_of(this_address);
 
             let (reserve0, reserve1, _) = InternalFunctions::_get_reserves(@self);
 
@@ -419,7 +421,8 @@ mod StarkDPair {
         fn _mint_fee(ref self: ContractState, reserve0: u256, reserve1: u256) -> bool {
             let fee_to: ContractAddress = IStarkDFactoryDispatcher {
                 contract_address: self._factory.read()
-            }.fee_to();
+            }
+                .fee_to();
             let fee_on: bool = fee_to != Zeroable::zero();
             let k_last: u256 = self._klast.read();
 
@@ -458,16 +461,20 @@ mod StarkDPair {
                 self
                     ._price_0_cumulative_last
                     .write(
-                        self._price_0_cumulative_last.read() + (reserve1 / reserve0) * u256 {
-                            low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                        }
+                        self._price_0_cumulative_last.read()
+                            + (reserve1 / reserve0)
+                                * u256 {
+                                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
+                                }
                     );
                 self
                     ._price_1_cumulative_last
                     .write(
-                        self._price_1_cumulative_last.read() + (reserve0 / reserve1) * u256 {
-                            low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                        }
+                        self._price_1_cumulative_last.read()
+                            + (reserve0 / reserve1)
+                                * u256 {
+                                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
+                                }
                     );
             }
 
