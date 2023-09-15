@@ -213,10 +213,12 @@ mod StarkDPair {
             Modifiers::_lock(ref self);
             let (reserve0, reserve1, _) = InternalFunctions::_get_reserves(@self);
             let this_address = get_contract_address();
-            let balance0 = ERC20ABIDispatcher { contract_address: self._token0.read() }
-                .balance_of(this_address);
-            let balance1 = ERC20ABIDispatcher { contract_address: self._token1.read() }
-                .balance_of(this_address);
+            let balance0 = ERC20ABIDispatcher {
+                contract_address: self._token0.read()
+            }.balance_of(this_address);
+            let balance1 = ERC20ABIDispatcher {
+                contract_address: self._token1.read()
+            }.balance_of(this_address);
             let amount0 = balance0 - reserve0;
             let amount1 = balance1 - reserve1;
 
@@ -317,8 +319,9 @@ mod StarkDPair {
                 token1Dispatcher.transfer(to, amount1Out);
             }
             if data.len() > 0 {
-                IStarkDCalleeDispatcher { contract_address: to }
-                    .hook(get_caller_address(), amount0Out, amount1Out, data);
+                IStarkDCalleeDispatcher {
+                    contract_address: to
+                }.hook(get_caller_address(), amount0Out, amount1Out, data);
             }
 
             let balance0 = token0Dispatcher.balance_of(this_address);
@@ -387,11 +390,13 @@ mod StarkDPair {
             Modifiers::_lock(ref self);
             let this_address = get_contract_address();
 
-            let balance0 = ERC20ABIDispatcher { contract_address: self._token0.read() }
-                .balance_of(this_address);
+            let balance0 = ERC20ABIDispatcher {
+                contract_address: self._token0.read()
+            }.balance_of(this_address);
 
-            let balance1 = ERC20ABIDispatcher { contract_address: self._token1.read() }
-                .balance_of(this_address);
+            let balance1 = ERC20ABIDispatcher {
+                contract_address: self._token1.read()
+            }.balance_of(this_address);
 
             let (reserve0, reserve1, _) = InternalFunctions::_get_reserves(@self);
 
@@ -421,8 +426,7 @@ mod StarkDPair {
         fn _mint_fee(ref self: ContractState, reserve0: u256, reserve1: u256) -> bool {
             let fee_to: ContractAddress = IStarkDFactoryDispatcher {
                 contract_address: self._factory.read()
-            }
-                .fee_to();
+            }.fee_to();
             let fee_on: bool = fee_to != Zeroable::zero();
             let k_last: u256 = self._klast.read();
 
@@ -461,20 +465,16 @@ mod StarkDPair {
                 self
                     ._price_0_cumulative_last
                     .write(
-                        self._price_0_cumulative_last.read()
-                            + (reserve1 / reserve0)
-                                * u256 {
-                                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                                }
+                        self._price_0_cumulative_last.read() + (reserve1 / reserve0) * u256 {
+                            low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
+                        }
                     );
                 self
                     ._price_1_cumulative_last
                     .write(
-                        self._price_1_cumulative_last.read()
-                            + (reserve0 / reserve1)
-                                * u256 {
-                                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                                }
+                        self._price_1_cumulative_last.read() + (reserve0 / reserve1) * u256 {
+                            low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
+                        }
                     );
             }
 
