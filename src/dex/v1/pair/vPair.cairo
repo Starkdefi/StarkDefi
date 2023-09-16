@@ -1,4 +1,4 @@
-// @title StarkDefi Pair Contract
+// @title StarkDefi Volatile Pair Contract
 // @author StarkDefi Labs
 // @license MIT
 // @description Based on UniswapV2 Pair Contract
@@ -6,7 +6,7 @@
 const _1000: u256 = 1000;
 
 #[starknet::contract]
-mod StarkDPair {
+mod vStarkDPair {
     use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
     use starkDefi::dex::v1::pair::interface::IStarkDPair;
     use starkDefi::dex::v1::pair::interface::{
@@ -89,7 +89,7 @@ mod StarkDPair {
     fn constructor(ref self: ContractState, tokenA: ContractAddress, tokenB: ContractAddress) {
         assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid address');
         let mut erc20_state = ERC20::unsafe_new_contract_state();
-        ERC20::InternalImpl::initializer(ref erc20_state, 'StarkDefi Pair', 'STARKD-P');
+        ERC20::InternalImpl::initializer(ref erc20_state, 'vStarkDefi Pair', 'vSTARKD-P');
 
         self._entry_locked.write(false);
         self._token0.write(tokenA);

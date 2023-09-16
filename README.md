@@ -16,7 +16,7 @@ The repository is organized into several directories, each serving a specific pu
 
 - [StarkDFactory](src/dex/v1/factory/factory.cairo): This is the factory contract responsible for creating new trading pairs on the StarkDefi platform. The factory contract's Interface   can be found in [here](src/dex/v1/factory/interface.cairo).
 
-- [StarkDPair](src/dex/v1/pair/pair.cairo)`: This contract represents a liquidity pool for a pair of tokens. The pair contract's source code can be found in [here](src/dex/v1/pair/interface.cairo).
+- [vStarkDPair](src/dex/v1/pair/pair.cairo)`: This contract represents a liquidity pool for a pair of tokens. The pair contract's source code can be found in [here](src/dex/v1/pair/interface.cairo).
 
 - [StarkDRouter](src/dex/v1/router/router.cairo)`: This contract provides functions for adding and removing liquidity, as well as swapping tokens. The router contract's source code can be found in [here](src/dex/v1/router/interface.cairo).
 
