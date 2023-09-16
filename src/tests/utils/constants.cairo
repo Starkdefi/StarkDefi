@@ -1,7 +1,7 @@
 use starknet::ContractAddress;
 use starknet::ClassHash;
 use starknet::contract_address_const;
-use starkDefi::dex::v1::pair::StarkDPair;
+use starkDefi::dex::v1::pair::vStarkDPair;
 use option::OptionTrait;
 use traits::TryInto;
 use starkDefi::utils::{pow};
@@ -11,7 +11,7 @@ fn TOTAL_SUPPLY(total: u128) -> u256 {
 }
 
 fn PAIR_CLASS_HASH() -> ClassHash {
-    StarkDPair::TEST_CLASS_HASH.try_into().unwrap()
+    vStarkDPair::TEST_CLASS_HASH.try_into().unwrap()
 }
 
 fn ADDRESS_ZERO() -> ContractAddress {

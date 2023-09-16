@@ -4,12 +4,12 @@ use starknet::ContractAddress;
 use starknet::get_caller_address;
 use starknet::contract_address_const;
 
-use starkDefi::dex::v1::pair::StarkDPair;
-use starkDefi::dex::v1::pair::StarkDPair::StarkDPairImpl;
-use starkDefi::dex::v1::pair::StarkDPair::Mint;
-use starkDefi::dex::v1::pair::StarkDPair::Burn;
-use starkDefi::dex::v1::pair::StarkDPair::Swap;
-use starkDefi::dex::v1::pair::StarkDPair::Sync;
+use starkDefi::dex::v1::pair::vStarkDPair;
+use starkDefi::dex::v1::pair::vStarkDPair::StarkDPairImpl;
+use starkDefi::dex::v1::pair::vStarkDPair::Mint;
+use starkDefi::dex::v1::pair::vStarkDPair::Burn;
+use starkDefi::dex::v1::pair::vStarkDPair::Swap;
+use starkDefi::dex::v1::pair::vStarkDPair::Sync;
 
 use starkDefi::dex::v1::pair::IStarkDPairDispatcher;
 use starkDefi::dex::v1::pair::IStarkDPairDispatcherTrait;
@@ -48,16 +48,16 @@ fn deploy_pair() -> (IStarkDPairDispatcher, AccountABIDispatcher) {
     (IStarkDPairDispatcher { contract_address: pair }, account)
 }
 
-fn STATE() -> StarkDPair::ContractState {
-    StarkDPair::contract_state_for_testing()
+fn STATE() -> vStarkDPair::ContractState {
+    vStarkDPair::contract_state_for_testing()
 }
 
-fn setup() -> StarkDPair::ContractState {
+fn setup() -> vStarkDPair::ContractState {
     let mut state = STATE();
 
     testing::set_caller_address(constants::FACTORY());
     testing::set_contract_address(constants::PAIR());
-    StarkDPair::constructor(ref state, constants::TOKEN_0(), constants::TOKEN_1());
+    vStarkDPair::constructor(ref state, constants::TOKEN_0(), constants::TOKEN_1());
     drop_event(constants::ADDRESS_ZERO());
 
     state
@@ -72,15 +72,15 @@ fn setup() -> StarkDPair::ContractState {
 fn test_constructor() {
     let mut state = STATE();
     testing::set_caller_address(constants::CALLER());
-    StarkDPair::constructor(ref state, constants::ADDRESS_ONE(), constants::ADDRESS_TWO());
+    vStarkDPair::constructor(ref state, constants::ADDRESS_ONE(), constants::ADDRESS_TWO());
 
     assert(StarkDPairImpl::token0(@state) == constants::ADDRESS_ONE(), 'Token0 eq ADDRESS_ONE');
     assert(StarkDPairImpl::token1(@state) == constants::ADDRESS_TWO(), 'Token1 eq ADDRESS_TWO');
     assert(StarkDPairImpl::factory(@state) == get_caller_address(), 'Factory eq caller address');
 
-    // Starkd-p token
-    assert(StarkDPairImpl::name(@state) == 'StarkDefi Pair', 'Name eq StarkDefi Pair');
-    assert(StarkDPairImpl::symbol(@state) == 'STARKD-P', 'Symbol eq STARKD-P');
+    // vSTARKD-P token
+    assert(StarkDPairImpl::name(@state) == 'vStarkDefi Pair', 'Name eq vStarkDefi Pair');
+    assert(StarkDPairImpl::symbol(@state) == 'vSTARKD-P', 'Symbol eq vSTARKD-P');
     assert(StarkDPairImpl::decimals(@state) == 18, 'Decimals eq 18');
     assert(StarkDPairImpl::total_supply(@state) == 0, 'Total supply eq 0');
 }
@@ -120,9 +120,9 @@ fn test_deployed_pair() {
         'Token1 balance eq 10000'
     );
 
-    // Starkd-p token
-    assert(pairDispatcher.name() == 'StarkDefi Pair', 'Name eq StarkDefi Pair');
-    assert(pairDispatcher.symbol() == 'STARKD-P', 'Symbol eq STARKD-P');
+    // vSTARKD-P token
+    assert(pairDispatcher.name() == 'vStarkDefi Pair', 'Name eq vStarkDefi Pair');
+    assert(pairDispatcher.symbol() == 'vSTARKD-P', 'Symbol eq vSTARKD-P');
     assert(pairDispatcher.decimals() == 18, 'Decimals eq 18');
     assert(pairDispatcher.total_supply() == 0, 'Total supply eq 0');
 }
