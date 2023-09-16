@@ -1,6 +1,7 @@
-mod pair;
+mod sPair;
+mod vPair;
 mod interface;
 
-use pair::StarkDPair;
+use vPair::StarkDPair;
 use interface::IStarkDPairDispatcher;
 use interface::IStarkDPairDispatcherTrait;
