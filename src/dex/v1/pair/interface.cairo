@@ -53,3 +53,9 @@ trait IStarkDCallee<TContractState> {
         data: Array::<felt252>
     );
 }
+
+#[starknet::interface]
+trait IPairFees<TContractState> {
+    fn claim_lp_fees(ref self: TContractState, user: ContractAddress, amount0: u256, amount1: u256);
+    fn claim_protocol_fees(ref self: TContractState);
+}
