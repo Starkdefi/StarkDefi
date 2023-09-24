@@ -9,7 +9,8 @@ use starkDefi::dex::v1::factory::StarkDFactory::PairCreated;
 use starkDefi::dex::v1::factory::IStarkDFactoryDispatcher;
 use starkDefi::dex::v1::factory::IStarkDFactoryDispatcherTrait;
 use starkDefi::tests::utils::constants::{
-    FEE_TO_SETTER, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH
+    FEE_TO_SETTER, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH,
+    PAIR_FEES_CLASS_HASH
 };
 use starkDefi::tests::utils::functions::{drop_event, pop_log, deploy};
 use starknet::testing;
@@ -26,6 +27,8 @@ fn deploy_factory(address: ContractAddress) -> IStarkDFactoryDispatcher {
         Serde::serialize(@FEE_TO_SETTER(), ref calldata);
     }
     Serde::serialize(@PAIR_CLASS_HASH(), ref calldata);
+    Serde::serialize(@PAIR_FEES_CLASS_HASH(), ref calldata);
+
     let address = deploy(StarkDFactory::TEST_CLASS_HASH, calldata);
     IStarkDFactoryDispatcher { contract_address: address }
 }
@@ -36,7 +39,9 @@ fn STATE() -> StarkDFactory::ContractState {
 
 fn setup() -> StarkDFactory::ContractState {
     let mut state = STATE();
-    StarkDFactory::constructor(ref state, FEE_TO_SETTER(), PAIR_CLASS_HASH());
+    StarkDFactory::constructor(
+        ref state, FEE_TO_SETTER(), PAIR_CLASS_HASH(), PAIR_FEES_CLASS_HASH()
+    );
     state
 }
 
@@ -48,16 +53,19 @@ fn setup() -> StarkDFactory::ContractState {
 #[available_gas(2000000)]
 fn test_constructor() {
     let mut state = STATE();
-    StarkDFactory::constructor(ref state, FEE_TO_SETTER(), PAIR_CLASS_HASH());
+    StarkDFactory::constructor(
+        ref state, FEE_TO_SETTER(), PAIR_CLASS_HASH(), PAIR_FEES_CLASS_HASH()
+    );
 
     assert(StarkDFactoryImpl::fee_to(@state) == ADDRESS_ZERO(), 'FeeTo eq 0');
     assert(
-        StarkDFactoryImpl::fee_to_setter(@state) == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER'
+        StarkDFactoryImpl::fee_handler(@state) == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER'
     );
     assert(
         StarkDFactoryImpl::class_hash_for_pair_contract(@state) == PAIR_CLASS_HASH(),
         'class_hash eq pair_class_hash'
     );
+    assert(StarkDFactoryImpl::get_fees(@state) == (4, 30), 'get_fees eq (4, 30)');
     assert(StarkDFactoryImpl::all_pairs_length(@state) == 0, 'pair_len eq 0');
 }
 
@@ -67,10 +75,11 @@ fn test_deployed_factory() {
     let factory = deploy_factory(ADDRESS_ZERO());
 
     assert(factory.fee_to() == ADDRESS_ZERO(), 'FeeTo eq 0');
-    assert(factory.fee_to_setter() == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER');
+    assert(factory.fee_handler() == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER');
     assert(
         factory.class_hash_for_pair_contract() == PAIR_CLASS_HASH(), 'class_hash eq pair_class_hash'
     );
+    assert(factory.get_fees() == (4, 30), 'get_fees eq (4, 30)');
     assert(factory.all_pairs_length() == 0, 'pair_len eq 0');
 }
 
@@ -87,10 +96,17 @@ fn test_fee_to() {
 
 #[test]
 #[available_gas(2000000)]
-fn test_fee_to_setter() {
+fn test_get_fees() {
+    let mut state = setup();
+    assert(StarkDFactoryImpl::get_fees(@state) == (4, 30), 'get_fees eq (4, 30)');
+}
+
+#[test]
+#[available_gas(2000000)]
+fn test_fee_handler() {
     let mut state = setup();
     assert(
-        StarkDFactoryImpl::fee_to_setter(@state) == FEE_TO_SETTER(), 'FeeToSetter eq FEE_TO_SETTER'
+        StarkDFactoryImpl::fee_handler(@state) == FEE_TO_SETTER(), 'feeHandler eq FEE_TO_SETTER'
     );
 }
 
@@ -115,8 +131,8 @@ fn test_all_pairs_length() {
 #[available_gas(2000000)]
 fn test_get_pair() {
     let mut state = setup();
-    let pair = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO());
-    let got_pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO());
+    let pair = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO(), false);
+    let got_pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), false);
     assert(got_pair == pair, 'got_pair eq `pair`');
 }
 
@@ -125,8 +141,8 @@ fn test_get_pair() {
 #[should_panic(expected: ('StarkDefi: PAIR_NOT_FOUND',))]
 fn test_get_pair_not_found() {
     let mut state = setup();
-    let pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO());
-     assert(pair  != ADDRESS_ZERO(), 'StarkDefi: PAIR_NOT_FOUND');
+    let pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), false);
+    assert(pair != ADDRESS_ZERO(), 'StarkDefi: PAIR_NOT_FOUND');
 }
 
 #[test]
@@ -145,7 +161,7 @@ fn test_all_pairs() {
 #[available_gas(2000000)]
 fn test_create_pair() {
     let mut state = setup();
-    let pair = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO());
+    let pair = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO(), false);
 
     assert_event_pair_created(@state, ADDRESS_ONE(), ADDRESS_TWO(), pair, 1);
     assert(pair != ADDRESS_ZERO(), 'pair neq 0');
@@ -155,7 +171,7 @@ fn test_create_pair() {
     assert(pairs.len() == 1, 'pairs len eq 1');
     assert(*pairs.at(0) == pair, 'pairs[0] eq `pair`');
 
-    let got_pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO());
+    let got_pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), false);
     assert(got_pair == pair, 'got_pair eq `pair`');
 }
 
@@ -164,7 +180,7 @@ fn test_create_pair() {
 fn test_deployed_create_pair() {
     let factory = deploy_factory(ADDRESS_ZERO());
 
-    let pair = factory.create_pair(ADDRESS_ONE(), ADDRESS_THREE());
+    let pair = factory.create_pair(ADDRESS_ONE(), ADDRESS_THREE(), true);
 
     let event = testing::pop_log::<PairCreated>(factory.contract_address).unwrap();
 
@@ -176,9 +192,9 @@ fn test_deployed_create_pair() {
 #[available_gas(2000000)]
 fn test_create_pair_twice() {
     let mut state = setup();
-    let pair1 = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO());
+    let pair1 = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO(), false);
     drop_event(ADDRESS_ZERO());
-    let pair2 = StarkDFactoryImpl::create_pair(ref state, ADDRESS_THREE(), ADDRESS_TWO());
+    let pair2 = StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO(), true);
 
     assert_event_pair_created(@state, ADDRESS_ONE(), ADDRESS_TWO(), pair2, 2);
     assert(pair1 != ADDRESS_ZERO(), 'pair1 neq 0');
@@ -189,8 +205,10 @@ fn test_create_pair_twice() {
     assert(pairs.len() == 2, 'pairs len eq 2');
     assert(*pairs.at(0) == pair1, 'pairs[0] eq `pair1`');
 
-    let got_pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_THREE(), ADDRESS_TWO());
-    assert(got_pair == pair2, 'got_pair eq `pair1`');
+    let got_pair1 = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), false);
+    assert(got_pair1 == pair1, 'got_pair eq `pair1`');
+    let got_pair2 = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), true);
+    assert(got_pair2 == pair2, 'got_pair eq `pair1`');
 }
 
 #[test]
@@ -198,7 +216,7 @@ fn test_create_pair_twice() {
 #[should_panic(expected: ('invalid token address',))]
 fn test_create_pair_invalid_token() {
     let mut state = setup();
-    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ZERO(), ADDRESS_TWO());
+    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ZERO(), ADDRESS_TWO(), false);
 }
 
 #[test]
@@ -206,7 +224,7 @@ fn test_create_pair_invalid_token() {
 #[should_panic(expected: ('identical addresses',))]
 fn test_create_pair_identical_token() {
     let mut state = setup();
-    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_ONE());
+    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_ONE(), false);
 }
 
 #[test]
@@ -214,8 +232,8 @@ fn test_create_pair_identical_token() {
 #[should_panic(expected: ('pair exists',))]
 fn test_create_pair_pair_exists() {
     let mut state = setup();
-    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO());
-    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO());
+    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO(), true);
+    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_TWO(), true);
 }
 
 
@@ -250,8 +268,8 @@ fn test_set_fee_to_not_allowed() {
 fn test_set_fee_to_setter() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
-    StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_ONE());
-    assert(StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE');
+    StarkDFactoryImpl::set_fee_handler(ref state, ADDRESS_ONE());
+    assert(StarkDFactoryImpl::fee_handler(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE');
 }
 
 #[test]
@@ -259,11 +277,11 @@ fn test_set_fee_to_setter() {
 fn test_set_fee_to_setter_new_setter() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
-    StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_ONE());
-    assert(StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE');
+    StarkDFactoryImpl::set_fee_handler(ref state, ADDRESS_ONE());
+    assert(StarkDFactoryImpl::fee_handler(@state) == ADDRESS_ONE(), 'FeeToSetter eq ADDRESS_ONE');
     testing::set_caller_address(ADDRESS_ONE());
-    StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_TWO());
-    assert(StarkDFactoryImpl::fee_to_setter(@state) == ADDRESS_TWO(), 'FeeToSetter eq ADDRESS_TWO');
+    StarkDFactoryImpl::set_fee_handler(ref state, ADDRESS_TWO());
+    assert(StarkDFactoryImpl::fee_handler(@state) == ADDRESS_TWO(), 'FeeToSetter eq ADDRESS_TWO');
 }
 
 #[test]
@@ -272,7 +290,7 @@ fn test_set_fee_to_setter_new_setter() {
 fn test_set_fee_to_setter_not_allowed() {
     let mut state = setup();
     testing::set_caller_address(ADDRESS_ONE());
-    StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_ONE());
+    StarkDFactoryImpl::set_fee_handler(ref state, ADDRESS_ONE());
 }
 
 #[test]
@@ -281,7 +299,7 @@ fn test_set_fee_to_setter_not_allowed() {
 fn test_set_fee_to_setter_invalid() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
-    StarkDFactoryImpl::set_fee_to_setter(ref state, ADDRESS_ZERO());
+    StarkDFactoryImpl::set_fee_handler(ref state, ADDRESS_ZERO());
 }
 
 //
