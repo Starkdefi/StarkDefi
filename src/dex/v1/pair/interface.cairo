@@ -1,5 +1,16 @@
 use starknet::{ContractAddress};
 
+#[derive(Copy, Drop, Serde)]
+struct Snapshot {
+    token0: ContractAddress,
+    token1: ContractAddress,
+    decimal0: u256,
+    decimal1: u256,
+    reserve0: u256,
+    reserve1: u256,
+    is_stable: bool,
+}
+
 #[starknet::interface]
 trait IStarkDPair<TContractState> {
     fn name(self: @TContractState) -> felt252;
@@ -24,10 +35,13 @@ trait IStarkDPair<TContractState> {
     fn factory(self: @TContractState) -> ContractAddress;
     fn token0(self: @TContractState) -> ContractAddress;
     fn token1(self: @TContractState) -> ContractAddress;
+    fn fee_vault(self: @TContractState) -> ContractAddress;
+    fn snapshot(self: @TContractState) -> Snapshot;
     fn get_reserves(self: @TContractState) -> (u256, u256, u64);
     fn price0_cumulative_last(self: @TContractState) -> u256;
     fn price1_cumulative_last(self: @TContractState) -> u256;
-    fn kLast(self: @TContractState) -> u256;
+    fn invariant_k(self: @TContractState) -> u256;
+    fn is_stable(self: @TContractState) -> bool;
 
     fn mint(ref self: TContractState, to: ContractAddress) -> u256;
     fn burn(ref self: TContractState, to: ContractAddress) -> (u256, u256);
@@ -40,6 +54,7 @@ trait IStarkDPair<TContractState> {
     );
     fn skim(ref self: TContractState, to: ContractAddress);
     fn sync(ref self: TContractState);
+    fn claim_fees(ref self: TContractState);
 }
 
 
@@ -57,5 +72,6 @@ trait IStarkDCallee<TContractState> {
 #[starknet::interface]
 trait IPairFees<TContractState> {
     fn claim_lp_fees(ref self: TContractState, user: ContractAddress, amount0: u256, amount1: u256);
+    fn update_protocol_fees(ref self: TContractState, amount0: u256, amount1: u256);
     fn claim_protocol_fees(ref self: TContractState);
 }
