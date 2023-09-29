@@ -10,7 +10,7 @@ mod vStarkDPair {
     use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
     use starkDefi::dex::v1::pair::interface::IStarkDPair;
     use starkDefi::dex::v1::pair::interface::{
-        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher
+        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot
     };
     use traits::Into;
 
@@ -104,6 +104,41 @@ mod vStarkDPair {
             ERC20::ERC20Impl::name(@erc20_state)
         }
 
+        fn snapshot(self: @ContractState) -> Snapshot {
+            Snapshot {
+                token0: self._token0.read(),
+                token1: self._token1.read(),
+                decimal0: 0,
+                decimal1: 0,
+                reserve0: 0,
+                reserve1: 0,
+                is_stable: false,
+            }
+        }
+
+        fn invariant_k(self: @ContractState) -> u256 {
+            0
+        }
+
+        fn is_stable(self: @ContractState) -> bool {
+            false
+        }
+
+        fn fee_vault(self: @ContractState) -> ContractAddress {
+            self._factory.read()
+        }
+
+        fn claim_fees(ref self: ContractState) { // TODO: review this
+            Modifiers::_lock(ref self);
+
+            Modifiers::_unlock(ref self);
+        }
+
+        fn get_amount_out(
+            ref self: ContractState, tokenIn: ContractAddress, amountIn: u256
+        ) -> u256 {
+            0
+        }
 
         fn symbol(self: @ContractState) -> felt252 {
             let erc20_state = ERC20::unsafe_new_contract_state();
@@ -162,10 +197,9 @@ mod vStarkDPair {
         }
 
 
-        fn kLast(self: @ContractState) -> u256 {
-            self._klast.read()
-        }
-
+        // fn kLast(self: @ContractState) -> u256 {
+        //     self._klast.read()
+        // }
 
         fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
             let mut erc20_state = ERC20::unsafe_new_contract_state();
