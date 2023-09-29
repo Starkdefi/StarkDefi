@@ -551,6 +551,19 @@ mod StarkDPair {
                 );
             Modifiers::_unlock(ref self);
         }
+
+        fn get_amount_out(
+            ref self: ContractState, tokenIn: ContractAddress, amountIn: u256
+        ) -> u256 {
+            let (reserve0, reserve1, _) = self.get_reserves();
+            let pool_fee = IStarkDFactoryDispatcher {
+                contract_address: self.factory()
+            }.get_fee(get_contract_address(), self.is_stable());
+
+            let _amount_in = amountIn - ((amountIn * pool_fee) / FEE_DENOMINATOR);
+
+            InternalFunctions::_calculate_amount_out(@self, tokenIn, _amount_in, reserve0, reserve1)
+        }
     }
 
 
@@ -706,6 +719,56 @@ mod StarkDPair {
             }
 
             self.users_fee.write(user, user_fees);
+        }
+
+        /// @notice Calculates the amount of tokenOut received for a given amount of tokenIn
+        /// @param self The state of the contract
+        /// @param tokenIn The address of the token being swapped
+        /// @param amountIn The amount of tokenIn being swapped
+        /// @param reserve0 The amount of token0 in the pair
+        /// @param reserve1 The amount of token1 in the pair
+        /// @return The amount of tokenOut received
+        fn _calculate_amount_out(
+            self: @ContractState,
+            tokenIn: ContractAddress,
+            amountIn: u256,
+            reserve0: u256,
+            reserve1: u256
+        ) -> u256 {
+            let config = self.config.read();
+            if (self.is_stable()) {
+                let k0 = self._k(reserve0, reserve1);
+                let res0_normalized = (reserve0 * PRECISION) / config.decimal0;
+                let res1_normalized = (reserve1 * PRECISION) / config.decimal1;
+
+                let (resA, resB) = if (tokenIn == config.token0) {
+                    (res0_normalized, res1_normalized)
+                } else {
+                    (res1_normalized, res0_normalized)
+                };
+
+                let _amount_in = if (tokenIn == config.token0) {
+                    (amountIn * PRECISION) / config.decimal0
+                } else {
+                    (amountIn * PRECISION) / config.decimal1
+                };
+
+                let y = resB - self._solve_y(_amount_in + resA, k0, resB);
+                let tokenIn_decimal = if (tokenIn == config.token0) {
+                    config.decimal1
+                } else {
+                    config.decimal0
+                };
+
+                (y * tokenIn_decimal) / PRECISION
+            } else {
+                let (resA, resB) = if (tokenIn == config.token0) {
+                    (reserve0, reserve1)
+                } else {
+                    (reserve1, reserve0)
+                };
+                (amountIn * resB) / (resA + amountIn)
+            }
         }
 
         /// @notice called before any transfers to keep fees up to date

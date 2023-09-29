@@ -55,6 +55,7 @@ trait IStarkDPair<TContractState> {
     fn skim(ref self: TContractState, to: ContractAddress);
     fn sync(ref self: TContractState);
     fn claim_fees(ref self: TContractState);
+    fn get_amount_out(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
 }
 
 
