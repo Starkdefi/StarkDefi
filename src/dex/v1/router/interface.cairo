@@ -1,5 +1,12 @@
 use starknet::ContractAddress;
 
+#[derive(Copy, Drop, Serde, starkent::Store)]
+struct SwapPath {
+    tokenIn: ContractAddress,
+    tokenOut: ContractAddress,
+    stable: bool,
+}
+
 #[starknet::interface]
 trait IStarkDRouter<TContractState> {
     fn factory(self: @TContractState) -> ContractAddress;
@@ -7,23 +14,15 @@ trait IStarkDRouter<TContractState> {
         self: @TContractState, tokenA: ContractAddress, tokenB: ContractAddress
     ) -> (ContractAddress, ContractAddress);
     fn quote(self: @TContractState, amountA: u256, reserveA: u256, reserveB: u256) -> u256;
-    fn get_amount_out(
-        self: @TContractState, amountIn: u256, reserveIn: u256, reserveOut: u256
-    ) -> u256;
-    fn get_amount_in(
-        self: @TContractState, amountOut: u256, reserveIn: u256, reserveOut: u256
-    ) -> u256;
     fn get_amounts_out(
-        self: @TContractState, amountIn: u256, path: Array::<ContractAddress>
-    ) -> Array::<u256>;
-    fn get_amounts_in(
-        self: @TContractState, amountOut: u256, path: Array::<ContractAddress>
+        self: @TContractState, amountIn: u256, path: Array::<SwapPath>
     ) -> Array::<u256>;
 
     fn add_liquidity(
-        ref self: TContractState,
+        self: @TContractState,
         tokenA: ContractAddress,
         tokenB: ContractAddress,
+        stable: bool,
         amountADesired: u256,
         amountBDesired: u256,
         amountAMin: u256,
@@ -32,9 +31,10 @@ trait IStarkDRouter<TContractState> {
         deadline: u64
     ) -> (u256, u256, u256);
     fn remove_liquidity(
-        ref self: TContractState,
+        self: @TContractState,
         tokenA: ContractAddress,
         tokenB: ContractAddress,
+        stable: bool,
         liquidity: u256,
         amountAMin: u256,
         amountBMin: u256,
@@ -42,19 +42,19 @@ trait IStarkDRouter<TContractState> {
         deadline: u64
     ) -> (u256, u256);
     fn swap_exact_tokens_for_tokens(
-        ref self: TContractState,
+        self: @TContractState,
         amountIn: u256,
         amountOutMin: u256,
-        path: Array::<ContractAddress>,
+        path: Array::<SwapPath>,
         to: ContractAddress,
         deadline: u64
     ) -> Array::<u256>;
-    fn swap_tokens_for_exact_tokens(
-        ref self: TContractState,
-        amountOut: u256,
-        amountInMax: u256,
-        path: Array::<ContractAddress>,
+    fn swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        self: @TContractState,
+        amountIn: u256,
+        amountOutMin: u256,
+        path: Array::<SwapPath>,
         to: ContractAddress,
         deadline: u64
-    ) -> Array::<u256>;
+    );
 }
