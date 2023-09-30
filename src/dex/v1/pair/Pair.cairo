@@ -319,6 +319,7 @@ mod StarkDPair {
         }
 
         /// @notice Low-level function, importantant safety checks must be handled by the caller
+        /// @dev This function mints lp tokens for the given amount of tokens to the caller.
         /// @param to the address to transfer to.
         /// @return the amount of tokens transferred.
         fn mint(ref self: ContractState, to: ContractAddress) -> u256 {
@@ -371,6 +372,10 @@ mod StarkDPair {
             liquidity
         }
 
+        /// @notice Low-level function, importantant safety checks must be handled by the caller
+        // @dev This function burns the given amount of liquidity and transfers the underlying tokens to the caller.
+        /// @param to the address to transfer to.
+        /// @return the amount of tokens transferred.
         fn burn(ref self: ContractState, to: ContractAddress) -> (u256, u256) {
             Modifiers::_lock(ref self);
             let config = self.config.read();
@@ -528,6 +533,7 @@ mod StarkDPair {
         fn claim_fees(ref self: ContractState) {
             Modifiers::_lock(ref self);
             let user = get_caller_address();
+            InternalFunctions::_update_user_fee(ref self, user);
             let mut user_fees = self.users_fee.read(user);
 
             let claimable0 = user_fees.claimable0;
