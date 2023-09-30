@@ -10,6 +10,7 @@ use option::OptionTrait;
 use starknet::ContractAddress;
 use starknet::testing;
 use traits::TryInto;
+use starkDefi::utils::{pow};
 
 fn deploy(contract_class_hash: felt252, calldata: Array<felt252>) -> ContractAddress {
     let (address, _) = starknet::deploy_syscall(
@@ -33,6 +34,10 @@ fn deploy_erc20(
 
 fn token_at(address: ContractAddress) -> ERC20ABIDispatcher {
     ERC20ABIDispatcher { contract_address: address }
+}
+
+fn with_decimals(amount: u128) -> u256 {
+    u256 { low: amount * pow(10, 18), high: 0 }
 }
 
 // OZ
