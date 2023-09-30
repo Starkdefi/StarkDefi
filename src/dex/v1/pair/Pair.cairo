@@ -555,10 +555,12 @@ mod StarkDPair {
         fn get_amount_out(
             ref self: ContractState, tokenIn: ContractAddress, amountIn: u256
         ) -> u256 {
+            assert(amountIn > 0, 'insufficient input amount');
             let (reserve0, reserve1, _) = self.get_reserves();
+            assert(reserve0 > 0 && reserve1 > 0, 'insufficient liquidity');
             let pool_fee = IStarkDFactoryDispatcher {
                 contract_address: self.factory()
-            }.get_fee(get_contract_address(), self.is_stable());
+            }.get_fee(get_contract_address());
 
             let _amount_in = amountIn - ((amountIn * pool_fee) / FEE_DENOMINATOR);
 
@@ -637,7 +639,7 @@ mod StarkDPair {
             let pair = get_contract_address();
             let swap_fee = IStarkDFactoryDispatcher {
                 contract_address: self.factory()
-            }.get_fee(pair, self.is_stable());
+            }.get_fee(pair);
 
             if (amount0In > 0) {
                 let fee0 = (amount0In * swap_fee) / FEE_DENOMINATOR;
