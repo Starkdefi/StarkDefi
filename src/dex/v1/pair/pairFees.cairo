@@ -24,7 +24,6 @@ mod PairFees {
     use super::{ContractAddress, ProtocolFees};
     use starknet::{get_caller_address, get_block_timestamp};
 
-
     #[storage]
     struct Storage {
         pair: ContractAddress,
@@ -65,6 +64,11 @@ mod PairFees {
             PairFeesImpl::claim_protocol_fees(ref self);
         }
 
+        fn get_protocol_fees(ref self: ContractState) -> (u256, u256) {
+            let protocol = self.protocol.read();
+            (protocol.token0, protocol.token1)
+        }
+
         fn update_protocol_fees(ref self: ContractState, amount0: u256, amount1: u256) {
             assert(get_caller_address() == self.pair.read(), 'not authorized');
 
@@ -78,7 +82,8 @@ mod PairFees {
         fn claim_protocol_fees(ref self: ContractState) {
             let factory = IStarkDFactoryDispatcher { contract_address: self.factory.read() };
             let fee_handler = factory.fee_handler();
-            assert(get_caller_address() == fee_handler, 'not authorized');
+            let caller = get_caller_address();
+            assert(caller == fee_handler || caller == self.pair.read(), 'not authorized');
 
             let protocol = self.protocol.read();
             let (token0, token1) = (protocol.token0, protocol.token1);
@@ -91,14 +96,12 @@ mod PairFees {
                     .write(ProtocolFees { token0: 0, token1: 0, timestamp: get_block_timestamp() });
 
                 if token0 > 0 {
-                    ERC20ABIDispatcher {
-                        contract_address: self.token0.read()
-                    }.transfer(fee_to, protocol.token0);
+                    ERC20ABIDispatcher { contract_address: self.token0.read() }
+                        .transfer(fee_to, protocol.token0);
                 }
                 if token1 > 0 {
-                    ERC20ABIDispatcher {
-                        contract_address: self.token1.read()
-                    }.transfer(fee_to, protocol.token1);
+                    ERC20ABIDispatcher { contract_address: self.token1.read() }
+                        .transfer(fee_to, protocol.token1);
                 }
             }
         }
