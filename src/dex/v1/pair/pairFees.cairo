@@ -96,12 +96,14 @@ mod PairFees {
                     .write(ProtocolFees { token0: 0, token1: 0, timestamp: get_block_timestamp() });
 
                 if token0 > 0 {
-                    ERC20ABIDispatcher { contract_address: self.token0.read() }
-                        .transfer(fee_to, protocol.token0);
+                    ERC20ABIDispatcher {
+                        contract_address: self.token0.read()
+                    }.transfer(fee_to, protocol.token0);
                 }
                 if token1 > 0 {
-                    ERC20ABIDispatcher { contract_address: self.token1.read() }
-                        .transfer(fee_to, protocol.token1);
+                    ERC20ABIDispatcher {
+                        contract_address: self.token1.read()
+                    }.transfer(fee_to, protocol.token1);
                 }
             }
         }
