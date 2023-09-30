@@ -97,7 +97,7 @@ mod StarkDRouter {
             to: ContractAddress,
             deadline: u64
         ) -> (u256, u256, u256) {
-            InternalFunctions::_ensure(deadline);
+            Modifiers::_ensure(deadline);
             let factory = self._factory.read();
             let (amountA, amountB) = InternalFunctions::_add_liquidity(
                 self, tokenA, tokenB, stable, amountADesired, amountBDesired, amountAMin, amountBMin
@@ -134,7 +134,7 @@ mod StarkDRouter {
             to: ContractAddress,
             deadline: u64
         ) -> (u256, u256) {
-            InternalFunctions::_ensure(deadline);
+            Modifiers::_ensure(deadline);
             let factory = self._factory.read();
 
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
@@ -175,7 +175,7 @@ mod StarkDRouter {
             to: ContractAddress,
             deadline: u64
         ) -> Array::<u256> {
-            InternalFunctions::_ensure(deadline);
+            Modifiers::_ensure(deadline);
             let factory = self._factory.read();
             let amounts = InternalFunctions::_get_amounts_out(factory, amountIn, path.span());
             assert(*amounts[amounts.len() - 1] >= amountOutMin, 'insufficient output amount');
@@ -230,12 +230,6 @@ mod StarkDRouter {
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
-        /// @notice This function is used to ensure that the current block timestamp is less than or equal to the deadline
-        /// @param deadline The deadline for the transaction
-        fn _ensure(deadline: u64) {
-            assert(get_block_timestamp() <= deadline, 'expired');
-        }
-
         fn _sort_tokens(
             tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
@@ -300,7 +294,7 @@ mod StarkDRouter {
                     let amountAOptimal = InternalFunctions::_quote(
                         amountBDesired, reserveB, reserveA
                     );
-                    assert(amountAOptimal <= amountADesired, '');
+                    assert(amountAOptimal <= amountADesired, 'AMOUNT_A_OPTIMAL_!_ADESIRED');
                     assert(amountAOptimal >= amountAMin, 'INSUFFICIENT_A_AMOUNT');
                     (amountAOptimal, amountBDesired)
                 }
@@ -452,7 +446,7 @@ mod StarkDRouter {
         fn _get_amounts_out(
             factory: ContractAddress, amountIn: u256, path: Span::<SwapPath>
         ) -> Array::<u256> {
-            assert(path.len() >= 2, 'invalid path');
+            assert(path.len() >= 1, 'invalid path');
             let mut amounts = ArrayTrait::<u256>::new();
             let mut _path = path;
             amounts.append(amountIn);
@@ -485,6 +479,15 @@ mod StarkDRouter {
                 };
             };
             amounts
+        }
+    }
+
+    #[generate_trait]
+    impl Modifiers of ModifiersTrait {
+        /// @notice This function is used to ensure that the current block timestamp is less than or equal to the deadline
+        /// @param deadline The deadline for the transaction
+        fn _ensure(deadline: u64) {
+            assert(get_block_timestamp() <= deadline, 'expired');
         }
     }
 }
