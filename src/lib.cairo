@@ -22,6 +22,8 @@ mod tests {
     }
     mod pair {
         mod test_pair_shared;
+        mod test_stable_pair;
+        mod test_volatile_pair;
     }
 
     mod router {
