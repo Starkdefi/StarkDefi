@@ -27,3 +27,6 @@ const swap_exact_tokens_for_tokens: felt252 =
     0x3276861cf5e05d6daf8f352cabb47df623eb10c383ab742fcc7abea94d5c5cc;
 const swap_tokens_for_exact_tokens: felt252 =
     0x3b1bf5248b545038b97fc53525d5be840cf237a3faddfcaa7b9e4c8439fdaad;
+
+// pair
+const claim_fees: felt252 = 0xfaec35dcc986d878ccce0504372a394e561469976033cad5499bcd1e75631a;

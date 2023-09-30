@@ -21,7 +21,7 @@ mod tests {
         use test_factory::setup as factory_setup;
     }
     mod pair {
-        mod test_pair;
+        mod test_pair_shared;
     }
 
     mod router {
