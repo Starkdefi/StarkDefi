@@ -4,7 +4,6 @@ mod token {
     mod erc20 {
         mod erc20;
         mod interface;
-        mod selectors;
 
         use erc20::ERC20;
         use interface::ERC20ABIDispatcher;

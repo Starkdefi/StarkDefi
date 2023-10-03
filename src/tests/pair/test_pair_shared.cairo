@@ -18,7 +18,7 @@ use starkDefi::dex::v1::pair::interface::{IPairFeesDispatcher, IPairFeesDispatch
 use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcher;
 use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcherTrait;
 
-use starkDefi::token::erc20::selectors;
+use starkDefi::utils::selectors;
 use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
 use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
 
