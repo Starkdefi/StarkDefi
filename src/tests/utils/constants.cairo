@@ -1,7 +1,6 @@
 use starknet::ContractAddress;
 use starknet::ClassHash;
 use starknet::contract_address_const;
-use starkDefi::dex::v1::pair::vStarkDPair;
 use starkDefi::dex::v1::pair::StarkDPair;
 use starkDefi::dex::v1::pair::PairFees;
 use option::OptionTrait;
