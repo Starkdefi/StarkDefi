@@ -24,7 +24,7 @@ mod StarkDRouter {
 
     #[storage]
     struct Storage {
-        _factory: ContractAddress,
+        _factory: ContractAddress, 
     }
 
     #[constructor]
@@ -188,7 +188,6 @@ mod StarkDRouter {
             );
             let sender = get_caller_address();
 
-
             InternalFunctions::_transfer_token_from(_route.tokenIn, sender, pair, *amounts[0]);
             InternalFunctions::_swap(self, amounts.span(), path.span(), to);
             amounts
@@ -347,8 +346,7 @@ mod StarkDRouter {
                             contract_address: InternalFunctions::_pair_for(
                                 factory, *route.tokenIn, *route.tokenOut, *route.stable
                             )
-                        }
-                            .swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
+                        }.swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
 
                         index += 1;
                     },
@@ -382,9 +380,9 @@ mod StarkDRouter {
                         let (reserveA, _) = InternalFunctions::_get_reserves(
                             factory, *route.tokenIn, *route.tokenOut, *route.stable
                         );
-                        let amountIn = ERC20ABIDispatcher { contract_address: *route.tokenIn }
-                            .balance_of(pair)
-                            - reserveA;
+                        let amountIn = ERC20ABIDispatcher {
+                            contract_address: *route.tokenIn
+                        }.balance_of(pair) - reserveA;
 
                         let amountOut = pairDispatcher.get_amount_out(*route.tokenIn, amountIn);
 
@@ -427,8 +425,9 @@ mod StarkDRouter {
         ) -> (u256, u256) {
             let (token0, _) = InternalFunctions::_sort_tokens(tokenA, tokenB);
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
-            let (reserve0, reserve1, _) = IStarkDPairDispatcher { contract_address: pair }
-                .get_reserves();
+            let (reserve0, reserve1, _) = IStarkDPairDispatcher {
+                contract_address: pair
+            }.get_reserves();
 
             if tokenA == token0 {
                 (reserve0, reserve1)
@@ -468,8 +467,9 @@ mod StarkDRouter {
                         if (factoryDispatcher.valid_pair(pair)) {
                             amounts
                                 .append(
-                                    IStarkDPairDispatcher { contract_address: pair }
-                                        .get_amount_out(*route.tokenIn, *amounts[index])
+                                    IStarkDPairDispatcher {
+                                        contract_address: pair
+                                    }.get_amount_out(*route.tokenIn, *amounts[index])
                                 )
                         }
                         index += 1;
