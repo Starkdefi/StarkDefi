@@ -382,6 +382,18 @@ fn test_swap_insufficient_liquidity() {
 
 #[test]
 #[available_gas(20000000)]
+#[should_panic(expected: ('insufficient output amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_vPair_swap_insufficient_output_amount() {
+    let stable = false;
+    let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
+        false, 5000, 3000, stable
+    );
+    // swap
+    swap(ref pairDispatcher, ref accountDispatcher, with_decimals(50), 0, 0, false);
+}
+
+#[test]
+#[available_gas(20000000)]
 #[should_panic(expected: ('invalid to', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_swap_invalid_to() {
     let stable = true;
