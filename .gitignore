@@ -22,3 +22,5 @@ venv
 
 starknet-artifacts
 old_test
+accounts
+deploy
