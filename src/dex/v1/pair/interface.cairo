@@ -75,5 +75,5 @@ trait IPairFees<TContractState> {
     fn claim_lp_fees(ref self: TContractState, user: ContractAddress, amount0: u256, amount1: u256);
     fn update_protocol_fees(ref self: TContractState, amount0: u256, amount1: u256);
     fn claim_protocol_fees(ref self: TContractState);
-    fn get_protocol_fees(ref self: TContractState) -> (u256, u256);
+    fn get_protocol_fees(self: @TContractState) -> (u256, u256);
 }

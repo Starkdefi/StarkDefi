@@ -64,7 +64,7 @@ mod PairFees {
             PairFeesImpl::claim_protocol_fees(ref self);
         }
 
-        fn get_protocol_fees(ref self: ContractState) -> (u256, u256) {
+        fn get_protocol_fees(self: @ContractState) -> (u256, u256) {
             let protocol = self.protocol.read();
             (protocol.token0, protocol.token1)
         }
