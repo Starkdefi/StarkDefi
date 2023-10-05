@@ -1,58 +1,60 @@
 # StarkDefi
 
-This is the official contract repository for StarkDefi, a decentralized finance (DeFi) project built on the StarkNet network. The repository contains the source code for the smart contracts that power the StarkDefi platform.
+Welcome to the official contract repository for StarkDefi, a decentralized finance (DeFi) project built on the StarkNet network. This repository houses the source code for the smart contracts that power the StarkDefi platform.
 
 [![Run Test on PRs](https://github.com/Starkdefi/StarkDefi/actions/workflows/unit-test.yaml/badge.svg)](https://github.com/Starkdefi/StarkDefi/actions/workflows/unit-test.yaml)
 
 ## Repository Structure
 
-The repository is organized into several directories, each serving a specific purpose:
+The repository is structured into several directories, each with a specific purpose:
 
-- [src](src/): Contains the Cairo source code for the StarkDefi contracts. The contracts are organized into modules such as [dex](src/dex.cairo) for decentralized exchange functionality, [token](src/token.cairo) for token-related contracts, and [utils](src/utils.cairo) for utility functions and contracts. The structure will be expanded on as the project grows.
+- [src](src/): This directory contains the Cairo source code for the StarkDefi contracts. The contracts are organized into modules such as [dex](src/dex.cairo) for decentralized exchange functionality, [token](src/token/erc20/erc20.cairo.cairo) for token-related contracts, and [utils](src/utils.cairo) for utility functions and contracts. The structure will evolve as the project expands.
 
-- [tests](src/tests/): Contains Cairo code for testing the StarkDefi contracts.
+- [tests](src/tests/): This directory houses Cairo code for testing the StarkDefi contracts.
 
 ## Key Components (WIP)
 
-- [StarkDFactory](src/dex/v1/factory/factory.cairo): This is the factory contract responsible for creating new trading pairs on the StarkDefi platform. The factory contract's Interface   can be found in [here](src/dex/v1/factory/interface.cairo).
+- [StarkDFactory](src/dex/v1/factory/factory.cairo): This factory contract is responsible for creating new trading pairs on the StarkDefi platform. You can find the factory contract's Interface [here](src/dex/v1/factory/interface.cairo).
 
-- [vStarkDPair](src/dex/v1/pair/pair.cairo)`: This contract represents a liquidity pool for a pair of tokens. The pair contract's source code can be found in [here](src/dex/v1/pair/interface.cairo).
+- [StarkDPair](src/dex/v1/pair/Pair.cairo): This contract represents a liquidity pool for a pair of tokens. You can find the pair contract's source code [here](src/dex/v1/pair/interface.cairo).
 
-- [StarkDRouter](src/dex/v1/router/router.cairo)`: This contract provides functions for adding and removing liquidity, as well as swapping tokens. The router contract's source code can be found in [here](src/dex/v1/router/interface.cairo).
+- [FeeVault](src/dex/v1/pair/pairFees.cairo): This contract handles fees generated from the pair reserves. You can find it [here](src/dex/v1/pair/interface.cairo).
+
+- [StarkDRouter](src/dex/v1/router/router.cairo): This contract provides functions for adding and removing liquidity, as well as swapping tokens. You can find the router contract's source code [here](src/dex/v1/router/interface.cairo).
 
 ## Development
 
-The repository uses Scarb for building and testing the StarkDefi contracts. Scarb is a build toolchain and package manager for Cairo and Starknet ecosystems.
+Scarb, a build toolchain and package manager for Cairo and Starknet ecosystems, is used for building and testing the StarkDefi contracts.
 
-A Dockerfile is provided in the repository for building the StarkDefi contracts. The Dockerfile uses the version 0.6.2 as of 6th Sept 2023. The Dockerfile can be used to build the StarkDefi contracts without installing Scarb on your local machine.
+A Dockerfile is provided for building the StarkDefi contracts. As of 6th Sept 2023, the Dockerfile uses Scarb v0.6.2. You can use the Dockerfile to build the StarkDefi contracts without installing Scarb on your local machine.
 
-To build the StarkDefi contracts using the Dockerfile, run the following command:
+To build the StarkDefi contracts using the Dockerfile, use the following command:
 
 ```bash
 docker build -t starkdefi .
 ```
 
-To run the tests, run the following command:
+To run the tests, use the following command:
 
 ```bash
 docker run starkdefi test
 ```
 
-You can access the Scarb CLI by running the following command:
+You can access the Scarb CLI with the following command:
 
 ```bash
 docker run starkdefi scarb <command>
 ```
 
-To install Scarb, you can use the installation script provided in the Scarb documentation [1](https://docs.swmansion.com/scarb/download.html). Here is how you can install the latest stable release of Scarb:
+To install Scarb, follow the installation script provided in the Scarb documentation [1](https://docs.swmansion.com/scarb/download.html). Here is how you can install the latest stable release of Scarb:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
 ```
 
-This will install Scarb as well as the Cairo compiler and the language server.
+This will install Scarb, the Cairo compiler, and the language server.
 
-To build the StarkDefi contracts, run the following command:
+To build the StarkDefi contracts, use the following command:
 
 ```bash
 scarb build
@@ -60,23 +62,42 @@ scarb build
 
 ## Testing
 
-The repository uses GitHub Actions for continuous integration. The workflow is specified in the unit-test.yaml file and it runs tests on every pull request.
+GitHub Actions is used for continuous integration. The workflow is specified in the unit-test.yaml file and tests are run on every pull request.
 
-To run the tests directly, run the following command:
+To run the tests directly, use the following command:
 
 ```bash
 scarb test
 ```
 
-You can filter the tests by using the `--filter` flag. For example, to run only test with `pair` in the test name, you can run the following command:
+You can filter the tests using the `--filter` flag. For example, to run only tests with `pair` in the test name, use the following command:
 
 ```bash
 scarb test --filter pair
 ```
 
+## Deployment
+
+StarkDefi uses [sncast](https://foundry-rs.github.io/starknet-foundry/starknet/index.html) to deploy the contracts. For more information on how to use sncast, visit the [sncast documentation](https://foundry-rs.github.io/starknet-foundry/starknet/index.html).
+
+The deployment sequence is as follows:
+
+- Declare the following contracts (order is not important):
+  - `StarkDFactory`
+  - `StarkDPair`
+  - `FeeVault`
+  - `StarkDRouter`
+
+- After declaring the contracts, deploy the following 2 contracts in this order:
+  - `StarkDFactory`
+  - `StarkDRouter`
+
+Note: Ensure to pass the correct arguments to both `StarkDFactory` and `StarkDRouter`. The `StarkDPair` and `FeeVault` contracts are deployed automatically whenever a new pair instance is created.
+
 ## Contributing
 
-Contributions to the StarkDefi repository are welcome. Please make sure to read the [contributing guidelines](./CONTRIBUTING.md) before making a pull request.
-License
+Contributions to the StarkDefi repository are welcome. Please read the [contributing guidelines](./CONTRIBUTING.md) before making a pull request.
+
+## License
 
 The StarkDefi contracts are released under the MIT License.
