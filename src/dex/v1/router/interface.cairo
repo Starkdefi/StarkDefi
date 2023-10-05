@@ -19,7 +19,7 @@ trait IStarkDRouter<TContractState> {
     ) -> Array::<u256>;
 
     fn add_liquidity(
-        self: @TContractState,
+        ref self: TContractState,
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
@@ -31,7 +31,7 @@ trait IStarkDRouter<TContractState> {
         deadline: u64
     ) -> (u256, u256, u256);
     fn remove_liquidity(
-        self: @TContractState,
+        ref self: TContractState,
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
@@ -42,7 +42,7 @@ trait IStarkDRouter<TContractState> {
         deadline: u64
     ) -> (u256, u256);
     fn swap_exact_tokens_for_tokens(
-        self: @TContractState,
+        ref self: TContractState,
         amountIn: u256,
         amountOutMin: u256,
         path: Array::<SwapPath>,
@@ -50,7 +50,7 @@ trait IStarkDRouter<TContractState> {
         deadline: u64
     ) -> Array::<u256>;
     fn swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
-        self: @TContractState,
+        ref self: TContractState,
         amountIn: u256,
         amountOutMin: u256,
         path: Array::<SwapPath>,

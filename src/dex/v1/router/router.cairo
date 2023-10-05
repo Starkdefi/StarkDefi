@@ -87,7 +87,7 @@ mod StarkDRouter {
         /// @param deadline The deadline for the transaction
         /// @return The actual amounts of tokens A and B added to the pool and the amount of liquidity tokens minted
         fn add_liquidity(
-            self: @ContractState,
+            ref self: ContractState,
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
@@ -101,7 +101,7 @@ mod StarkDRouter {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
             let (amountA, amountB) = InternalFunctions::_add_liquidity(
-                self, tokenA, tokenB, stable, amountADesired, amountBDesired, amountAMin, amountBMin
+                ref self, tokenA, tokenB, stable, amountADesired, amountBDesired, amountAMin, amountBMin
             );
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
             let sender = get_caller_address();
@@ -125,7 +125,7 @@ mod StarkDRouter {
         /// @param deadline The deadline for the transaction
         /// @return The actual amounts of tokens A and B removed from the pool
         fn remove_liquidity(
-            self: @ContractState,
+            ref self: ContractState,
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
@@ -169,7 +169,7 @@ mod StarkDRouter {
         /// @param deadline The deadline for the transaction
         /// @return The output amounts of the swap
         fn swap_exact_tokens_for_tokens(
-            self: @ContractState,
+            ref self: ContractState,
             amountIn: u256,
             amountOutMin: u256,
             path: Array::<SwapPath>,
@@ -189,7 +189,7 @@ mod StarkDRouter {
             let sender = get_caller_address();
 
             InternalFunctions::_transfer_token_from(_route.tokenIn, sender, pair, *amounts[0]);
-            InternalFunctions::_swap(self, amounts.span(), path.span(), to);
+            InternalFunctions::_swap(ref self, amounts.span(), path.span(), to);
             amounts
         }
 
@@ -201,7 +201,7 @@ mod StarkDRouter {
         /// @param to The address to receive the output tokens
         /// @param deadline The deadline for the transaction
         fn swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
-            self: @ContractState,
+            ref self: ContractState,
             amountIn: u256,
             amountOutMin: u256,
             path: Array::<SwapPath>,
@@ -262,7 +262,7 @@ mod StarkDRouter {
         }
 
         fn _add_liquidity(
-            self: @ContractState,
+            ref self: ContractState,
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
@@ -308,7 +308,7 @@ mod StarkDRouter {
         /// @param path The path of the swap
         /// @param _to The address to receive the output tokens
         fn _swap(
-            self: @ContractState,
+            ref self: ContractState,
             amounts: Span::<u256>,
             path: Span::<SwapPath>,
             _to: ContractAddress
@@ -360,7 +360,7 @@ mod StarkDRouter {
         /// @dev swap supporting fee-on-transfer tokens
         ///      requires the initial amount to have already been sent to the first pair
         fn _swap_supporting_fee_on_transfer_tokens(
-            self: @ContractState, path: Span::<SwapPath>, _to: ContractAddress
+            ref self: ContractState, path: Span::<SwapPath>, _to: ContractAddress
         ) {
             let factory = self._factory.read();
             let mut index: u32 = 0;
