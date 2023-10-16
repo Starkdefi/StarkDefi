@@ -25,20 +25,6 @@ struct PairInfo {
     klast: u256,
 }
 
-#[derive(Copy, Drop, Serde, starknet::Store)]
-struct GlobalFeesAccum {
-    token0: u256,
-    token1: u256,
-}
-
-#[derive(Copy, Drop, Serde, starknet::Store)]
-struct RelativeFeesAccum {
-    token0: u256,
-    token1: u256,
-    claimable0: u256,
-    claimable1: u256,
-}
-
 const FEE_DENOMINATOR: u256 = 10000;
 const MINIMUM_LIQUIDITY: u256 = 1000;
 const PRECISION: u256 = 1_000_000_000_000_000_000; // 1e18
@@ -65,7 +51,8 @@ mod StarkDPair {
     use starknet::{
         ClassHash, contract_address_const, get_caller_address, get_block_timestamp,
         get_contract_address, contract_address_to_felt252
-    };
+        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
+        RelativeFeesAccum,
     use starknet::syscalls::deploy_syscall;
 
     use integer::u128_try_from_felt252;
@@ -83,8 +70,7 @@ mod StarkDPair {
         Sync: Sync,
         Claim: Claim,
     }
-
-    #[derive(Drop, starknet::Event)]
+        ContractAddress, Config, PairInfo, FEE_DENOMINATOR, MINIMUM_LIQUIDITY, PRECISION, MINIMUM_K
     struct Mint {
         #[key]
         sender: ContractAddress,
