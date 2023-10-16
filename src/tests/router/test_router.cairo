@@ -9,8 +9,8 @@ use starknet::contract_address_const;
 use starkDefi::dex::v1::pair::IStarkDPairDispatcher;
 use starkDefi::dex::v1::pair::IStarkDPairDispatcherTrait;
 
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcher;
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcherTrait;
+use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
+use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
 
 use starkDefi::dex::v1::router::StarkDRouter;
 use starkDefi::dex::v1::router::interface::{IStarkDRouterDispatcher, SwapPath};
@@ -138,7 +138,7 @@ fn test_deploy_router() {
     let (router, _) = deploy_router();
     assert(router.factory() == contract_address_const::<2>(), 'Factory eq deployed 0x2');
     assert(
-        IStarkDFactoryDispatcher { contract_address: router.factory() }
+        IStarkDFactoryABIDispatcher { contract_address: router.factory() }
             .fee_to() == constants::FEE_TO(),
         'FeeTo eq fee_to'
     );
@@ -203,7 +203,7 @@ fn create_pair(
     ERC20ABIDispatcher
 ) {
     let (router, account) = deploy_router();
-    let factory = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let factory = IStarkDFactoryABIDispatcher { contract_address: router.factory() };
     let (token0, token1, _, _) = deploy_tokens();
 
     let pair = factory.create_pair(token0.contract_address, token1.contract_address, stable);
@@ -216,12 +216,12 @@ fn add_initial_liquidity(
 ) -> (
     IStarkDRouterDispatcher,
     AccountABIDispatcher,
-    IStarkDFactoryDispatcher,
+    IStarkDFactoryABIDispatcher,
     ERC20ABIDispatcher,
     ERC20ABIDispatcher
 ) {
     let (router, account) = deploy_router();
-    let factory = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let factory = IStarkDFactoryABIDispatcher { contract_address: router.factory() };
     let (token0, token1, _, _) = deploy_tokens();
 
     let amount0Desired = 100_000_000;
@@ -251,14 +251,14 @@ fn add_multiple_liquidity(
 ) -> (
     IStarkDRouterDispatcher,
     AccountABIDispatcher,
-    IStarkDFactoryDispatcher,
+    IStarkDFactoryABIDispatcher,
     ERC20ABIDispatcher,
     ERC20ABIDispatcher,
     ERC20ABIDispatcher,
     ERC20ABIDispatcher
 ) {
     let (router, account) = deploy_router();
-    let factory = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let factory = IStarkDFactoryABIDispatcher { contract_address: router.factory() };
     let (token0, token1, token2, token3) = deploy_tokens();
 
     let amount0Desired = with_decimals(100_000_000);
@@ -557,7 +557,7 @@ fn remove_liquidity(
     amountBMin: u256,
     deadline: u64
 ) -> (u256, u256) {
-    let factoryDispatcher = IStarkDFactoryDispatcher { contract_address: router.factory() };
+    let factoryDispatcher = IStarkDFactoryABIDispatcher { contract_address: router.factory() };
     let lp_token_address = factoryDispatcher.get_pair(tokenA, tokenB, stable);
 
     let mut calls = array![];
@@ -601,7 +601,7 @@ fn remove_liquidity(
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(40000000)]
 fn test_router_remove_all_liquidity() {
     let stable = false;
     let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(stable);
@@ -632,7 +632,7 @@ fn test_router_remove_all_liquidity() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(40000000)]
 fn test_router_remove_liqudity_some() {
     let stable = false;
     let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(stable);
@@ -666,7 +666,7 @@ fn test_router_remove_liqudity_some() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(40000000)]
 #[should_panic(expected: ('insufficient A amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_router_remove_liqudity_less_A() {
     let stable = false;
@@ -686,7 +686,7 @@ fn test_router_remove_liqudity_less_A() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(40000000)]
 #[should_panic(expected: ('insufficient B amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_router_remove_liqudity_less_B() {
     let stable = false;

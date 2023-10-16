@@ -8,7 +8,9 @@ use core::clone::Clone;
 mod StarkDRouter {
     use starkDefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
     use starkDefi::dex::v1::router::call_contract_with_selector_fallback;
-    use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
+    use starkDefi::dex::v1::factory::{
+        IStarkDFactoryABIDispatcherTrait, IStarkDFactoryABIDispatcher
+    };
     use starkDefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
     use starkDefi::utils::selectors::{transfer_from, transferFrom};
     use starkDefi::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
@@ -289,7 +291,7 @@ mod StarkDRouter {
             amountBMin: u256
         ) -> (u256, u256) {
             let factory = self._factory.read();
-            let factoryDispatcher = IStarkDFactoryDispatcher { contract_address: factory };
+            let factoryDispatcher = IStarkDFactoryABIDispatcher { contract_address: factory };
 
             let pair = factoryDispatcher.get_pair(tokenA, tokenB, stable);
 
@@ -434,7 +436,9 @@ mod StarkDRouter {
             factory: ContractAddress, tokenA: ContractAddress, tokenB: ContractAddress, stable: bool
         ) -> ContractAddress {
             let (token0, token1) = InternalFunctions::_sort_tokens(tokenA, tokenB);
-            IStarkDFactoryDispatcher { contract_address: factory }.get_pair(token0, token1, stable)
+            IStarkDFactoryABIDispatcher {
+                contract_address: factory
+            }.get_pair(token0, token1, stable)
         }
 
         fn _get_reserves(
@@ -477,7 +481,7 @@ mod StarkDRouter {
                         let pair = InternalFunctions::_pair_for(
                             factory, *route.tokenIn, *route.tokenOut, *route.stable
                         );
-                        let factoryDispatcher = IStarkDFactoryDispatcher {
+                        let factoryDispatcher = IStarkDFactoryABIDispatcher {
                             contract_address: factory
                         };
 
@@ -510,7 +514,7 @@ mod StarkDRouter {
 
         /// @notice This function is used to ensure that the caller is the handler
         fn assert_only_handler(self: @ContractState) {
-            let factoryDipatcher = IStarkDFactoryDispatcher {
+            let factoryDipatcher = IStarkDFactoryABIDispatcher {
                 contract_address: self._factory.read()
             };
             let caller = get_caller_address();

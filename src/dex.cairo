@@ -6,6 +6,8 @@ mod v1 {
         use factory::StarkDFactory;
         use interface::IStarkDFactoryDispatcher;
         use interface::IStarkDFactoryDispatcherTrait;
+        use interface::IStarkDFactoryABIDispatcher;
+        use interface::IStarkDFactoryABIDispatcherTrait;
     }
     mod pair {
         mod Pair;

@@ -6,8 +6,8 @@ use starkDefi::dex::v1::factory::StarkDFactory;
 use starkDefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
 use starkDefi::dex::v1::factory::StarkDFactory::InternalFunctions;
 use starkDefi::dex::v1::factory::StarkDFactory::PairCreated;
-use starkDefi::dex::v1::factory::IStarkDFactoryDispatcher;
-use starkDefi::dex::v1::factory::IStarkDFactoryDispatcherTrait;
+use starkDefi::dex::v1::factory::IStarkDFactoryABIDispatcher;
+use starkDefi::dex::v1::factory::IStarkDFactoryABIDispatcherTrait;
 use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
 use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
 use starkDefi::tests::utils::constants::{
@@ -22,7 +22,7 @@ use starknet::testing;
 // Setup
 //
 
-fn deploy_factory(address: ContractAddress) -> IStarkDFactoryDispatcher {
+fn deploy_factory(address: ContractAddress) -> IStarkDFactoryABIDispatcher {
     let mut calldata = array![];
     if address != ADDRESS_ZERO() {
         Serde::serialize(@address, ref calldata);
@@ -33,7 +33,7 @@ fn deploy_factory(address: ContractAddress) -> IStarkDFactoryDispatcher {
     Serde::serialize(@PAIR_FEES_CLASS_HASH(), ref calldata);
 
     let address = deploy(StarkDFactory::TEST_CLASS_HASH, calldata);
-    IStarkDFactoryDispatcher { contract_address: address }
+    IStarkDFactoryABIDispatcher { contract_address: address }
 }
 
 fn deploy_tokens() -> (ContractAddress, ContractAddress) {

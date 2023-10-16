@@ -11,12 +11,12 @@ use starkDefi::dex::v1::pair::StarkDPair::Burn;
 use starkDefi::dex::v1::pair::StarkDPair::Swap;
 use starkDefi::dex::v1::pair::StarkDPair::Sync;
 
-use starkDefi::dex::v1::pair::IStarkDPairDispatcher;
-use starkDefi::dex::v1::pair::IStarkDPairDispatcherTrait;
+use starkDefi::dex::v1::pair::interface::IStarkDPairABIDispatcher;
+use starkDefi::dex::v1::pair::interface::IStarkDPairABIDispatcherTrait;
 use starkDefi::dex::v1::pair::interface::{IFeesVaultDispatcher, IFeesVaultDispatcherTrait};
 
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcher;
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcherTrait;
+use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
+use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
 
 use starkDefi::utils::selectors;
 use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
@@ -38,7 +38,7 @@ use debug::PrintTrait;
 // Setup
 //
 
-fn deploy_pair(stable: bool) -> (IStarkDPairDispatcher, AccountABIDispatcher) {
+fn deploy_pair(stable: bool) -> (IStarkDPairABIDispatcher, AccountABIDispatcher) {
     let account = setup_account();
     let factory = deploy_factory(account.contract_address);
     let token0 = deploy_erc20('Token0', 'TK0', with_decimals(10000), account.contract_address);
@@ -46,7 +46,7 @@ fn deploy_pair(stable: bool) -> (IStarkDPairDispatcher, AccountABIDispatcher) {
 
     let pair = factory.create_pair(token0.contract_address, token1.contract_address, stable);
 
-    (IStarkDPairDispatcher { contract_address: pair }, account)
+    (IStarkDPairABIDispatcher { contract_address: pair }, account)
 }
 
 fn STATE() -> StarkDPair::ContractState {
@@ -149,7 +149,7 @@ fn transfer_erc20(token: ContractAddress, to: ContractAddress, amount: u256) -> 
 
 fn add_initial_liquidity(
     ignore_decimals: bool, token0_amount: u256, token1_amount: u256, stable: bool
-) -> (IStarkDPairDispatcher, AccountABIDispatcher) {
+) -> (IStarkDPairABIDispatcher, AccountABIDispatcher) {
     let (pairDispatcher, accountDispatcher) = deploy_pair(stable);
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -201,7 +201,7 @@ fn add_initial_liquidity(
 }
 
 fn add_more_liquidity(
-    ref pairDispatcher: IStarkDPairDispatcher,
+    ref pairDispatcher: IStarkDPairABIDispatcher,
     ref accountDispatcher: AccountABIDispatcher,
     token0_amount: u256,
     token1_amount: u256
@@ -320,7 +320,7 @@ fn test_mint_not_enough_tokens() {
 //
 
 fn swap(
-    ref pairDispatcher: IStarkDPairDispatcher,
+    ref pairDispatcher: IStarkDPairABIDispatcher,
     ref accountDispatcher: AccountABIDispatcher,
     amountToSwap: u256,
     amount0Out: u256,
@@ -421,9 +421,10 @@ fn test_swap_insufficient_input_amount() {
 //
 
 fn remove_liqudity(
-    ref pairDispatcher: IStarkDPairDispatcher,
+    ref pairDispatcher: IStarkDPairABIDispatcher,
     ref accountDispatcher: AccountABIDispatcher,
-    amount: u256
+    amount: u256,
+    no_decimal: bool
 ) {
     let mut calls = array![];
 
@@ -433,7 +434,11 @@ fn remove_liqudity(
             transfer_erc20(
                 pairDispatcher.contract_address,
                 pairDispatcher.contract_address,
-                with_decimals(amount.low)
+                if (!no_decimal) {
+                    with_decimals(amount.low)
+                } else {
+                    amount
+                }
             )
         );
 
@@ -476,7 +481,7 @@ fn test_burn() {
     );
 
     // remove liquidity
-    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 1000);
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 1000, false);
     assert(pairDispatcher.total_supply() == 4112338016993790288435, 'Total supply eq 4112...');
     assert(
         pairDispatcher
@@ -508,17 +513,17 @@ fn test_burn_remove_all_liquidity() {
     assert(pairDispatcher.total_supply() == 3872983346207416885179, 'Total supply eq 3872...');
 
     // remove liquidity
-    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 2872);
-    assert(pairDispatcher.total_supply() == 1000983346207416885179, 'Total supply eq 1000..');
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 3872983346207416884179, true);
+    assert(pairDispatcher.total_supply() == 1000, 'Total supply eq 0...1000');
 
     // ~= 5000 + (2872*5000)/3872
     assert(
-        token0Dispatcher.balance_of(accountDispatcher.contract_address) == 8707736056769233764745,
-        'Token0 balance eq 8707...'
+        token0Dispatcher.balance_of(accountDispatcher.contract_address) == 9999999999999999998709,
+        'Token0 balance eq 9999...'
     );
     // ~= 7000 + (2872*3000)/3872
     assert(
-        token1Dispatcher.balance_of(accountDispatcher.contract_address) == 9224641634061540258847,
+        token1Dispatcher.balance_of(accountDispatcher.contract_address) == 9999999999999999999225,
         'Token1 balance eq 9224...'
     )
 }
@@ -534,7 +539,7 @@ fn test_burn_insufficient_liquidity() {
         false, 5000, 3000, stable
     );
     // remove liquidity
-    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 0);
+    remove_liqudity(ref pairDispatcher, ref accountDispatcher, 0, false);
 }
 
 //
@@ -668,7 +673,7 @@ fn test_fees_collected_on_swap() {
 }
 
 #[test]
-#[available_gas(50000000)]
+#[available_gas(100000000)]
 fn test_claim_fees() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
