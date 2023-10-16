@@ -32,7 +32,9 @@ const MINIMUM_K: u256 = 10_000_000_000; //1e10
 
 #[starknet::contract]
 mod StarkDPair {
-    use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
+    use starkDefi::dex::v1::factory::{
+        IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait
+    };
     use starkDefi::dex::v1::pair::interface::{
         IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
     };
@@ -361,12 +363,14 @@ mod StarkDPair {
         }
 
         /// @notice Low-level function, importantant safety checks must be handled by the caller
-        // @dev This function burns the given amount of liquidity and transfers the underlying tokens to the caller.
+        /// @dev This function burns the given amount of liquidity and transfers the underlying tokens to the caller.
         /// @param to the address to transfer to.
         /// @return the amount of tokens transferred.
         fn burn(ref self: ContractState, to: ContractAddress) -> (u256, u256) {
             Modifiers::_lock(ref self);
-            Modifiers::_assert_not_paused(@self);
+
+            //Claim fees for the user, must ensure `to` is the user to prevent losss of fees
+            InternalFunctions::_claim_fees(ref self, to);
 
             let config = self.config.read();
             let (reserve0, reserve1, _) = self.get_reserves();
@@ -529,30 +533,9 @@ mod StarkDPair {
         fn claim_fees(ref self: ContractState) {
             Modifiers::_lock(ref self);
             Modifiers::_assert_not_paused(@self);
-
             let user = get_caller_address();
-            InternalFunctions::_update_user_fee(ref self, user);
-            let mut user_fees = self.users_fee.read(user);
 
-            let claimable0 = user_fees.claimable0;
-            let claimable1 = user_fees.claimable1;
-
-            if (claimable0 > 0 || claimable1 > 0) {
-                user_fees.claimable0 = 0;
-                user_fees.claimable1 = 0;
-
-                IFeesVaultDispatcher {
-                    contract_address: self.fee_vault()
-                }.claim_lp_fees(user, claimable0, claimable1);
-                self.users_fee.write(user, user_fees);
-            }
-
-            self
-                .emit(
-                    Claim {
-                        sender: self.fee_vault(), amount0: claimable0, amount1: claimable1, to: user
-                    }
-                );
+            InternalFunctions::_claim_fees(ref self, user);
             Modifiers::_unlock(ref self);
         }
 
@@ -562,7 +545,7 @@ mod StarkDPair {
             assert(amountIn > 0, 'insufficient input amount');
             let (reserve0, reserve1, _) = self.get_reserves();
             assert(reserve0 > 0 && reserve1 > 0, 'insufficient liquidity');
-            let pool_fee = IStarkDFactoryDispatcher {
+            let pool_fee = IStarkDFactoryABIDispatcher {
                 contract_address: self.factory()
             }.get_fee(get_contract_address());
 
@@ -621,20 +604,14 @@ mod StarkDPair {
     }
 
     #[external(v0)]
-    fn fee_state(
-        self: @ContractState, user: ContractAddress
-    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
-        let user_fees = self.users_fee.read(user);
+    fn fee_state(self: @ContractState, user: ContractAddress) -> (u256, GlobalFeesAccum) {
         let global_fees = self.global_fees.read();
-
         let balance = self.balance_of(user);
-        (balance, user_fees, global_fees)
+        (balance, global_fees)
     }
 
     #[external(v0)]
-    fn feeState(
-        self: @ContractState, user: ContractAddress
-    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
+    fn feeState(self: @ContractState, user: ContractAddress) -> (u256, GlobalFeesAccum) {
         fee_state(self, user)
     }
 
@@ -707,7 +684,7 @@ mod StarkDPair {
         fn _update_global_fees(ref self: ContractState, amount0In: u256, amount1In: u256) {
             let mut global_fees = self.global_fees.read();
             let pair = get_contract_address();
-            let factory = IStarkDFactoryDispatcher { contract_address: self.factory() };
+            let factory = IStarkDFactoryABIDispatcher { contract_address: self.factory() };
 
             let swap_fee = factory.get_fee(pair);
             let protocol_fee_on = factory.protocol_fee_on();
@@ -718,8 +695,6 @@ mod StarkDPair {
                     contract_address: self.token0()
                 }.transfer(self.fee_vault(), fee0); // transfer the fees to the fee vault
 
-                let mut share_rate: u256 = 0;
-
                 if (protocol_fee_on) {
                     let pfee0 = (fee0 * 3000) / FEE_DENOMINATOR; // 30% of fee0 to the protocol
                     IFeesVaultDispatcher {
@@ -727,12 +702,10 @@ mod StarkDPair {
                     }.update_protocol_fees(pfee0, 0); // update the protocol fees
 
                     let ufee0 = fee0 - pfee0; // 70% of fee0 to LP providers
-                    share_rate = (ufee0 * PRECISION) / self.total_supply();
+                    global_fees.token0 += (ufee0 * PRECISION) / self.total_supply();
                 } else {
-                    share_rate = (fee0 * PRECISION) / self.total_supply();
+                    global_fees.token0 += (fee0 * PRECISION) / self.total_supply();
                 }
-
-                global_fees.token0 += share_rate;
             }
 
             if (amount1In > 0) {
@@ -741,8 +714,6 @@ mod StarkDPair {
                     contract_address: self.token1()
                 }.transfer(self.fee_vault(), fee1);
 
-                let mut share_rate: u256 = 0;
-
                 if (protocol_fee_on) {
                     let pfee1 = (fee1 * 3000) / FEE_DENOMINATOR;
                     IFeesVaultDispatcher {
@@ -750,12 +721,10 @@ mod StarkDPair {
                     }.update_protocol_fees(0, pfee1);
 
                     let ufee1 = fee1 - pfee1;
-                    let share_rate = (ufee1 * PRECISION) / self.total_supply();
+                    global_fees.token1 += (ufee1 * PRECISION) / self.total_supply();
                 } else {
-                    share_rate = (fee1 * PRECISION) / self.total_supply();
+                    global_fees.token1 += (fee1 * PRECISION) / self.total_supply();
                 }
-
-                global_fees.token1 += share_rate;
             }
 
             self.global_fees.write(global_fees);
@@ -806,6 +775,32 @@ mod StarkDPair {
             }
 
             self.users_fee.write(user, user_fees);
+        }
+
+        /// @notice Claim fees for a given user
+        fn _claim_fees(ref self: ContractState, user: ContractAddress) {
+            InternalFunctions::_update_user_fee(ref self, user);
+            let mut user_fees = self.users_fee.read(user);
+
+            let claimable0 = user_fees.claimable0;
+            let claimable1 = user_fees.claimable1;
+
+            if (claimable0 > 0 || claimable1 > 0) {
+                user_fees.claimable0 = 0;
+                user_fees.claimable1 = 0;
+
+                IFeesVaultDispatcher {
+                    contract_address: self.fee_vault()
+                }.claim_lp_fees(user, claimable0, claimable1);
+                self.users_fee.write(user, user_fees);
+            }
+
+            self
+                .emit(
+                    Claim {
+                        sender: self.fee_vault(), amount0: claimable0, amount1: claimable1, to: user
+                    }
+                );
         }
 
         /// @notice Calculates the amount of tokenOut received for a given amount of tokenIn
@@ -989,10 +984,9 @@ mod StarkDPair {
         }
 
         fn _assert_not_paused(self: @ContractState) {
-            let factoryDipatcher = IStarkDFactoryDispatcher {
-                contract_address: self._factory.read()
-            };
-            factoryDispatcher.assert_not_paused();
+            let config = self.config.read();
+            let factoryDipatcher = IStarkDFactoryABIDispatcher { contract_address: config.factory };
+            factoryDipatcher.assert_not_paused();
         }
     }
 }
