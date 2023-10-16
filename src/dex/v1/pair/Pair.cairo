@@ -850,7 +850,7 @@ mod StarkDPair {
         fn _f(self: @ContractState, x0: u256, y: u256) -> u256 {
             let lhs = (x0 * y) / PRECISION; // x*y
             let rhs = ((x0 * x0) / PRECISION + (y * y) / PRECISION); // x^2 + y^2
-            (lhs * lhs) / PRECISION
+            (lhs * rhs) / PRECISION
         }
 
         /// @notice Implements the invariant k (stable = x*y(x^2 + y^2), volatile = x*y)
