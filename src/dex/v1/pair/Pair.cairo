@@ -707,9 +707,10 @@ mod StarkDPair {
         fn _update_global_fees(ref self: ContractState, amount0In: u256, amount1In: u256) {
             let mut global_fees = self.global_fees.read();
             let pair = get_contract_address();
-            let swap_fee = IStarkDFactoryDispatcher {
-                contract_address: self.factory()
-            }.get_fee(pair);
+            let factory = IStarkDFactoryDispatcher { contract_address: self.factory() };
+
+            let swap_fee = factory.get_fee(pair);
+            let protocol_fee_on = factory.protocol_fee_on();
 
             if (amount0In > 0) {
                 let fee0 = (amount0In * swap_fee) / FEE_DENOMINATOR;
@@ -717,13 +718,20 @@ mod StarkDPair {
                     contract_address: self.token0()
                 }.transfer(self.fee_vault(), fee0); // transfer the fees to the fee vault
 
-                let pfee0 = (fee0 * 3000) / FEE_DENOMINATOR; // 30% of fee0 to the protocol
-                IPairFeesDispatcher {
-                    contract_address: self.fee_vault()
-                }.update_protocol_fees(pfee0, 0); // update the protocol fees
+                let mut share_rate: u256 = 0;
 
-                let ufee0 = fee0 - pfee0; // 70% of fee0 to LP providers
-                let share_rate = (ufee0 * PRECISION) / self.total_supply();
+                if (protocol_fee_on) {
+                    let pfee0 = (fee0 * 3000) / FEE_DENOMINATOR; // 30% of fee0 to the protocol
+                    IFeesVaultDispatcher {
+                        contract_address: self.fee_vault()
+                    }.update_protocol_fees(pfee0, 0); // update the protocol fees
+
+                    let ufee0 = fee0 - pfee0; // 70% of fee0 to LP providers
+                    share_rate = (ufee0 * PRECISION) / self.total_supply();
+                } else {
+                    share_rate = (fee0 * PRECISION) / self.total_supply();
+                }
+
                 global_fees.token0 += share_rate;
             }
 
@@ -733,13 +741,20 @@ mod StarkDPair {
                     contract_address: self.token1()
                 }.transfer(self.fee_vault(), fee1);
 
-                let pfee1 = (fee1 * 3000) / FEE_DENOMINATOR;
-                IPairFeesDispatcher {
-                    contract_address: self.fee_vault()
-                }.update_protocol_fees(0, pfee1);
+                let mut share_rate: u256 = 0;
 
-                let ufee1 = fee1 - pfee1;
-                let share_rate = (ufee1 * PRECISION) / self.total_supply();
+                if (protocol_fee_on) {
+                    let pfee1 = (fee1 * 3000) / FEE_DENOMINATOR;
+                    IFeesVaultDispatcher {
+                        contract_address: self.fee_vault()
+                    }.update_protocol_fees(0, pfee1);
+
+                    let ufee1 = fee1 - pfee1;
+                    let share_rate = (ufee1 * PRECISION) / self.total_supply();
+                } else {
+                    share_rate = (fee1 * PRECISION) / self.total_supply();
+                }
+
                 global_fees.token1 += share_rate;
             }
 
