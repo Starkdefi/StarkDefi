@@ -1,6 +1,7 @@
 mod PartialOrdContractAddress;
 mod array_ext;
 mod selectors;
+mod multicall;
 
 use PartialOrdContractAddress::ContractAddressPartialOrd;
 use array_ext::ArrayTraitExt;
