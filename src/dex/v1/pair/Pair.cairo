@@ -34,7 +34,7 @@ const MINIMUM_K: u256 = 10_000_000_000; //1e10
 mod StarkDPair {
     use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
     use starkDefi::dex::v1::pair::interface::{
-        IStarkDPair, IPairFeesDispatcherTrait, IPairFeesDispatcher
+        IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
     };
     use starkDefi::dex::v1::pair::interface::{
         IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot
@@ -558,6 +558,72 @@ mod StarkDPair {
 
             InternalFunctions::_calculate_amount_out(@self, tokenIn, _amount_in, reserve0, reserve1)
         }
+    }
+
+    #[external(v0)]
+    impl StarkDPairCamelOnlyImpl of IStarkDPairCamelOnly<ContractState> {
+        fn totalSupply(self: @ContractState) -> u256 {
+            self.total_supply()
+        }
+
+        fn balanceOf(self: @ContractState, account: ContractAddress) -> u256 {
+            self.balance_of(account)
+        }
+
+        fn increaseAllowance(
+            ref self: ContractState, spender: ContractAddress, addedValue: u256
+        ) -> bool {
+            StarkDPairImpl::increase_allowance(ref self, spender, addedValue)
+        }
+
+        fn decreaseAllowance(
+            ref self: ContractState, spender: ContractAddress, subtractedValue: u256
+        ) -> bool {
+            StarkDPairImpl::decrease_allowance(ref self, spender, subtractedValue)
+        }
+
+        fn transferFrom(
+            ref self: ContractState,
+            sender: ContractAddress,
+            recipient: ContractAddress,
+            amount: u256
+        ) -> bool {
+            StarkDPairImpl::transfer_from(ref self, sender, recipient, amount)
+        }
+
+        fn getReserves(self: @ContractState) -> (u256, u256, u64) {
+            self.get_reserves()
+        }
+
+        fn price0CumulativeLast(self: @ContractState) -> u256 {
+            self.price0_cumulative_last()
+        }
+
+        fn price1CumulativeLast(self: @ContractState) -> u256 {
+            self.price1_cumulative_last()
+        }
+
+        fn getAmountOut(ref self: ContractState, tokenIn: ContractAddress, amountIn: u256) -> u256 {
+            self.get_amount_out(tokenIn, amountIn)
+        }
+    }
+
+    #[external(v0)]
+    fn fee_state(
+        self: @ContractState, user: ContractAddress
+    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
+        let user_fees = self.users_fee.read(user);
+        let global_fees = self.global_fees.read();
+
+        let balance = self.balance_of(user);
+        (balance, user_fees, global_fees)
+    }
+
+    #[external(v0)]
+    fn feeState(
+        self: @ContractState, user: ContractAddress
+    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
+        fee_state(self, user)
     }
 
 
