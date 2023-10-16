@@ -13,7 +13,7 @@ use starkDefi::dex::v1::pair::StarkDPair::Sync;
 
 use starkDefi::dex::v1::pair::IStarkDPairDispatcher;
 use starkDefi::dex::v1::pair::IStarkDPairDispatcherTrait;
-use starkDefi::dex::v1::pair::interface::{IPairFeesDispatcher, IPairFeesDispatcherTrait};
+use starkDefi::dex::v1::pair::interface::{IFeesVaultDispatcher, IFeesVaultDispatcherTrait};
 
 use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcher;
 use starkDefi::dex::v1::factory::interface::IStarkDFactoryDispatcherTrait;
