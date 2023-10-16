@@ -102,11 +102,12 @@ mod StarkDFactory {
         vault_class_hash: ClassHash
     ) {
         assert(fee_handler.is_non_zero(), 'invalid fee to setter');
-        assert(class_hash_pair_contract.is_non_zero(), 'invalid classhash');
-        assert(vault_class_hash.is_non_zero(), 'invalid vault classhash');
+        assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
+        assert(vault_class_hash.is_non_zero(), 'invalid vault class hash');
 
         self._all_pairs_length.write(0);
         self.fees.write(Fees { stable: 4, volatile: 30 }); // 0.04% and 0.3%
+        self.protocol_fee_on.write(true);
 
         self
             .config
@@ -150,6 +151,12 @@ mod StarkDFactory {
         fn get_fees(self: @ContractState) -> (u256, u256) {
             let fees = self.fees.read();
             (fees.stable, fees.volatile)
+        }
+
+        /// @notice Get protocol fee status
+        /// @returns  bool
+        fn protocol_fee_on(self: @ContractState) -> bool {
+            self.protocol_fee_on.read()
         }
 
         /// @notice Get fee for a pair
@@ -263,7 +270,7 @@ mod StarkDFactory {
         /// @notice Set fee to address
         /// @param  fee_to ContractAddress of fee_to
         fn set_fee_to(ref self: ContractState, fee_to: ContractAddress) {
-            self.assert_only_handler();
+            Modifiers::assert_only_handler(@self);
             let mut config = self.config.read();
             assert(fee_to.is_non_zero(), 'invalid fee to');
             config.fee_to = fee_to;
@@ -274,7 +281,7 @@ mod StarkDFactory {
         /// @param fee u256, must be less than MAX_FEE
         /// @param stable bool
         fn set_fee(ref self: ContractState, fee: u256, stable: bool) {
-            self.assert_only_handler();
+            Modifiers::assert_only_handler(@self);
             assert(fee <= MAX_FEE && fee > 0, 'invalid fee');
             let mut fees = self.fees.read();
             if stable {
@@ -368,6 +375,12 @@ mod StarkDFactory {
         assert_paused(@self);
         self.paused.write(false);
         self.emit(Unpaused { account: get_caller_address() });
+    }
+
+    #[external(v0)]
+    fn toggle_protocol_fee(ref self: ContractState) {
+        Modifiers::assert_only_handler(@self);
+        self.protocol_fee_on.write(!self.protocol_fee_on.read());
     }
 
     /// @notice upgradable at moment, a future implementation will drop this
