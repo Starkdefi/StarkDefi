@@ -38,7 +38,10 @@ mod StarkDFactory {
     use starknet::{get_caller_address, contract_address_to_felt252};
     use zeroable::Zeroable;
     use starknet::syscalls::deploy_syscall;
+    use starknet::replace_class_syscall;
     use starkDefi::utils::{ContractAddressPartialOrd};
+    use starkDefi::utils::upgradeable::{Upgradeable, IUpgradeable};
+
 
     #[event]
     #[derive(Drop, starknet::Event)]
@@ -309,6 +312,28 @@ mod StarkDFactory {
             config.fee_handler = handler_address;
             self.config.write(config);
         }
+
+        /// @notice Set class hash for pair contract
+        /// @param  class_hash_pair_contract ClassHash of pair contract
+        fn set_class_hash_for_pair_contract(
+            ref self: ContractState, class_hash_pair_contract: ClassHash
+        ) {
+            Modifiers::assert_only_handler(@self);
+            assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
+            let mut config = self.config.read();
+            config.pair_class_hash = class_hash_pair_contract;
+            self.config.write(config);
+        }
+
+        /// @notice Set class hash for vault contract
+        /// @param  vault_class_hash ClassHash of vault contract
+        fn set_class_hash_for_vault_contract(ref self: ContractState, vault_class_hash: ClassHash) {
+            Modifiers::assert_only_handler(@self);
+            assert(vault_class_hash.is_non_zero(), 'invalid class hash');
+            let mut config = self.config.read();
+            config.vault_class_hash = vault_class_hash;
+            self.config.write(config);
+        }
     }
 
     /// @notice Callable when contract is paused
@@ -345,6 +370,15 @@ mod StarkDFactory {
         self.emit(Unpaused { account: get_caller_address() });
     }
 
+    /// @notice upgradable at moment, a future implementation will drop this
+    #[external(v0)]
+    impl UpgradableImpl of IUpgradeable<ContractState> {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            Modifiers::assert_only_handler(@self);
+            let mut state = Upgradeable::unsafe_new_contract_state();
+            Upgradeable::InternalImpl::_upgrade(ref state, new_class_hash);
+        }
+    }
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
