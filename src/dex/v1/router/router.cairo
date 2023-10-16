@@ -19,8 +19,10 @@ mod StarkDRouter {
     use option::OptionTrait;
     use zeroable::Zeroable;
     use starknet::{
-        ContractAddress, get_caller_address, get_block_timestamp, contract_address_const
+        ContractAddress, ClassHash, get_caller_address, get_block_timestamp, contract_address_const
     };
+    use starkDefi::utils::upgradeable::{Upgradeable, IUpgradeable};
+
 
     #[storage]
     struct Storage {
@@ -101,7 +103,14 @@ mod StarkDRouter {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
             let (amountA, amountB) = InternalFunctions::_add_liquidity(
-                ref self, tokenA, tokenB, stable, amountADesired, amountBDesired, amountAMin, amountBMin
+                ref self,
+                tokenA,
+                tokenB,
+                stable,
+                amountADesired,
+                amountBDesired,
+                amountAMin,
+                amountBMin
             );
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
             let sender = get_caller_address();
@@ -228,6 +237,14 @@ mod StarkDRouter {
         }
     }
 
+    #[external(v0)]
+    impl UpgradableImpl of IUpgradeable<ContractState> {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            Modifiers::assert_only_handler(@self);
+            let mut state = Upgradeable::unsafe_new_contract_state();
+            Upgradeable::InternalImpl::_upgrade(ref state, new_class_hash);
+        }
+    }
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
@@ -489,6 +506,15 @@ mod StarkDRouter {
         /// @param deadline The deadline for the transaction
         fn _ensure(deadline: u64) {
             assert(get_block_timestamp() <= deadline, 'expired');
+        }
+
+        /// @notice This function is used to ensure that the caller is the handler
+        fn assert_only_handler(self: @ContractState) {
+            let factoryDipatcher = IStarkDFactoryDispatcher {
+                contract_address: self._factory.read()
+            };
+            let caller = get_caller_address();
+            assert(caller == factoryDipatcher.fee_handler(), 'not allowed');
         }
     }
 }

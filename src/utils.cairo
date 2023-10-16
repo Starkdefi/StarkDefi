@@ -3,6 +3,8 @@ mod array_ext;
 mod selectors;
 mod multicall;
 
+mod upgradeable;
+
 use PartialOrdContractAddress::ContractAddressPartialOrd;
 use array_ext::ArrayTraitExt;
 
