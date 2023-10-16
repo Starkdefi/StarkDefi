@@ -11,6 +11,21 @@ struct Snapshot {
     is_stable: bool,
 }
 
+#[derive(Copy, Drop, Serde, starknet::Store)]
+struct GlobalFeesAccum {
+    token0: u256,
+    token1: u256,
+}
+
+#[derive(Copy, Drop, Serde, starknet::Store)]
+struct RelativeFeesAccum {
+    token0: u256,
+    token1: u256,
+    claimable0: u256,
+    claimable1: u256,
+}
+
+
 #[starknet::interface]
 trait IStarkDPair<TContractState> {
     fn name(self: @TContractState) -> felt252;
