@@ -45,6 +45,8 @@ mod StarkDFactory {
     enum Event {
         PairCreated: PairCreated,
         SetPairFee: SetPairFee,
+        Paused: Paused,
+        Unpaused: Unpaused,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -67,10 +69,22 @@ mod StarkDFactory {
         fee: u256,
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct Paused {
+        account: ContractAddress, 
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Unpaused {
+        account: ContractAddress, 
+    }
+
     #[storage]
     struct Storage {
         config: Config,
         fees: Fees,
+        paused: bool,
+        protocol_fee_on: bool,
         _pair: LegacyMap::<(ContractAddress, ContractAddress, bool), ContractAddress>,
         _all_pairs: LegacyMap::<u32, ContractAddress>,
         valid_pairs: LegacyMap::<ContractAddress, ValidPair>,
@@ -295,6 +309,40 @@ mod StarkDFactory {
             config.fee_handler = handler_address;
             self.config.write(config);
         }
+    }
+
+    /// @notice Callable when contract is paused
+    // @dev reverts if not paused
+    #[external(v0)]
+    fn assert_paused(self: @ContractState) {
+        assert(self.paused.read(), 'not paused');
+    }
+
+    /// @notice Callable when contract is not paused
+    // @dev reverts if paused
+    #[external(v0)]
+    fn assert_not_paused(self: @ContractState) {
+        assert(!self.paused.read(), 'paused');
+    }
+
+    /// @notice Pause contract in case of emergency
+    /// @dev only callable when contract is not paused
+    #[external(v0)]
+    fn pause(ref self: ContractState) {
+        Modifiers::assert_only_handler(@self);
+        assert_not_paused(@self);
+        self.paused.write(true);
+        self.emit(Paused { account: get_caller_address() });
+    }
+
+    /// @notice Unpause contract
+    /// @dev only callable when contract is paused
+    #[external(v0)]
+    fn unpause(ref self: ContractState) {
+        Modifiers::assert_only_handler(@self);
+        assert_paused(@self);
+        self.paused.write(false);
+        self.emit(Unpaused { account: get_caller_address() });
     }
 
 

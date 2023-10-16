@@ -37,7 +37,8 @@ mod StarkDPair {
         IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
     };
     use starkDefi::dex::v1::pair::interface::{
-        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot
+        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
+        RelativeFeesAccum,
     };
     use starkDefi::utils::{pow};
 
@@ -51,14 +52,12 @@ mod StarkDPair {
     use starknet::{
         ClassHash, contract_address_const, get_caller_address, get_block_timestamp,
         get_contract_address, contract_address_to_felt252
-        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
-        RelativeFeesAccum,
+    };
     use starknet::syscalls::deploy_syscall;
 
     use integer::u128_try_from_felt252;
     use super::{
-        ContractAddress, Config, PairInfo, GlobalFeesAccum, RelativeFeesAccum, FEE_DENOMINATOR,
-        MINIMUM_LIQUIDITY, PRECISION, MINIMUM_K
+        ContractAddress, Config, PairInfo, FEE_DENOMINATOR, MINIMUM_LIQUIDITY, PRECISION, MINIMUM_K
     };
 
     #[event]
@@ -70,7 +69,8 @@ mod StarkDPair {
         Sync: Sync,
         Claim: Claim,
     }
-        ContractAddress, Config, PairInfo, FEE_DENOMINATOR, MINIMUM_LIQUIDITY, PRECISION, MINIMUM_K
+
+    #[derive(Drop, starknet::Event)]
     struct Mint {
         #[key]
         sender: ContractAddress,
@@ -310,6 +310,8 @@ mod StarkDPair {
         /// @return the amount of tokens transferred.
         fn mint(ref self: ContractState, to: ContractAddress) -> u256 {
             Modifiers::_lock(ref self);
+            Modifiers::_assert_not_paused(@self);
+
             let config = self.config.read();
             let (reserve0, reserve1, _) = self.get_reserves();
             let this_address = get_contract_address();
@@ -364,6 +366,8 @@ mod StarkDPair {
         /// @return the amount of tokens transferred.
         fn burn(ref self: ContractState, to: ContractAddress) -> (u256, u256) {
             Modifiers::_lock(ref self);
+            Modifiers::_assert_not_paused(@self);
+
             let config = self.config.read();
             let (reserve0, reserve1, _) = self.get_reserves();
             let this_address = get_contract_address();
@@ -404,6 +408,8 @@ mod StarkDPair {
             data: Array::<felt252>
         ) {
             Modifiers::_lock(ref self);
+            Modifiers::_assert_not_paused(@self);
+
             assert(amount0Out > 0 || amount1Out > 0, 'insufficient output amount');
             let (reserve0, reserve1, _) = self.get_reserves();
             assert(amount0Out < reserve0 && amount1Out < reserve1, 'insufficient liquidity');
@@ -480,6 +486,8 @@ mod StarkDPair {
 
         fn skim(ref self: ContractState, to: ContractAddress) {
             Modifiers::_lock(ref self);
+            Modifiers::_assert_not_paused(@self);
+
             let (reserve0, reserve1, _) = self.get_reserves();
             let this_address = get_contract_address();
 
@@ -498,6 +506,8 @@ mod StarkDPair {
 
         fn sync(ref self: ContractState) {
             Modifiers::_lock(ref self);
+            Modifiers::_assert_not_paused(@self);
+
             let this_address = get_contract_address();
 
             let config = self.config.read();
@@ -518,6 +528,8 @@ mod StarkDPair {
 
         fn claim_fees(ref self: ContractState) {
             Modifiers::_lock(ref self);
+            Modifiers::_assert_not_paused(@self);
+
             let user = get_caller_address();
             InternalFunctions::_update_user_fee(ref self, user);
             let mut user_fees = self.users_fee.read(user);
@@ -529,7 +541,7 @@ mod StarkDPair {
                 user_fees.claimable0 = 0;
                 user_fees.claimable1 = 0;
 
-                IPairFeesDispatcher {
+                IFeesVaultDispatcher {
                     contract_address: self.fee_vault()
                 }.claim_lp_fees(user, claimable0, claimable1);
                 self.users_fee.write(user, user_fees);
@@ -958,8 +970,14 @@ mod StarkDPair {
 
         // @notice Unlocks the entry point
         fn _unlock(ref self: ContractState) {
-            assert(self._entry_locked.read(), 'unlocked');
             self._entry_locked.write(false);
+        }
+
+        fn _assert_not_paused(self: @ContractState) {
+            let factoryDipatcher = IStarkDFactoryDispatcher {
+                contract_address: self._factory.read()
+            };
+            factoryDispatcher.assert_not_paused();
         }
     }
 }
