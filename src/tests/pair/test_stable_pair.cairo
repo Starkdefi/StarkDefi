@@ -231,12 +231,12 @@ fn test_sPair_get_amount_out() {
     let tokenIn = pairDispatcher.token0();
 
     let amountOut = pairDispatcher.get_amount_out(tokenIn, amountIn);
-    assert(amountOut == 999500089971006498, 'amount out eq 0.9995...');
+    assert(amountOut == 999599999999500799, 'amount out eq 0.999599...');
 
     let tokenIn = pairDispatcher.token1();
     let amountIn = with_decimals(690);
     let amountOut = pairDispatcher.get_amount_out(tokenIn, amountIn);
-    assert(amountOut == 645221523025290456516, 'amount out eq 645.22...');
+    assert(amountOut == 689610883693431801095, 'amount out eq 689.61...');
 }
 
 #[test]
