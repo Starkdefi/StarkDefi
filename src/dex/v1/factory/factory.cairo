@@ -273,7 +273,7 @@ mod StarkDFactory {
         /// @param fee u256, must be less than MAX_FEE
         /// @param stable bool
         fn set_custom_pair_fee(ref self: ContractState, pair: ContractAddress, fee: u256) {
-            self.assert_only_handler();
+            Modifiers::assert_only_handler(@self);
             assert(fee <= MAX_FEE, 'fee too high');
             let mut pair_info = self.valid_pairs.read(pair);
             assert(pair_info.is_valid, 'invalid pair');
@@ -289,7 +289,7 @@ mod StarkDFactory {
         /// @notice Set fee handler  address
         /// @param  handler_address ContractAddress of fee_handler
         fn set_fee_handler(ref self: ContractState, handler_address: ContractAddress) {
-            self.assert_only_handler();
+            Modifiers::assert_only_handler(@self);
             let mut config = self.config.read();
             assert(handler_address.is_non_zero(), 'invalid handler address');
             config.fee_handler = handler_address;
@@ -316,7 +316,10 @@ mod StarkDFactory {
             assert(token0.is_non_zero(), 'invalid token0');
             (token0, token1)
         }
+    }
 
+    #[generate_trait]
+    impl Modifiers of ModifiersTrait {
         /// @dev reverts if not handler
         fn assert_only_handler(self: @ContractState) {
             let caller = get_caller_address();
