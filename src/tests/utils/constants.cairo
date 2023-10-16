@@ -2,7 +2,7 @@ use starknet::ContractAddress;
 use starknet::ClassHash;
 use starknet::contract_address_const;
 use starkDefi::dex::v1::pair::StarkDPair;
-use starkDefi::dex::v1::pair::PairFees;
+use starkDefi::dex::v1::pair::FeesVault;
 use option::OptionTrait;
 use traits::TryInto;
 use starkDefi::utils::{pow};
@@ -16,7 +16,7 @@ fn PAIR_CLASS_HASH() -> ClassHash {
 }
 
 fn PAIR_FEES_CLASS_HASH() -> ClassHash {
-    PairFees::TEST_CLASS_HASH.try_into().unwrap()
+    FeesVault::TEST_CLASS_HASH.try_into().unwrap()
 }
 
 fn ADDRESS_ZERO() -> ContractAddress {

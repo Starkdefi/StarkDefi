@@ -9,11 +9,11 @@ mod v1 {
     }
     mod pair {
         mod Pair;
-        mod pairFees;
+        mod pairFeesVault;
         mod interface;
 
         use Pair::StarkDPair;
-        use pairFees::PairFees;
+        use pairFeesVault::FeesVault;
         use interface::IStarkDPairDispatcher;
         use interface::IStarkDPairDispatcherTrait;
     }

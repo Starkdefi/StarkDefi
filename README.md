@@ -18,7 +18,7 @@ The repository is structured into several directories, each with a specific purp
 
 - [StarkDPair](src/dex/v1/pair/Pair.cairo): This contract represents a liquidity pool for a pair of tokens. You can find the pair contract's source code [here](src/dex/v1/pair/interface.cairo).
 
-- [FeeVault](src/dex/v1/pair/pairFees.cairo): This contract handles fees generated from the pair reserves. You can find it [here](src/dex/v1/pair/interface.cairo).
+- [FeeVault](src/dex/v1/pair/FeesVault.cairo): This contract handles fees generated from the pair reserves. You can find it [here](src/dex/v1/pair/interface.cairo).
 
 - [StarkDRouter](src/dex/v1/router/router.cairo): This contract provides functions for adding and removing liquidity, as well as swapping tokens. You can find the router contract's source code [here](src/dex/v1/router/interface.cairo).
 

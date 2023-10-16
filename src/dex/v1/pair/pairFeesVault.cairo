@@ -17,10 +17,10 @@ struct ProtocolFees {
 }
 
 #[starknet::contract]
-mod PairFees {
+mod FeesVault {
     use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
     use starkDefi::token::erc20::{ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
-    use starkDefi::dex::v1::pair::interface::IPairFees;
+    use starkDefi::dex::v1::pair::interface::IFeesVault;
     use super::{ContractAddress, ProtocolFees};
     use starknet::{get_caller_address, get_block_timestamp};
 
@@ -49,7 +49,7 @@ mod PairFees {
     }
 
     #[external(v0)]
-    impl PairFeesImpl of IPairFees<ContractState> {
+    impl FeesVaultImpl of IFeesVault<ContractState> {
         fn claim_lp_fees(
             ref self: ContractState, user: ContractAddress, amount0: u256, amount1: u256
         ) {
@@ -61,7 +61,7 @@ mod PairFees {
                 ERC20ABIDispatcher { contract_address: self.token1.read() }.transfer(user, amount1);
             }
 
-            PairFeesImpl::claim_protocol_fees(ref self);
+            FeesVaultImpl::claim_protocol_fees(ref self);
         }
 
         fn get_protocol_fees(self: @ContractState) -> (u256, u256) {
