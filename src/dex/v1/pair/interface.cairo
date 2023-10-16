@@ -138,9 +138,7 @@ trait IStarkDPairABI<TContractState> {
     fn sync(ref self: TContractState);
     fn claim_fees(ref self: TContractState);
     fn get_amount_out(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
-    fn fee_state(
-        self: @TContractState, user: ContractAddress
-    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum);
+    fn fee_state(self: @TContractState, user: ContractAddress) -> (u256, GlobalFeesAccum);
 }
 
 #[starknet::interface]
@@ -186,9 +184,7 @@ trait IStarkDPairCamelABI<TContractState> {
     fn sync(ref self: TContractState);
     fn claimFees(ref self: TContractState);
     fn getAmountOut(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
-    fn feeState(
-        self: @TContractState, user: ContractAddress
-    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum);
+    fn feeState(self: @TContractState, user: ContractAddress) -> (u256, GlobalFeesAccum);
 }
 
 
