@@ -1,11 +1,11 @@
-use starknet::{ContractAddress};
+use starknet::ContractAddress;
 
 #[derive(Copy, Drop, Serde)]
 struct Snapshot {
     token0: ContractAddress,
     token1: ContractAddress,
-    decimal0: u256,
-    decimal1: u256,
+    decimal0: u8,
+    decimal1: u8,
     reserve0: u256,
     reserve1: u256,
     is_stable: bool,
