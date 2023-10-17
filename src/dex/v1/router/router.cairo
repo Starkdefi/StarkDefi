@@ -219,6 +219,7 @@ mod StarkDRouter {
             to: ContractAddress,
             deadline: u64
         ) {
+            Modifiers::_ensure(deadline);
             let mut _path = path.clone();
             let _route = _path.pop_front().unwrap();
             let factory = self._factory.read();
@@ -228,7 +229,11 @@ mod StarkDRouter {
             let sender = get_caller_address();
 
             InternalFunctions::_transfer_token_from(_route.tokenIn, sender, pair, amountIn);
-            let _end_route: SwapPath = *_path[_path.len() - 1];
+            let _end_route: SwapPath = if (_path.len() > 0) {
+                *_path[_path.len() - 1]
+            } else {
+                _route
+            };
             let erc20Dispatcher = ERC20ABIDispatcher { contract_address: _end_route.tokenOut };
             let prevBalance = erc20Dispatcher.balance_of(to);
             self._swap_supporting_fee_on_transfer_tokens(path.span(), to);
