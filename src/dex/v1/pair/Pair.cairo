@@ -11,8 +11,8 @@ struct Config {
     factory: ContractAddress,
     vault: ContractAddress,
     stable: bool,
-    decimal0: u256,
-    decimal1: u256,
+    decimal0: u8,
+    decimal1: u8,
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -25,7 +25,7 @@ struct PairInfo {
     klast: u256,
 }
 
-const FEE_DENOMINATOR: u256 = 10000;
+const FEE_DENOMINATOR: u256 = 10000; // u256 for div
 const MINIMUM_LIQUIDITY: u256 = 1000;
 const PRECISION: u256 = 1_000_000_000_000_000_000; // 1e18
 const MINIMUM_K: u256 = 10_000_000_000; //1e10
@@ -143,8 +143,8 @@ mod StarkDPair {
             ERC20::InternalImpl::initializer(ref erc20_state, 'vStarkDefi Pair', 'vSTARKD-P');
         }
 
-        let decimal0: u128 = ERC20ABIDispatcher { contract_address: tokenA }.decimals().into();
-        let decimal1: u128 = ERC20ABIDispatcher { contract_address: tokenB }.decimals().into();
+        let decimal0: u8 = ERC20ABIDispatcher { contract_address: tokenA }.decimals();
+        let decimal1: u8 = ERC20ABIDispatcher { contract_address: tokenB }.decimals();
 
         let factory = get_caller_address();
         let vault = self._initialise_fee_vault(vault_class_hash, @tokenA, @tokenB, @factory);
@@ -157,11 +157,8 @@ mod StarkDPair {
                     factory: factory,
                     vault: vault,
                     stable: stable,
-                    decimal0: u256 {
-                        low: pow(10, decimal0), high: 0
-                        }, decimal1: u256 {
-                        low: pow(10, decimal1), high: 0
-                    },
+                    decimal0,
+                    decimal1,
                 }
             );
 
@@ -346,8 +343,8 @@ mod StarkDPair {
                 if (config.stable) {
                     assert(
                         (amount0 * PRECISION)
-                            / config.decimal0 == (amount1 * PRECISION)
-                            / config.decimal1,
+                            / config.decimal0.into() == (amount1 * PRECISION)
+                            / config.decimal1.into(),
                         'unequal amounts'
                     );
                     assert(self._k(amount0, amount1) > MINIMUM_K, 'K too low');
@@ -820,8 +817,8 @@ mod StarkDPair {
             let config = self.config.read();
             if (self.is_stable()) {
                 let k0 = self._k(reserve0, reserve1);
-                let res0_normalized = (reserve0 * PRECISION) / config.decimal0;
-                let res1_normalized = (reserve1 * PRECISION) / config.decimal1;
+                let res0_normalized = (reserve0 * PRECISION) / config.decimal0.into();
+                let res1_normalized = (reserve1 * PRECISION) / config.decimal1.into();
 
                 let (resA, resB) = if (tokenIn == config.token0) {
                     (res0_normalized, res1_normalized)
@@ -830,16 +827,16 @@ mod StarkDPair {
                 };
 
                 let _amount_in = if (tokenIn == config.token0) {
-                    (amountIn * PRECISION) / config.decimal0
+                    (amountIn * PRECISION) / config.decimal0.into()
                 } else {
-                    (amountIn * PRECISION) / config.decimal1
+                    (amountIn * PRECISION) / config.decimal1.into()
                 };
 
                 let y = resB - self._solve_y(_amount_in + resA, k0, resB);
                 let tokenIn_decimal = if (tokenIn == config.token0) {
-                    config.decimal1
+                    config.decimal1.into()
                 } else {
-                    config.decimal0
+                    config.decimal0.into()
                 };
 
                 (y * tokenIn_decimal) / PRECISION
@@ -883,8 +880,8 @@ mod StarkDPair {
         fn _k(self: @ContractState, x: u256, y: u256) -> u256 {
             let config = self.config.read();
             if (config.stable) {
-                let _x = (x * PRECISION) / config.decimal0;
-                let _y = (y * PRECISION) / config.decimal1;
+                let _x = (x * PRECISION) / config.decimal0.into();
+                let _y = (y * PRECISION) / config.decimal1.into();
 
                 self._f(_x, _y)
             } else {
