@@ -321,12 +321,8 @@ mod StarkDPair {
             let config = self.config.read();
             let (reserve0, reserve1, _) = self.get_reserves();
             let this_address = get_contract_address();
-            let balance0 = ERC20ABIDispatcher {
-                contract_address: config.token0
-            }.balance_of(this_address);
-            let balance1 = ERC20ABIDispatcher {
-                contract_address: config.token1
-            }.balance_of(this_address);
+            let balance0 = InternalFunctions::_balance_of(config.token0, this_address); 
+            let balance1 = InternalFunctions::_balance_of(config.token1, this_address); 
             let amount0 = balance0 - reserve0;
             let amount1 = balance1 - reserve1;
 
@@ -519,13 +515,9 @@ mod StarkDPair {
             let this_address = get_contract_address();
 
             let config = self.config.read();
-            let balance0 = ERC20ABIDispatcher {
-                contract_address: config.token0
-            }.balance_of(this_address);
+            let balance0 = InternalFunctions::_balance_of(config.token0, this_address);
 
-            let balance1 = ERC20ABIDispatcher {
-                contract_address: config.token1
-            }.balance_of(this_address);
+            let balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             let (reserve0, reserve1, _) = self.get_reserves();
 
