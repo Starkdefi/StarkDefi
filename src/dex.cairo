@@ -20,13 +20,11 @@ mod v1 {
         use interface::IStarkDPairDispatcherTrait;
     }
     mod router {
-        mod utils;
         mod router;
         mod interface;
 
         use router::StarkDRouter;
         use interface::IStarkDRouterDispatcher;
         use interface::IStarkDRouterDispatcherTrait;
-        use utils::call_contract_with_selector_fallback;
     }
 }

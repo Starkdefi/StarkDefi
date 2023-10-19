@@ -43,7 +43,7 @@ mod Account {
     use super::QUERY_VERSION;
     use super::TRANSACTION_VERSION;
     use zeroable::Zeroable;
-    use starkDefi::dex::v1::router::utils::UnwrapAndCast;
+    use starkDefi::utils::callFallback::UnwrapAndCast;
 
 
     #[storage]
