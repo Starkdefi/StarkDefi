@@ -279,7 +279,7 @@ mod StarkDRouter {
             Serde::serialize(@amount, ref call_data);
 
             call_contract_with_selector_fallback(
-                token, transfer_from, transferFrom, call_data.span()
+                token, transferFrom, transfer_from, call_data.span()
             )
                 .unwrap_syscall();
         }
@@ -339,9 +339,17 @@ mod StarkDRouter {
             let mut index: u32 = 0;
             let factory = self._factory.read();
             let mut _path = path;
+            let first_route: SwapPath = *_path[0];
+            let mut _path_to: ContractAddress = first_route.tokenOut;
+
             loop {
                 match _path.pop_front() {
                     Option::Some(route) => {
+                        if (index > 0) {
+                            assert(_path_to == *route.tokenIn, 'invalid path');
+                            _path_to = *route.tokenOut;
+                        }
+
                         let (token0, _) = InternalFunctions::_sort_tokens(
                             *route.tokenIn, *route.tokenOut
                         );
@@ -388,9 +396,16 @@ mod StarkDRouter {
             let factory = self._factory.read();
             let mut index: u32 = 0;
             let mut _path = path;
+            let first_route: SwapPath = *_path[0];
+            let mut _path_to: ContractAddress = first_route.tokenOut;
             loop {
                 match _path.pop_front() {
                     Option::Some(route) => {
+                        if (index > 0) {
+                            assert(_path_to == *route.tokenIn, 'invalid path');
+                            _path_to = *route.tokenOut;
+                        }
+
                         let (token0, _) = InternalFunctions::_sort_tokens(
                             *route.tokenIn, *route.tokenOut
                         );

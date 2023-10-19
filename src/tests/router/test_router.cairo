@@ -875,7 +875,7 @@ fn swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
     path: Array::<SwapPath>,
     to: ContractAddress,
     deadline: u64
-) -> Array::<u256> {
+) {
     let mut calldata = array![];
     Serde::serialize(@amountOut, ref calldata);
     Serde::serialize(@amountInMax, ref calldata);
@@ -893,11 +893,6 @@ fn swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
                 }
             ]
         );
-
-    let mut call1_ret = *ret.at(0);
-    let call1_retval = Serde::<Array<u256>>::deserialize(ref call1_ret);
-
-    call1_retval.unwrap()
 }
 
 #[test]
@@ -1065,6 +1060,102 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
     );
 
     assert(*swap_amounts1.at(1) != *swap_amounts5.at(1), 'first & last swap amounts')
+}
+
+#[test]
+#[available_gas(200000000)]
+#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_swap_exact_tokens_for_tokens_invalid_path_progression() {
+    let stable = false;
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(stable);
+    let slipTolerance = 50; // 0.5%
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<SwapPath> = array![
+        SwapPath { tokenIn: token0.contract_address, tokenOut: token3.contract_address, stable },
+        SwapPath { tokenIn: token0.contract_address, tokenOut: token1.contract_address, stable }
+    ];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(2) * (10000 - slipTolerance) / 10000;
+
+    let swap_amounts = swap_exact_tokens_for_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_multiple() {
+    let stable = false;
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(stable);
+    let slipTolerance = 50; // 0.5%
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<SwapPath> = array![
+        SwapPath { tokenIn: token2.contract_address, tokenOut: token0.contract_address, stable }
+    ];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        router, account, amountIn, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 2
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        router, account, amountIn, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 3
+    let amounts = router.get_amounts_out(amountIn * 8, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        router, account, amountIn * 8, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 4
+    let amounts = router.get_amounts_out(amountIn * 10, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        router, account, amountIn * 10, amountOutMin, path.clone(), account.contract_address, 1
+    );
+
+    // swap 5
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
+}
+
+#[test]
+#[available_gas(200000000)]
+#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_invalid_path_progression() {
+    let stable = false;
+    let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(stable);
+    let slipTolerance = 50; // 0.5%
+
+    let amountIn: u256 = with_decimals(1_000);
+    let path: Array::<SwapPath> = array![
+        SwapPath { tokenIn: token0.contract_address, tokenOut: token3.contract_address, stable },
+        SwapPath { tokenIn: token0.contract_address, tokenOut: token1.contract_address, stable }
+    ];
+
+    let amounts = router.get_amounts_out(amountIn, path.clone());
+    let amountOutMin = *amounts.at(2) * (10000 - slipTolerance) / 10000;
+
+    swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens(
+        router, account, amountIn, amountOutMin, path, account.contract_address, 1
+    );
 }
 
 #[test]
