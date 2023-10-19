@@ -56,6 +56,10 @@ mod StarkDPair {
         get_contract_address, contract_address_to_felt252
     };
     use starknet::syscalls::deploy_syscall;
+    use starkDefi::utils::call_contract_with_selector_fallback;
+    use starkDefi::utils::selectors;
+    use starkDefi::utils::callFallback::UnwrapAndCast;
+
 
     use integer::u128_try_from_felt252;
     use super::{
@@ -378,8 +382,8 @@ mod StarkDPair {
             let token0Dispatcher = ERC20ABIDispatcher { contract_address: config.token0 };
             let token1Dispatcher = ERC20ABIDispatcher { contract_address: config.token1 };
 
-            let mut balance0 = token0Dispatcher.balance_of(this_address);
-            let mut balance1 = token1Dispatcher.balance_of(this_address);
+            let mut balance0 = InternalFunctions::_balance_of(config.token0, this_address);
+            let mut balance1 = InternalFunctions::_balance_of(config.token1, this_address);
             let liquidity = self.balance_of(this_address);
 
             let totalSupply = self.total_supply();
@@ -393,8 +397,8 @@ mod StarkDPair {
             token0Dispatcher.transfer(to, amount0);
             token1Dispatcher.transfer(to, amount1);
 
-            balance0 = token0Dispatcher.balance_of(this_address);
-            balance1 = token1Dispatcher.balance_of(this_address);
+            balance0 = InternalFunctions::_balance_of(config.token0, this_address);
+            balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             self._update(balance0, balance1, reserve0, reserve1);
 
@@ -443,8 +447,8 @@ mod StarkDPair {
                     ); // callback for flash loans
             }
 
-            let mut balance0 = token0Dispatcher.balance_of(this_address);
-            let mut balance1 = token1Dispatcher.balance_of(this_address);
+            let mut balance0 = InternalFunctions::_balance_of(config.token0, this_address);
+            let mut balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             let amount0In = if balance0 > reserve0 - amount0Out {
                 balance0 - (reserve0 - amount0Out)
@@ -464,8 +468,8 @@ mod StarkDPair {
             ); // accumulate and transfer fees to vault
 
             // recalculate balance after fees are taken
-            balance0 = token0Dispatcher.balance_of(this_address);
-            balance1 = token1Dispatcher.balance_of(this_address);
+            balance0 = InternalFunctions::_balance_of(config.token0, this_address);
+            balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             assert(
                 self._k(balance0, balance1) >= self._k(reserve0, reserve1), 'invariant K'
@@ -499,8 +503,8 @@ mod StarkDPair {
             let token0Dispatcher = ERC20ABIDispatcher { contract_address: config.token0 };
             let token1Dispatcher = ERC20ABIDispatcher { contract_address: config.token1 };
 
-            let balance0 = token0Dispatcher.balance_of(this_address);
-            let balance1 = token1Dispatcher.balance_of(this_address);
+            let balance0 = InternalFunctions::_balance_of(config.token0, this_address);
+            let balance1 = InternalFunctions::_balance_of(config.token0, this_address);
 
             token0Dispatcher.transfer(to, balance0 - reserve0);
             token1Dispatcher.transfer(to, balance1 - reserve1);
@@ -859,6 +863,17 @@ mod StarkDPair {
         ) {
             InternalFunctions::_update_user_fee(ref self, from);
             InternalFunctions::_update_user_fee(ref self, to);
+        }
+
+        /// @notice try balanceOf & balance_of
+        fn _balance_of(token: ContractAddress, account: ContractAddress) -> u256 {
+            let mut call_data = array![];
+            Serde::serialize(@account, ref call_data);
+
+            call_contract_with_selector_fallback(
+                token, selectors::balanceOf, selectors::balance_of, call_data.span()
+            )
+                .unwrap_and_cast()
         }
     }
 

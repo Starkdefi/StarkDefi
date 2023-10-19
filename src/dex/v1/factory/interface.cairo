@@ -24,10 +24,6 @@ trait IStarkDFactory<TContractState> {
     fn set_fee(ref self: TContractState, fee: u256, stable: bool);
     fn set_custom_pair_fee(ref self: TContractState, pair: ContractAddress, fee: u256);
     fn set_fee_handler(ref self: TContractState, handler_address: ContractAddress);
-    fn set_class_hash_for_pair_contract(
-        ref self: TContractState, class_hash_pair_contract: ClassHash
-    );
-    fn set_class_hash_for_vault_contract(ref self: TContractState, vault_class_hash: ClassHash);
 }
 
 #[starknet::interface]
@@ -54,10 +50,8 @@ trait IStarkDFactoryABI<TContractState> {
     fn set_fee(ref self: TContractState, fee: u256, stable: bool);
     fn set_custom_pair_fee(ref self: TContractState, pair: ContractAddress, fee: u256);
     fn set_fee_handler(ref self: TContractState, handler_address: ContractAddress);
-    fn set_class_hash_for_pair_contract(
-        ref self: TContractState, class_hash_pair_contract: ClassHash
-    );
-    fn set_class_hash_for_vault_contract(ref self: TContractState, vault_class_hash: ClassHash);
+    fn set_pair_contract_class(ref self: TContractState, class_hash_pair_contract: ClassHash);
+    fn set_vault_contract_class(ref self: TContractState, vault_class_hash: ClassHash);
     fn assert_paused(self: @TContractState);
     fn assert_not_paused(self: @TContractState);
 }

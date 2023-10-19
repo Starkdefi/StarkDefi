@@ -319,28 +319,28 @@ mod StarkDFactory {
             config.fee_handler = handler_address;
             self.config.write(config);
         }
+    }
 
-        /// @notice Set class hash for pair contract
-        /// @param  class_hash_pair_contract ClassHash of pair contract
-        fn set_class_hash_for_pair_contract(
-            ref self: ContractState, class_hash_pair_contract: ClassHash
-        ) {
-            Modifiers::assert_only_handler(@self);
-            assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
-            let mut config = self.config.read();
-            config.pair_class_hash = class_hash_pair_contract;
-            self.config.write(config);
-        }
+    /// @notice Set class hash for pair contract
+    /// @param  class_hash_pair_contract ClassHash of pair contract
+    #[external(v0)]
+    fn set_pair_contract_class(ref self: ContractState, class_hash_pair_contract: ClassHash) {
+        Modifiers::assert_only_handler(@self);
+        assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
+        let mut config = self.config.read();
+        config.pair_class_hash = class_hash_pair_contract;
+        self.config.write(config);
+    }
 
-        /// @notice Set class hash for vault contract
-        /// @param  vault_class_hash ClassHash of vault contract
-        fn set_class_hash_for_vault_contract(ref self: ContractState, vault_class_hash: ClassHash) {
-            Modifiers::assert_only_handler(@self);
-            assert(vault_class_hash.is_non_zero(), 'invalid class hash');
-            let mut config = self.config.read();
-            config.vault_class_hash = vault_class_hash;
-            self.config.write(config);
-        }
+    /// @notice Set class hash for vault contract
+    /// @param  vault_class_hash ClassHash of vault contract
+    #[external(v0)]
+    fn set_vault_contract_class(ref self: ContractState, vault_class_hash: ClassHash) {
+        Modifiers::assert_only_handler(@self);
+        let mut config = self.config.read();
+        assert(vault_class_hash.is_non_zero(), 'invalid class hash');
+        config.vault_class_hash = vault_class_hash;
+        self.config.write(config);
     }
 
     /// @notice Callable when contract is paused

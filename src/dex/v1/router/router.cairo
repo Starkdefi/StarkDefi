@@ -6,13 +6,14 @@
 #[starknet::contract]
 mod StarkDRouter {
     use starkDefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
-    use starkDefi::dex::v1::router::call_contract_with_selector_fallback;
+    use starkDefi::utils::call_contract_with_selector_fallback;
+    use starkDefi::utils::callFallback::UnwrapAndCast;
+
     use starkDefi::dex::v1::factory::{
         IStarkDFactoryABIDispatcherTrait, IStarkDFactoryABIDispatcher
     };
     use starkDefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
-    use starkDefi::utils::selectors::{transfer_from, transferFrom};
-    use starkDefi::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+    use starkDefi::utils::selectors::{transfer_from, transferFrom, balanceOf, balance_of};
     use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
     use array::SpanTrait;
     use array::ArrayTrait;
@@ -233,14 +234,21 @@ mod StarkDRouter {
             } else {
                 _route
             };
-            let erc20Dispatcher = ERC20ABIDispatcher { contract_address: _end_route.tokenOut };
-            let prevBalance = erc20Dispatcher.balance_of(to);
+            let prevBalance = InternalFunctions::_balance_of(_end_route.tokenOut, to);
             self._swap_supporting_fee_on_transfer_tokens(path.span(), to);
             assert(
-                erc20Dispatcher.balance_of(to) - prevBalance >= amountOutMin,
+                InternalFunctions::_balance_of(_end_route.tokenOut, to)
+                    - prevBalance >= amountOutMin,
                 'insufficient output amount'
             );
         }
+    }
+
+    #[external(v0)]
+    fn set_factory(ref self: ContractState, factory: ContractAddress) {
+        assert(factory.is_non_zero(), 'invalid factory');
+        Modifiers::assert_only_handler(@self);
+        self._factory.write(factory);
     }
 
     #[external(v0)]
@@ -267,6 +275,7 @@ mod StarkDRouter {
             (token0, token1)
         }
 
+        /// @notice try transferFrom & transfer_from
         fn _transfer_token_from(
             token: ContractAddress,
             sender: ContractAddress,
@@ -282,6 +291,15 @@ mod StarkDRouter {
                 token, transferFrom, transfer_from, call_data.span()
             )
                 .unwrap_syscall();
+        }
+
+        /// @notice try balanceOf & balance_of
+        fn _balance_of(token: ContractAddress, account: ContractAddress) -> u256 {
+            let mut call_data = array![];
+            Serde::serialize(@account, ref call_data);
+
+            call_contract_with_selector_fallback(token, balanceOf, balance_of, call_data.span())
+                .unwrap_and_cast()
         }
 
         fn _add_liquidity(
@@ -418,9 +436,9 @@ mod StarkDRouter {
                         let (reserveA, _) = InternalFunctions::_get_reserves(
                             factory, *route.tokenIn, *route.tokenOut, *route.stable
                         );
-                        let amountIn = ERC20ABIDispatcher {
-                            contract_address: *route.tokenIn
-                        }.balance_of(pair) - reserveA;
+
+                        let balance_tokenIn = InternalFunctions::_balance_of(*route.tokenIn, pair);
+                        let amountIn = balance_tokenIn - reserveA;
 
                         let amountOut = pairDispatcher.get_amount_out(*route.tokenIn, amountIn);
 
