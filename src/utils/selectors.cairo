@@ -25,5 +25,8 @@ const add_liquidity: felt252 = 0x2cfb12ff9e08412ec5009c65ea06e727119ad948d25c8a8
 const remove_liquidity: felt252 = 0x2e875d1c86df033547c5c7839d8b6e3641de29ee1f708bbce99743b34272ada;
 const swap_exact_tokens_for_tokens: felt252 =
     0x3276861cf5e05d6daf8f352cabb47df623eb10c383ab742fcc7abea94d5c5cc;
-const swap_tokens_for_exact_tokens: felt252 =
-    0x3b1bf5248b545038b97fc53525d5be840cf237a3faddfcaa7b9e4c8439fdaad;
+const swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens: felt252 =
+    0x301c7e1221c12d4f8259ebfb7efc40ef198a52b2d8cbea7e5cde7ccc5f656eb;
+
+// pair
+const claim_fees: felt252 = 0xfaec35dcc986d878ccce0504372a394e561469976033cad5499bcd1e75631a;
