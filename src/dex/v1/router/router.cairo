@@ -95,6 +95,7 @@ mod StarkDRouter {
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
+            feeTier: u8,
             amountADesired: u256,
             amountBDesired: u256,
             amountAMin: u256,
@@ -109,12 +110,13 @@ mod StarkDRouter {
                 tokenA,
                 tokenB,
                 stable,
+                feeTier,
                 amountADesired,
                 amountBDesired,
                 amountAMin,
                 amountBMin
             );
-            let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
+            let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
             let sender = get_caller_address();
 
             InternalFunctions::_transfer_token_from(tokenA, sender, pair, amountA);
@@ -140,6 +142,7 @@ mod StarkDRouter {
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
+            feeTier: u8,
             liquidity: u256,
             amountAMin: u256,
             amountBMin: u256,
@@ -149,7 +152,7 @@ mod StarkDRouter {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
 
-            let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
+            let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
             let sender = get_caller_address();
 
             InternalFunctions::_transfer_token_from(pair, sender, pair, liquidity);
@@ -195,7 +198,7 @@ mod StarkDRouter {
             let _route = _path.pop_front().unwrap();
 
             let pair = InternalFunctions::_pair_for(
-                factory, _route.tokenIn, _route.tokenOut, _route.stable
+                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier
             );
             let sender = get_caller_address();
 
@@ -224,7 +227,7 @@ mod StarkDRouter {
             let _route = _path.pop_front().unwrap();
             let factory = self._factory.read();
             let pair = InternalFunctions::_pair_for(
-                factory, _route.tokenIn, _route.tokenOut, _route.stable
+                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier
             );
             let sender = get_caller_address();
 
@@ -307,6 +310,7 @@ mod StarkDRouter {
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
+            feeTier: u8,
             amountADesired: u256,
             amountBDesired: u256,
             amountAMin: u256,
@@ -315,14 +319,14 @@ mod StarkDRouter {
             let factory = self._factory.read();
             let factoryDispatcher = IStarkDFactoryABIDispatcher { contract_address: factory };
 
-            let pair = factoryDispatcher.get_pair(tokenA, tokenB, stable);
+            let pair = factoryDispatcher.get_pair(tokenA, tokenB, stable, feeTier);
 
             if (pair == contract_address_const::<0>()) {
-                factoryDispatcher.create_pair(tokenA, tokenB, stable);
+                factoryDispatcher.create_pair(tokenA, tokenB, stable, feeTier);
             }
 
             let (reserveA, reserveB) = InternalFunctions::_get_reserves(
-                factory, tokenA, tokenB, stable
+                factory, tokenA, tokenB, stable, feeTier
             );
 
             if (reserveA == 0 && reserveB == 0) {
@@ -385,7 +389,7 @@ mod StarkDRouter {
                             let _next: SwapPath = *path[index + 1];
 
                             InternalFunctions::_pair_for(
-                                factory, _next.tokenIn, _next.tokenOut, _next.stable
+                                factory, _next.tokenIn, _next.tokenOut, _next.stable, _next.feeTier
                             )
                         } else {
                             _to
@@ -393,7 +397,11 @@ mod StarkDRouter {
 
                         IStarkDPairDispatcher {
                             contract_address: InternalFunctions::_pair_for(
-                                factory, *route.tokenIn, *route.tokenOut, *route.stable
+                                factory,
+                                *route.tokenIn,
+                                *route.tokenOut,
+                                *route.stable,
+                                *route.feeTier
                             )
                         }.swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
 
@@ -428,13 +436,13 @@ mod StarkDRouter {
                             *route.tokenIn, *route.tokenOut
                         );
                         let pair = InternalFunctions::_pair_for(
-                            factory, *route.tokenIn, *route.tokenOut, *route.stable
+                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier
                         );
 
                         let pairDispatcher = IStarkDPairDispatcher { contract_address: pair };
 
                         let (reserveA, _) = InternalFunctions::_get_reserves(
-                            factory, *route.tokenIn, *route.tokenOut, *route.stable
+                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier
                         );
 
                         let balance_tokenIn = InternalFunctions::_balance_of(*route.tokenIn, pair);
@@ -451,7 +459,7 @@ mod StarkDRouter {
                         let to = if index < path.len() - 1 {
                             let _next: SwapPath = *path[index + 1];
                             InternalFunctions::_pair_for(
-                                factory, _next.tokenIn, _next.tokenOut, _next.stable
+                                factory, _next.tokenIn, _next.tokenOut, _next.stable, _next.feeTier
                             )
                         } else {
                             _to
@@ -470,19 +478,27 @@ mod StarkDRouter {
         }
 
         fn _pair_for(
-            factory: ContractAddress, tokenA: ContractAddress, tokenB: ContractAddress, stable: bool
+            factory: ContractAddress,
+            tokenA: ContractAddress,
+            tokenB: ContractAddress,
+            stable: bool,
+            feeTier: u8
         ) -> ContractAddress {
             let (token0, token1) = InternalFunctions::_sort_tokens(tokenA, tokenB);
             IStarkDFactoryABIDispatcher {
                 contract_address: factory
-            }.get_pair(token0, token1, stable)
+            }.get_pair(token0, token1, stable, feeTier)
         }
 
         fn _get_reserves(
-            factory: ContractAddress, tokenA: ContractAddress, tokenB: ContractAddress, stable: bool
+            factory: ContractAddress,
+            tokenA: ContractAddress,
+            tokenB: ContractAddress,
+            stable: bool,
+            feeTier: u8
         ) -> (u256, u256) {
             let (token0, _) = InternalFunctions::_sort_tokens(tokenA, tokenB);
-            let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable);
+            let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
             let (reserve0, reserve1, _) = IStarkDPairDispatcher {
                 contract_address: pair
             }.get_reserves();
@@ -516,7 +532,7 @@ mod StarkDRouter {
                 match _path.pop_front() {
                     Option::Some(route) => {
                         let pair = InternalFunctions::_pair_for(
-                            factory, *route.tokenIn, *route.tokenOut, *route.stable
+                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier
                         );
                         let factoryDispatcher = IStarkDFactoryABIDispatcher {
                             contract_address: factory

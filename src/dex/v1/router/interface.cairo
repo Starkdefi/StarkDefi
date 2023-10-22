@@ -5,6 +5,7 @@ struct SwapPath {
     tokenIn: ContractAddress,
     tokenOut: ContractAddress,
     stable: bool,
+    feeTier: u8,
 }
 
 #[starknet::interface]
@@ -23,6 +24,7 @@ trait IStarkDRouter<TContractState> {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
+        feeTier: u8,
         amountADesired: u256,
         amountBDesired: u256,
         amountAMin: u256,
@@ -35,6 +37,7 @@ trait IStarkDRouter<TContractState> {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
+        feeTier: u8,
         liquidity: u256,
         amountAMin: u256,
         amountBMin: u256,

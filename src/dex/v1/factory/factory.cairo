@@ -16,8 +16,8 @@ struct Config {
 /// @dev Structure for holding fee information
 #[derive(Copy, Drop, Serde, starknet::Store)]
 struct Fees {
-    stable: u256,
-    volatile: u256,
+    stable: u8,
+    volatile: u8,
 }
 
 /// @dev Structure for validating a pair
@@ -25,15 +25,16 @@ struct Fees {
 struct ValidPair {
     is_valid: bool,
     is_stable: bool,
-    custom_fee: u256,
+    custom_fee: u8,
 }
 
-const MAX_FEE: u256 = 100; // 1%
+const MAX_FEE: u8 = 100; // 1%
 
 #[starknet::contract]
 mod StarkDFactory {
     use starkDefi::dex::v1::factory::interface::IStarkDFactory;
     use array::ArrayTrait;
+    use traits::Into;
     use super::{Config, Fees, ValidPair, MAX_FEE, ContractAddress, ClassHash};
     use starknet::{get_caller_address, contract_address_to_felt252};
     use zeroable::Zeroable;
@@ -69,7 +70,7 @@ mod StarkDFactory {
         pair: ContractAddress,
         #[key]
         stable: bool,
-        fee: u256,
+        fee: u8,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -88,7 +89,7 @@ mod StarkDFactory {
         fees: Fees,
         paused: bool,
         protocol_fee_on: bool,
-        _pair: LegacyMap::<(ContractAddress, ContractAddress, bool), ContractAddress>,
+        _pair: LegacyMap::<(ContractAddress, ContractAddress, bool, u8), ContractAddress>,
         _all_pairs: LegacyMap::<u32, ContractAddress>,
         valid_pairs: LegacyMap::<ContractAddress, ValidPair>,
         _all_pairs_length: u32,
@@ -139,16 +140,20 @@ mod StarkDFactory {
         /// @notice Get pair contract address given tokenA, tokenB and a bool representing stable or volatile
         /// @returns  address of the pair
         fn get_pair(
-            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress, stable: bool
+            self: @ContractState,
+            tokenA: ContractAddress,
+            tokenB: ContractAddress,
+            stable: bool,
+            fee: u8
         ) -> ContractAddress {
             let (token0, token1) = self.sort_tokens(tokenA, tokenB);
-            let pair = self._pair.read((token0, token1, stable));
+            let pair = self._pair.read((token0, token1, stable, fee));
             pair
         }
 
         /// @notice Get global fees
-        /// @returns  stable u256 and volatile u256 fees
-        fn get_fees(self: @ContractState) -> (u256, u256) {
+        /// @returns  stable u8 and volatile u8 fees
+        fn get_fees(self: @ContractState) -> (u8, u8) {
             let fees = self.fees.read();
             (fees.stable, fees.volatile)
         }
@@ -161,7 +166,7 @@ mod StarkDFactory {
 
         /// @notice Get fee for a pair
         /// @returns  fee
-        fn get_fee(self: @ContractState, pair: ContractAddress) -> u256 {
+        fn get_fee(self: @ContractState, pair: ContractAddress) -> u8 {
             let pair_info = self.valid_pairs.read(pair);
             assert(pair_info.is_valid, 'invalid pair');
             let is_stable = pair_info.is_stable;
@@ -215,15 +220,20 @@ mod StarkDFactory {
         /// @param tokenB ContractAddress of tokenB
         /// @return pair ContractAddress of the new pair
         fn create_pair(
-            ref self: ContractState, tokenA: ContractAddress, tokenB: ContractAddress, stable: bool
+            ref self: ContractState,
+            tokenA: ContractAddress,
+            tokenB: ContractAddress,
+            stable: bool,
+            fee: u8
         ) -> ContractAddress {
             assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid token address');
             assert(tokenA != tokenB, 'identical addresses');
+            assert(fee.into() <= MAX_FEE, 'fee too high');
 
             let config = self.config.read();
             let vault_class_hash = config.vault_class_hash;
 
-            let found_pair = self.get_pair(tokenA, tokenB, stable);
+            let found_pair = self.get_pair(tokenA, tokenB, stable, fee);
             assert(found_pair.is_zero(), 'pair exists');
 
             let (token0, token1) = self.sort_tokens(tokenA, tokenB);
@@ -232,9 +242,15 @@ mod StarkDFactory {
             Serde::serialize(@token0, ref pair_constructor_calldata);
             Serde::serialize(@token1, ref pair_constructor_calldata);
             Serde::serialize(@stable, ref pair_constructor_calldata);
+            Serde::serialize(@fee, ref pair_constructor_calldata);
             Serde::serialize(@vault_class_hash, ref pair_constructor_calldata);
 
-            let token0_felt252 = contract_address_to_felt252(token0);
+            let token0_felt252 = contract_address_to_felt252(token0)
+                + if (fee > 0) {
+                    fee.into()
+                } else {
+                    0
+                };
             let token1_stable_felt252 = contract_address_to_felt252(token1)
                 + if stable {
                     1
@@ -249,12 +265,12 @@ mod StarkDFactory {
             )
                 .unwrap_syscall(); // deploy_syscall never panics
 
-            self._pair.write((token0, token1, stable), pair);
+            self._pair.write((token0, token1, stable, fee), pair);
             let pair_count = self._all_pairs_length.read();
             self._all_pairs.write(pair_count, pair);
             self
                 .valid_pairs
-                .write(pair, ValidPair { is_valid: true, is_stable: stable, custom_fee: 0 });
+                .write(pair, ValidPair { is_valid: true, is_stable: stable, custom_fee: fee });
             self._all_pairs_length.write(pair_count + 1);
 
             self
@@ -280,7 +296,7 @@ mod StarkDFactory {
         /// @notice Set universal fee
         /// @param fee u256, must be less than MAX_FEE
         /// @param stable bool
-        fn set_fee(ref self: ContractState, fee: u256, stable: bool) {
+        fn set_fee(ref self: ContractState, fee: u8, stable: bool) {
             Modifiers::assert_only_handler(@self);
             assert(fee <= MAX_FEE && fee > 0, 'invalid fee');
             let mut fees = self.fees.read();
@@ -296,7 +312,7 @@ mod StarkDFactory {
         /// @param pair ContractAddress of pair
         /// @param fee u256, must be less than MAX_FEE
         /// @param stable bool
-        fn set_custom_pair_fee(ref self: ContractState, pair: ContractAddress, fee: u256) {
+        fn set_custom_pair_fee(ref self: ContractState, pair: ContractAddress, fee: u8) {
             Modifiers::assert_only_handler(@self);
             assert(fee <= MAX_FEE, 'fee too high');
             let mut pair_info = self.valid_pairs.read(pair);

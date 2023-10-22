@@ -11,6 +11,7 @@ struct Config {
     factory: ContractAddress,
     vault: ContractAddress,
     stable: bool,
+    fee_tier: u8,
     decimal0: u256,
     decimal1: u256,
 }
@@ -137,6 +138,7 @@ mod StarkDPair {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
+        fee_tier: u8,
         vault_class_hash: ClassHash
     ) {
         assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid address');
@@ -161,6 +163,7 @@ mod StarkDPair {
                     factory: factory,
                     vault: vault,
                     stable: stable,
+                    fee_tier: fee_tier,
                     decimal0: u256 {
                         low: pow(10, decimal0), high: 0
                         }, decimal1: u256 {
@@ -216,6 +219,10 @@ mod StarkDPair {
 
         fn token1(self: @ContractState) -> ContractAddress {
             self.config.read().token1
+        }
+
+        fn fee_tier(self: @ContractState) -> u8 {
+            self.config.read().fee_tier
         }
 
 
@@ -543,7 +550,7 @@ mod StarkDPair {
             assert(reserve0 > 0 && reserve1 > 0, 'insufficient liquidity');
             let pool_fee = IStarkDFactoryABIDispatcher {
                 contract_address: self.factory()
-            }.get_fee(get_contract_address());
+            }.get_fee(get_contract_address()).into();
 
             let _amount_in = amountIn - ((amountIn * pool_fee) / FEE_DENOMINATOR);
 
@@ -682,7 +689,7 @@ mod StarkDPair {
             let pair = get_contract_address();
             let factory = IStarkDFactoryABIDispatcher { contract_address: self.factory() };
 
-            let swap_fee = factory.get_fee(pair);
+            let swap_fee = factory.get_fee(pair).into();
             let protocol_fee_on = factory.protocol_fee_on();
 
             if (amount0In > 0) {

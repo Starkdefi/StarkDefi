@@ -50,6 +50,7 @@ trait IStarkDPair<TContractState> {
     fn factory(self: @TContractState) -> ContractAddress;
     fn token0(self: @TContractState) -> ContractAddress;
     fn token1(self: @TContractState) -> ContractAddress;
+    fn fee_tier(self: @TContractState) -> u8;
     fn fee_vault(self: @TContractState) -> ContractAddress;
     fn snapshot(self: @TContractState) -> Snapshot;
     fn get_reserves(self: @TContractState) -> (u256, u256, u64);
@@ -117,6 +118,7 @@ trait IStarkDPairABI<TContractState> {
     fn factory(self: @TContractState) -> ContractAddress;
     fn token0(self: @TContractState) -> ContractAddress;
     fn token1(self: @TContractState) -> ContractAddress;
+    fn fee_tier(self: @TContractState) -> u8;
     fn fee_vault(self: @TContractState) -> ContractAddress;
     fn snapshot(self: @TContractState) -> Snapshot;
     fn get_reserves(self: @TContractState) -> (u256, u256, u64);
@@ -165,6 +167,7 @@ trait IStarkDPairCamelABI<TContractState> {
     fn factory(self: @TContractState) -> ContractAddress;
     fn token0(self: @TContractState) -> ContractAddress;
     fn token1(self: @TContractState) -> ContractAddress;
+    fn fee_tier(self: @TContractState) -> u8;
     fn feeVault(self: @TContractState) -> ContractAddress;
     fn snapshot(self: @TContractState) -> Snapshot;
     fn getReserves(self: @TContractState) -> (u256, u256, u64);

@@ -33,6 +33,7 @@ fn test_sPair_constructor() {
         token0.contract_address,
         token1.contract_address,
         true,
+        0,
         constants::PAIR_FEES_CLASS_HASH()
     );
     assert(StarkDPairImpl::name(@state) == 'sStarkDefi Pair', 'Name eq sStarkDefi Pair');
@@ -46,7 +47,7 @@ fn test_sPair_constructor() {
 #[test]
 #[available_gas(4000000)]
 fn test_deployed_sPair() {
-    let (pairDispatcher, _) = deploy_pair(true);
+    let (pairDispatcher, _) = deploy_pair(true, 0);
     assert(pairDispatcher.name() == 'sStarkDefi Pair', 'Name eq sStarkDefi Pair');
     assert(pairDispatcher.symbol() == 'sSTARKD-P', 'Symbol eq sSTARKD-P');
 }
@@ -54,7 +55,7 @@ fn test_deployed_sPair() {
 #[test]
 #[available_gas(20000000)]
 fn test_sPair_mint() {
-    let (pairDispatcher, accountDispatcher) = deploy_pair(true);
+    let (pairDispatcher, accountDispatcher) = deploy_pair(true, 0);
 
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -93,7 +94,7 @@ fn test_sPair_mint() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('unequal amounts', 'ENTRYPOINT_FAILED'))]
 fn test_sPair_mint_unmatched() {
-    let (pairDispatcher, accountDispatcher) = deploy_pair(true);
+    let (pairDispatcher, accountDispatcher) = deploy_pair(true, 0);
 
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -126,9 +127,10 @@ fn test_sPair_mint_unmatched() {
 #[available_gas(200000000)]
 fn test_sPair_mint_more_lp() {
     let stable = true;
+    let feeTier = 0;
     let _5000 = with_decimals(5000);
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 5000, stable
+        false, 5000, 5000, stable, feeTier
     );
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -159,8 +161,9 @@ fn test_sPair_mint_more_lp() {
 #[available_gas(20000000)]
 fn test_sPair_swap_token0_for_token1() {
     let stable = true;
+    let feeTier = 0;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 5000, stable
+        false, 5000, 5000, stable, feeTier
     );
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -198,8 +201,9 @@ fn test_sPair_swap_token0_for_token1() {
 #[available_gas(40000000)]
 fn test_sPair_swap_token1_for_token0() {
     let stable = true;
+    let feeTier = 0;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 5000, stable
+        false, 5000, 5000, stable, feeTier
     );
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -226,7 +230,7 @@ fn test_sPair_swap_token1_for_token0() {
 #[test]
 #[available_gas(200000000)]
 fn test_sPair_get_amount_out() {
-    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 10000, 10000, true);
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 10000, 10000, true, 0);
     let amountIn = with_decimals(1);
     let tokenIn = pairDispatcher.token0();
 
@@ -245,7 +249,7 @@ fn test_sPair_get_amount_out() {
 fn test_sPair_swap_invariant_k() {
     let stable = true;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 5000, stable
+        false, 5000, 5000, stable, 0
     );
     // swap
     swap(ref pairDispatcher, ref accountDispatcher, 50, 51, 0, false);

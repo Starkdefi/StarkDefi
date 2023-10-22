@@ -1,6 +1,6 @@
 [package]
 name = "starkDefi"
-version = "1.0.0"
+version = "1.1.0"
 
 [[target.starknet-contract]]
 allowed-libfuncs-list.name = "experimental"
@@ -10,8 +10,6 @@ casm = true
 [dependencies]
 starknet = ">=2.1.1"
 # snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry.git", tag = "v0.4.1" }
-
-
 
 [tool.snforge]
 exit_first = true
