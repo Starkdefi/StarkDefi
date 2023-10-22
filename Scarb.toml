@@ -9,7 +9,8 @@ casm = true
 
 [dependencies]
 starknet = ">=2.1.1"
-snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry.git", tag = "v0.4.1" }
+# snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry.git", tag = "v0.4.1" }
+
 
 
 [tool.snforge]
@@ -20,12 +21,12 @@ devnet = "docker-compose up -d"
 
 [tool.sncast.testnet]
 name="testnet"
-account = "./{path_to_account}.json"
-keystore = "./{path_to_account_keystore}.json"
-url = "{node_url}"
+account = "./accounts/testnet_deployer.json"
+keystore = "./accounts/testnet_deployer_key.json"
+url = "https://starknet-goerli.infura.io/v3/${INFURA_PROJECT_ID}"
 
 [tool.sncast.mainnet]
 name="mainnet"
-account = "./{path_to_account}.json"
-keystore = "./{path_to_account_keystore}.json"
-url = "{node_url}"
+account = "./accounts/mainnet_deployer.json"
+keystore = "./accounts/mainnet_deployer_key.json"
+url = "https://starknet-mainnet.infura.io/v3/${INFURA_PROJECT_ID}"
