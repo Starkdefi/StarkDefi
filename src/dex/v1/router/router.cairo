@@ -23,7 +23,7 @@ mod StarkDRouter {
     use starknet::{
         ContractAddress, ClassHash, get_caller_address, get_block_timestamp, contract_address_const
     };
-    use starkDefi::utils::upgradeable::{Upgradeable, IUpgradeable};
+    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     #[storage]
@@ -255,11 +255,11 @@ mod StarkDRouter {
     }
 
     #[external(v0)]
-    impl UpgradableImpl of IUpgradeable<ContractState> {
+    impl UpgradableImpl of IUpgradable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             Modifiers::assert_only_handler(@self);
-            let mut state = Upgradeable::unsafe_new_contract_state();
-            Upgradeable::InternalImpl::_upgrade(ref state, new_class_hash);
+            let mut state = Upgradable::unsafe_new_contract_state();
+            Upgradable::InternalImpl::_upgrade(ref state, new_class_hash);
         }
     }
 

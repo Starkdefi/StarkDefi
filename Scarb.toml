@@ -24,7 +24,6 @@ keystore = "./accounts/testnet_deployer_key.json"
 url = "https://starknet-goerli.infura.io/v3/${INFURA_PROJECT_ID}"
 
 [tool.sncast.mainnet]
-name="mainnet"
-account = "./accounts/mainnet_deployer.json"
-keystore = "./accounts/mainnet_deployer_key.json"
+account = "mainnet"
+accounts-file = "./accounts/mainnet_deployer.json"
 url = "https://starknet-mainnet.infura.io/v3/${INFURA_PROJECT_ID}"

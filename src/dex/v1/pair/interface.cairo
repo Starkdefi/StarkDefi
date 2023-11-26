@@ -9,6 +9,7 @@ struct Snapshot {
     reserve0: u256,
     reserve1: u256,
     is_stable: bool,
+    fee_tier: u8,
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -140,7 +141,9 @@ trait IStarkDPairABI<TContractState> {
     fn sync(ref self: TContractState);
     fn claim_fees(ref self: TContractState);
     fn get_amount_out(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
-    fn fee_state(self: @TContractState, user: ContractAddress) -> (u256, GlobalFeesAccum);
+    fn fee_state(
+        self: @TContractState, user: ContractAddress
+    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum);
 }
 
 #[starknet::interface]
@@ -187,7 +190,9 @@ trait IStarkDPairCamelABI<TContractState> {
     fn sync(ref self: TContractState);
     fn claimFees(ref self: TContractState);
     fn getAmountOut(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
-    fn feeState(self: @TContractState, user: ContractAddress) -> (u256, GlobalFeesAccum);
+    fn feeState(
+        self: @TContractState, user: ContractAddress
+    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum);
 }
 
 
@@ -207,5 +212,4 @@ trait IFeesVault<TContractState> {
     fn claim_lp_fees(ref self: TContractState, user: ContractAddress, amount0: u256, amount1: u256);
     fn update_protocol_fees(ref self: TContractState, amount0: u256, amount1: u256);
     fn claim_protocol_fees(ref self: TContractState);
-    fn get_protocol_fees(self: @TContractState) -> (u256, u256);
 }

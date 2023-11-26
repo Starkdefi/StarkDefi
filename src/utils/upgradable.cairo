@@ -2,12 +2,12 @@
 use starknet::ClassHash;
 
 #[starknet::interface]
-trait IUpgradeable<TState> {
+trait IUpgradable<TState> {
     fn upgrade(ref self: TState, new_class_hash: ClassHash);
 }
 
 #[starknet::contract]
-mod Upgradeable {
+mod Upgradable {
     use starknet::ClassHash;
     use core::zeroable::Zeroable;
 

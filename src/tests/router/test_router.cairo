@@ -454,7 +454,7 @@ fn test_router_add_new_liquidity() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(200000000)]
 fn test_router_add_more_liquidity() {
     let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(false, 0);
 

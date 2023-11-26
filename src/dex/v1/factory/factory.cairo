@@ -41,7 +41,7 @@ mod StarkDFactory {
     use starknet::syscalls::deploy_syscall;
     use starknet::replace_class_syscall;
     use starkDefi::utils::{ContractAddressPartialOrd};
-    use starkDefi::utils::upgradeable::{Upgradeable, IUpgradeable};
+    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     #[event]
@@ -317,11 +317,7 @@ mod StarkDFactory {
             assert(fee <= MAX_FEE, 'fee too high');
             let mut pair_info = self.valid_pairs.read(pair);
             assert(pair_info.is_valid, 'invalid pair');
-            if pair_info.is_stable {
-                pair_info.custom_fee = fee;
-            } else {
-                pair_info.custom_fee = fee;
-            }
+            pair_info.custom_fee = fee;
             self.valid_pairs.write(pair, pair_info);
             self.emit(SetPairFee { pair, stable: pair_info.is_stable, fee });
         }
@@ -401,11 +397,11 @@ mod StarkDFactory {
 
     /// @notice upgradable at moment, a future implementation will drop this
     #[external(v0)]
-    impl UpgradableImpl of IUpgradeable<ContractState> {
+    impl UpgradableImpl of IUpgradable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             Modifiers::assert_only_handler(@self);
-            let mut state = Upgradeable::unsafe_new_contract_state();
-            Upgradeable::InternalImpl::_upgrade(ref state, new_class_hash);
+            let mut state = Upgradable::unsafe_new_contract_state();
+            Upgradable::InternalImpl::_upgrade(ref state, new_class_hash);
         }
     }
 

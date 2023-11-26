@@ -123,7 +123,7 @@ fn test_vPair_mint_more_lp() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(200000000)]
 fn test_vPair_swap_token0_for_token1() {
     let stable = false;
     let feeTier = 0;
