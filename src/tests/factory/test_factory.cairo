@@ -145,8 +145,8 @@ fn test_all_pairs_length() {
 fn test_get_pair() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    let pair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false);
-    let got_pair = StarkDFactoryImpl::get_pair(@state, token0, token1, false);
+    let pair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false, 0);
+    let got_pair = StarkDFactoryImpl::get_pair(@state, token0, token1, false, 0);
     assert(got_pair == pair, 'got_pair eq `pair`');
 }
 
@@ -155,7 +155,7 @@ fn test_get_pair() {
 #[should_panic(expected: ('StarkDefi: PAIR_NOT_FOUND',))]
 fn test_get_pair_not_found() {
     let mut state = setup();
-    let pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), false);
+    let pair = StarkDFactoryImpl::get_pair(@state, ADDRESS_ONE(), ADDRESS_TWO(), false, 0);
     assert(pair != ADDRESS_ZERO(), 'StarkDefi: PAIR_NOT_FOUND');
 }
 
@@ -176,7 +176,7 @@ fn test_all_pairs() {
 fn test_create_pair() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    let pair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false);
+    let pair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false, 0);
 
     assert_event_pair_created(@state, token0, token1, pair, 1);
     assert(pair != ADDRESS_ZERO(), 'pair neq 0');
@@ -186,7 +186,7 @@ fn test_create_pair() {
     assert(pairs.len() == 1, 'pairs len eq 1');
     assert(*pairs.at(0) == pair, 'pairs[0] eq `pair`');
 
-    let got_pair = StarkDFactoryImpl::get_pair(@state, token0, token1, false);
+    let got_pair = StarkDFactoryImpl::get_pair(@state, token0, token1, false, 0);
     assert(got_pair == pair, 'got_pair eq `pair`');
 }
 
@@ -196,7 +196,7 @@ fn test_deployed_create_pair() {
     let factory = deploy_factory(ADDRESS_ZERO());
     let (token0, token1) = deploy_tokens();
 
-    let pair = factory.create_pair(token0, token1, true);
+    let pair = factory.create_pair(token0, token1, true, 0);
 
     let event = testing::pop_log::<PairCreated>(factory.contract_address).unwrap();
 
@@ -210,9 +210,9 @@ fn test_deployed_create_pair() {
 fn test_create_pair_twice() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    let pair1 = StarkDFactoryImpl::create_pair(ref state, token0, token1, false);
+    let pair1 = StarkDFactoryImpl::create_pair(ref state, token0, token1, false, 0);
     drop_event(ADDRESS_ZERO());
-    let pair2 = StarkDFactoryImpl::create_pair(ref state, token0, token1, true);
+    let pair2 = StarkDFactoryImpl::create_pair(ref state, token0, token1, true, 0);
 
     assert_event_pair_created(@state, token0, token1, pair2, 2);
     assert(pair1 != ADDRESS_ZERO(), 'pair1 neq 0');
@@ -223,9 +223,9 @@ fn test_create_pair_twice() {
     assert(pairs.len() == 2, 'pairs len eq 2');
     assert(*pairs.at(0) == pair1, 'pairs[0] eq `pair1`');
 
-    let got_pair1 = StarkDFactoryImpl::get_pair(@state, token0, token1, false);
+    let got_pair1 = StarkDFactoryImpl::get_pair(@state, token0, token1, false, 0);
     assert(got_pair1 == pair1, 'got_pair eq `pair1`');
-    let got_pair2 = StarkDFactoryImpl::get_pair(@state, token0, token1, true);
+    let got_pair2 = StarkDFactoryImpl::get_pair(@state, token0, token1, true, 0);
     assert(got_pair2 == pair2, 'got_pair eq `pair1`');
 }
 
@@ -234,7 +234,7 @@ fn test_create_pair_twice() {
 #[should_panic(expected: ('invalid token address',))]
 fn test_create_pair_invalid_token() {
     let mut state = setup();
-    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ZERO(), ADDRESS_TWO(), false);
+    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ZERO(), ADDRESS_TWO(), false, 0);
 }
 
 #[test]
@@ -242,7 +242,7 @@ fn test_create_pair_invalid_token() {
 #[should_panic(expected: ('identical addresses',))]
 fn test_create_pair_identical_token() {
     let mut state = setup();
-    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_ONE(), false);
+    StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_ONE(), false, 0);
 }
 
 #[test]
@@ -251,8 +251,8 @@ fn test_create_pair_identical_token() {
 fn test_create_pair_pair_exists() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    StarkDFactoryImpl::create_pair(ref state, token0, token1, true);
-    StarkDFactoryImpl::create_pair(ref state, token0, token1, true);
+    StarkDFactoryImpl::create_pair(ref state, token0, token1, true, 0);
+    StarkDFactoryImpl::create_pair(ref state, token0, token1, true, 0);
 }
 
 
@@ -295,7 +295,6 @@ fn test_set_fees() {
     // stable
     StarkDFactoryImpl::set_fee(ref state, 10, true);
     assert(StarkDFactoryImpl::get_fees(@state) == (10, 35), 'get_fees eq (10, 35)');
-
 }
 
 #[test]
@@ -333,8 +332,8 @@ fn test_set_fees_max() {
 fn test_set_custom_pair_fee() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    let vPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false);
-    let sPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, true);
+    let vPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false, 0);
+    let sPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, true, 0);
 
     // get default fees
     let vFees = StarkDFactoryImpl::get_fee(@state, vPair);
@@ -357,7 +356,7 @@ fn test_set_custom_pair_fee() {
 fn test_set_custom_pair_fee_not_allowed() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    let vPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false);
+    let vPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false, 0);
     testing::set_caller_address(ADDRESS_ONE());
     StarkDFactoryImpl::set_custom_pair_fee(ref state, vPair, 50);
 }
@@ -368,7 +367,7 @@ fn test_set_custom_pair_fee_not_allowed() {
 fn test_set_custom_pair_fee_too_high() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
-    let vPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false);
+    let vPair = StarkDFactoryImpl::create_pair(ref state, token0, token1, false, 0);
     testing::set_caller_address(FEE_TO_SETTER());
     StarkDFactoryImpl::set_custom_pair_fee(ref state, vPair, 101);
 }

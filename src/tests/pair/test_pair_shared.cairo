@@ -38,13 +38,14 @@ use debug::PrintTrait;
 // Setup
 //
 
-fn deploy_pair(stable: bool) -> (IStarkDPairABIDispatcher, AccountABIDispatcher) {
+fn deploy_pair(stable: bool, feeTier: u8) -> (IStarkDPairABIDispatcher, AccountABIDispatcher) {
     let account = setup_account();
     let factory = deploy_factory(account.contract_address);
     let token0 = deploy_erc20('Token0', 'TK0', with_decimals(10000), account.contract_address);
     let token1 = deploy_erc20('Token1', 'TK1', with_decimals(10000), account.contract_address);
 
-    let pair = factory.create_pair(token0.contract_address, token1.contract_address, stable);
+    let pair = factory
+        .create_pair(token0.contract_address, token1.contract_address, stable, feeTier);
 
     (IStarkDPairABIDispatcher { contract_address: pair }, account)
 }
@@ -53,7 +54,7 @@ fn STATE() -> StarkDPair::ContractState {
     StarkDPair::contract_state_for_testing()
 }
 
-fn setup(stable: bool) -> StarkDPair::ContractState {
+fn setup(stable: bool, feeTier: u8) -> StarkDPair::ContractState {
     let mut state = STATE();
 
     testing::set_caller_address(constants::FACTORY());
@@ -63,6 +64,7 @@ fn setup(stable: bool) -> StarkDPair::ContractState {
         constants::TOKEN_0(),
         constants::TOKEN_1(),
         stable,
+        feeTier,
         constants::PAIR_FEES_CLASS_HASH()
     );
     drop_event(constants::ADDRESS_ZERO());
@@ -87,6 +89,7 @@ fn test_pair_constructor() {
         token0.contract_address,
         token1.contract_address,
         false,
+        0,
         constants::PAIR_FEES_CLASS_HASH()
     );
 
@@ -104,7 +107,7 @@ fn test_pair_constructor() {
 #[test]
 #[available_gas(20000000)]
 fn test_deployed_pair() {
-    let (pairDispatcher, accountDispatcher) = deploy_pair(false);
+    let (pairDispatcher, accountDispatcher) = deploy_pair(false, 0);
 
     assert(pairDispatcher.token0() == constants::ADDRESS_THREE(), 'Token0 eq ADDRESS_THREE');
     assert(pairDispatcher.token1() == constants::ADDRESS_FOUR(), 'Token1 eq ADDRESS_FOUR');
@@ -148,9 +151,9 @@ fn transfer_erc20(token: ContractAddress, to: ContractAddress, amount: u256) -> 
 }
 
 fn add_initial_liquidity(
-    ignore_decimals: bool, token0_amount: u256, token1_amount: u256, stable: bool
+    ignore_decimals: bool, token0_amount: u256, token1_amount: u256, stable: bool, feeTier: u8
 ) -> (IStarkDPairABIDispatcher, AccountABIDispatcher) {
-    let (pairDispatcher, accountDispatcher) = deploy_pair(stable);
+    let (pairDispatcher, accountDispatcher) = deploy_pair(stable, feeTier);
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
 
@@ -250,7 +253,7 @@ fn add_more_liquidity(
 #[test]
 #[available_gas(20000000)]
 fn test_mint() {
-    let (pairDispatcher, accountDispatcher) = deploy_pair(false);
+    let (pairDispatcher, accountDispatcher) = deploy_pair(false, 0);
 
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -300,7 +303,7 @@ fn test_mint() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('u128_sub Overflow', 'ENTRYPOINT_FAILED'))]
 fn test_mint_no_zero_tokens() {
-    let (pairDispatcher, accountDispatcher) = deploy_pair(false);
+    let (pairDispatcher, accountDispatcher) = deploy_pair(false, 0);
     // mint
     pairDispatcher.mint(accountDispatcher.contract_address);
 }
@@ -312,7 +315,7 @@ fn test_mint_no_zero_tokens() {
 )]
 fn test_mint_not_enough_tokens() {
     let stable = false;
-    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(true, 1000, 1000, stable);
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(true, 1000, 1000, stable, 0);
 }
 
 //
@@ -373,7 +376,7 @@ fn swap(
 fn test_swap_insufficient_liquidity() {
     let stable = true;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 2500, 2500, stable
+        false, 2500, 2500, stable, 0
     );
     // swap
     let amount = with_decimals(5000);
@@ -386,7 +389,7 @@ fn test_swap_insufficient_liquidity() {
 fn test_vPair_swap_insufficient_output_amount() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, 0
     );
     // swap
     swap(ref pairDispatcher, ref accountDispatcher, with_decimals(50), 0, 0, false);
@@ -398,7 +401,7 @@ fn test_vPair_swap_insufficient_output_amount() {
 fn test_swap_invalid_to() {
     let stable = true;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 5000, stable
+        false, 5000, 5000, stable, 0
     );
     // swap
     swap(ref pairDispatcher, ref accountDispatcher, 50, 81, 0, true);
@@ -410,7 +413,7 @@ fn test_swap_invalid_to() {
 fn test_swap_insufficient_input_amount() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, 0
     );
     // swap
     swap(ref pairDispatcher, ref accountDispatcher, 0, 81, 0, false);
@@ -464,7 +467,7 @@ fn remove_liqudity(
 fn test_burn() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, 0
     );
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -505,7 +508,7 @@ fn test_burn() {
 fn test_burn_remove_all_liquidity() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, 0
     );
     let token0Dispatcher = token_at(pairDispatcher.token0());
     let token1Dispatcher = token_at(pairDispatcher.token1());
@@ -536,7 +539,7 @@ fn test_burn_remove_all_liquidity() {
 fn test_burn_insufficient_liquidity() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, 0
     );
     // remove liquidity
     remove_liqudity(ref pairDispatcher, ref accountDispatcher, 0, false);
@@ -549,7 +552,7 @@ fn test_burn_insufficient_liquidity() {
 #[test]
 #[available_gas(20000000)]
 fn test_skim() {
-    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 3000, false);
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 3000, false, 0);
     let token0Dispatcher = token_at(pairDispatcher.token0());
 
     // transfer token0 to pair
@@ -585,7 +588,7 @@ fn test_skim() {
 #[test]
 #[available_gas(20000000)]
 fn test_sync() {
-    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 3000, false);
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 3000, false, 0);
     let token0Dispatcher = token_at(pairDispatcher.token0());
 
     // transfer token0 to pair
@@ -620,8 +623,9 @@ fn test_sync() {
 #[available_gas(50000000)]
 fn test_fees_collected_on_swap() {
     let stable = false;
+    let feeTier = 0;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, feeTier
     );
     let fee_vault = pairDispatcher.fee_vault();
     let token0Dispatcher = token_at(pairDispatcher.token0());
@@ -676,8 +680,9 @@ fn test_fees_collected_on_swap() {
 #[available_gas(100000000)]
 fn test_claim_fees() {
     let stable = false;
+    let feeTier = 1;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
-        false, 5000, 3000, stable
+        false, 5000, 3000, stable, feeTier
     );
     let fee_vault = pairDispatcher.fee_vault();
     let token0Dispatcher = token_at(pairDispatcher.token0());
@@ -736,7 +741,7 @@ fn test_claim_fees() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('insufficient input amount', 'ENTRYPOINT_FAILED'))]
 fn test_get_amount_out_insufficient_in() {
-    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 4103, false);
+    let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 4103, false, 0);
     pairDispatcher.get_amount_out(pairDispatcher.token0(), 0);
 }
 

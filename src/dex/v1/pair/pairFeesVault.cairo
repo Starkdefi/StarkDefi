@@ -64,11 +64,6 @@ mod FeesVault {
             FeesVaultImpl::claim_protocol_fees(ref self);
         }
 
-        fn get_protocol_fees(self: @ContractState) -> (u256, u256) {
-            let protocol = self.protocol.read();
-            (protocol.token0, protocol.token1)
-        }
-
         fn update_protocol_fees(ref self: ContractState, amount0: u256, amount1: u256) {
             assert(get_caller_address() == self.pair.read(), 'not authorized');
 

@@ -11,6 +11,7 @@ struct Config {
     factory: ContractAddress,
     vault: ContractAddress,
     stable: bool,
+    fee_tier: u8,
     decimal0: u256,
     decimal1: u256,
 }
@@ -59,6 +60,7 @@ mod StarkDPair {
     use starkDefi::utils::call_contract_with_selector_fallback;
     use starkDefi::utils::selectors;
     use starkDefi::utils::callFallback::UnwrapAndCast;
+    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     use integer::u128_try_from_felt252;
@@ -137,6 +139,7 @@ mod StarkDPair {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
+        fee_tier: u8,
         vault_class_hash: ClassHash
     ) {
         assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid address');
@@ -161,6 +164,7 @@ mod StarkDPair {
                     factory: factory,
                     vault: vault,
                     stable: stable,
+                    fee_tier: fee_tier,
                     decimal0: u256 {
                         low: pow(10, decimal0), high: 0
                         }, decimal1: u256 {
@@ -218,6 +222,10 @@ mod StarkDPair {
             self.config.read().token1
         }
 
+        fn fee_tier(self: @ContractState) -> u8 {
+            self.config.read().fee_tier
+        }
+
 
         /// @notice Returns the address of the fee vault.
         /// @return the address of the fee vault.
@@ -238,7 +246,8 @@ mod StarkDPair {
                 decimal1: config.decimal1,
                 reserve0: data.reserve0,
                 reserve1: data.reserve1,
-                is_stable: config.stable
+                is_stable: config.stable,
+                fee_tier: config.fee_tier,
             }
         }
 
@@ -317,6 +326,7 @@ mod StarkDPair {
         fn mint(ref self: ContractState, to: ContractAddress) -> u256 {
             Modifiers::_lock(ref self);
             Modifiers::_assert_not_paused(@self);
+            InternalFunctions::_update_user_fee(ref self, to);
 
             let config = self.config.read();
             let (reserve0, reserve1, _) = self.get_reserves();
@@ -543,7 +553,7 @@ mod StarkDPair {
             assert(reserve0 > 0 && reserve1 > 0, 'insufficient liquidity');
             let pool_fee = IStarkDFactoryABIDispatcher {
                 contract_address: self.factory()
-            }.get_fee(get_contract_address());
+            }.get_fee(get_contract_address()).into();
 
             let _amount_in = amountIn - ((amountIn * pool_fee) / FEE_DENOMINATOR);
 
@@ -600,15 +610,30 @@ mod StarkDPair {
     }
 
     #[external(v0)]
-    fn fee_state(self: @ContractState, user: ContractAddress) -> (u256, GlobalFeesAccum) {
+    fn fee_state(
+        self: @ContractState, user: ContractAddress
+    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
         let global_fees = self.global_fees.read();
+        let user_fees = self.users_fee.read(user);
         let balance = self.balance_of(user);
-        (balance, global_fees)
+        (balance, user_fees, global_fees)
     }
 
     #[external(v0)]
-    fn feeState(self: @ContractState, user: ContractAddress) -> (u256, GlobalFeesAccum) {
+    fn feeState(
+        self: @ContractState, user: ContractAddress
+    ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
         fee_state(self, user)
+    }
+
+    /// @notice upgradable at moment, a future implementation will drop this
+    #[external(v0)]
+    impl UpgradableImpl of IUpgradable<ContractState> {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            Modifiers::assert_only_handler(@self);
+            let mut state = Upgradable::unsafe_new_contract_state();
+            Upgradable::InternalImpl::_upgrade(ref state, new_class_hash);
+        }
     }
 
 
@@ -682,7 +707,7 @@ mod StarkDPair {
             let pair = get_contract_address();
             let factory = IStarkDFactoryABIDispatcher { contract_address: self.factory() };
 
-            let swap_fee = factory.get_fee(pair);
+            let swap_fee = factory.get_fee(pair).into();
             let protocol_fee_on = factory.protocol_fee_on();
 
             if (amount0In > 0) {
@@ -994,6 +1019,15 @@ mod StarkDPair {
             let config = self.config.read();
             let factoryDipatcher = IStarkDFactoryABIDispatcher { contract_address: config.factory };
             factoryDipatcher.assert_not_paused();
+        }
+
+        /// @dev reverts if not handler 
+        fn assert_only_handler(self: @ContractState) {
+            let caller = get_caller_address();
+            let factory = IStarkDFactoryABIDispatcher {
+                contract_address: self.config.read().factory
+            };
+            assert(caller == factory.fee_handler(), 'not allowed');
         }
     }
 }

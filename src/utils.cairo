@@ -6,7 +6,7 @@ mod callFallback;
 
 use callFallback::call_contract_with_selector_fallback;
 
-mod upgradeable;
+mod upgradable;
 
 use PartialOrdContractAddress::ContractAddressPartialOrd;
 use array_ext::ArrayTraitExt;
