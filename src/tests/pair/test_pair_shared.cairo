@@ -1,38 +1,36 @@
-use array::ArrayTrait;
 use starknet::account::Call;
 use starknet::ContractAddress;
 use starknet::get_caller_address;
 use starknet::contract_address_const;
 
-use starkDefi::dex::v1::pair::StarkDPair;
-use starkDefi::dex::v1::pair::StarkDPair::StarkDPairImpl;
-use starkDefi::dex::v1::pair::StarkDPair::Mint;
-use starkDefi::dex::v1::pair::StarkDPair::Burn;
-use starkDefi::dex::v1::pair::StarkDPair::Swap;
-use starkDefi::dex::v1::pair::StarkDPair::Sync;
+use starkdefi::dex::v1::pair::StarkDPair;
+use starkdefi::dex::v1::pair::StarkDPair::StarkDPairImpl;
+use starkdefi::dex::v1::pair::StarkDPair::Mint;
+use starkdefi::dex::v1::pair::StarkDPair::Burn;
+use starkdefi::dex::v1::pair::StarkDPair::Swap;
+use starkdefi::dex::v1::pair::StarkDPair::Sync;
 
-use starkDefi::dex::v1::pair::interface::IStarkDPairABIDispatcher;
-use starkDefi::dex::v1::pair::interface::IStarkDPairABIDispatcherTrait;
-use starkDefi::dex::v1::pair::interface::{IFeesVaultDispatcher, IFeesVaultDispatcherTrait};
+use starkdefi::dex::v1::pair::interface::IStarkDPairABIDispatcher;
+use starkdefi::dex::v1::pair::interface::IStarkDPairABIDispatcherTrait;
+use starkdefi::dex::v1::pair::interface::{IFeesVaultDispatcher, IFeesVaultDispatcherTrait};
 
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
+use starkdefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
+use starkdefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
 
-use starkDefi::utils::selectors;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
+use starkdefi::utils::selectors;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcher;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcherTrait;
 
-use starkDefi::tests::helper_account::AccountABIDispatcher;
-use starkDefi::tests::helper_account::interface::AccountABIDispatcherTrait;
+use starkdefi::tests::helper_account::AccountABIDispatcher;
+use starkdefi::tests::helper_account::interface::AccountABIDispatcherTrait;
 
-use starkDefi::tests::factory::deploy_factory;
+use starkdefi::tests::factory::deploy_factory;
 
-use starkDefi::tests::utils::constants;
-use starkDefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, with_decimals};
-use starkDefi::tests::utils::{deploy_erc20, token_at};
-use starkDefi::tests::utils::account::setup_account;
+use starkdefi::tests::utils::constants;
+use starkdefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, with_decimals};
+use starkdefi::tests::utils::{deploy_erc20, token_at};
+use starkdefi::tests::utils::account::setup_account;
 use starknet::testing;
-use debug::PrintTrait;
 
 //
 // Setup
@@ -311,7 +309,7 @@ fn test_mint_no_zero_tokens() {
 #[test]
 #[available_gas(20000000)]
 #[should_panic(
-    expected: ('insufficient liquidity minted', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+    expected: ('PAIR: insufficient liq minted', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
 )]
 fn test_mint_not_enough_tokens() {
     let stable = false;
@@ -372,7 +370,7 @@ fn swap(
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: insufficient liquidity', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_swap_insufficient_liquidity() {
     let stable = true;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
@@ -385,7 +383,7 @@ fn test_swap_insufficient_liquidity() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient output amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: insufficient out amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_vPair_swap_insufficient_output_amount() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
@@ -397,7 +395,7 @@ fn test_vPair_swap_insufficient_output_amount() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('invalid to', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: invalid to', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_swap_invalid_to() {
     let stable = true;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
@@ -409,7 +407,7 @@ fn test_swap_invalid_to() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient input amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: insufficient input amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_swap_insufficient_input_amount() {
     let stable = false;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
@@ -534,7 +532,7 @@ fn test_burn_remove_all_liquidity() {
 #[test]
 #[available_gas(20000000)]
 #[should_panic(
-    expected: ('insufficient liquidity burned', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+    expected: ('PAIR: insufficient liq burned', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
 )]
 fn test_burn_insufficient_liquidity() {
     let stable = false;
@@ -739,7 +737,7 @@ fn test_claim_fees() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient input amount', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: insufficient input amount', 'ENTRYPOINT_FAILED'))]
 fn test_get_amount_out_insufficient_in() {
     let (pairDispatcher, accountDispatcher) = add_initial_liquidity(false, 5000, 4103, false, 0);
     pairDispatcher.get_amount_out(pairDispatcher.token0(), 0);

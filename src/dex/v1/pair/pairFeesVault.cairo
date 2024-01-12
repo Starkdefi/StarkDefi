@@ -18,9 +18,9 @@ struct ProtocolFees {
 
 #[starknet::contract]
 mod FeesVault {
-    use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
-    use starkDefi::token::erc20::{ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
-    use starkDefi::dex::v1::pair::interface::IFeesVault;
+    use starkdefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
+    use starkdefi::token::erc20::{ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
+    use starkdefi::dex::v1::pair::interface::IFeesVault;
     use super::{ContractAddress, ProtocolFees};
     use starknet::{get_caller_address, get_block_timestamp};
 
@@ -48,7 +48,7 @@ mod FeesVault {
         self.protocol.write(ProtocolFees { token0: 0, token1: 0, timestamp: 0 });
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl FeesVaultImpl of IFeesVault<ContractState> {
         fn claim_lp_fees(
             ref self: ContractState, user: ContractAddress, amount0: u256, amount1: u256
@@ -91,14 +91,12 @@ mod FeesVault {
                     .write(ProtocolFees { token0: 0, token1: 0, timestamp: get_block_timestamp() });
 
                 if token0 > 0 {
-                    ERC20ABIDispatcher {
-                        contract_address: self.token0.read()
-                    }.transfer(fee_to, protocol.token0);
+                    ERC20ABIDispatcher { contract_address: self.token0.read() }
+                        .transfer(fee_to, protocol.token0);
                 }
                 if token1 > 0 {
-                    ERC20ABIDispatcher {
-                        contract_address: self.token1.read()
-                    }.transfer(fee_to, protocol.token1);
+                    ERC20ABIDispatcher { contract_address: self.token1.read() }
+                        .transfer(fee_to, protocol.token1);
                 }
             }
         }

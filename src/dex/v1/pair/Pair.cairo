@@ -2,7 +2,7 @@
 /// @author StarkDefi Labs
 /// @license MIT
 /// @description Implements uniV2 (x*y=k) volatile pair and Solidly stableswap (x*y(x^2 + y^2) =k) curve
-use starknet::{ContractAddress};
+use core::starknet::{ContractAddress};
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
 struct Config {
@@ -33,37 +33,34 @@ const MINIMUM_K: u256 = 10_000_000_000; //1e10
 
 #[starknet::contract]
 mod StarkDPair {
-    use starkDefi::dex::v1::factory::{
-        IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait
-    };
-    use starkDefi::dex::v1::pair::interface::{
-        IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
-    };
-    use starkDefi::dex::v1::pair::interface::{
-        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
-        RelativeFeesAccum,
-    };
-    use starkDefi::utils::{pow};
-
-    use traits::Into;
-
-    use starkDefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
-    use zeroable::Zeroable;
-    use array::ArrayTrait;
-    use option::OptionTrait;
-
-    use starknet::{
+    use core::starknet::SyscallResultTrait;
+    use core::zeroable::Zeroable;
+    use core::pedersen::PedersenTrait;
+    use core::hash::{HashStateTrait, HashStateExTrait};
+    use core::starknet::syscalls::deploy_syscall;
+    use core::integer::{u128_try_from_felt252, u256_sqrt};
+    use core::cmp;
+    use core::starknet::{
         ClassHash, contract_address_const, get_caller_address, get_block_timestamp,
         get_contract_address, contract_address_to_felt252
     };
-    use starknet::syscalls::deploy_syscall;
-    use starkDefi::utils::call_contract_with_selector_fallback;
-    use starkDefi::utils::selectors;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::dex::v1::factory::{
+        IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait
+    };
+    use starkdefi::dex::v1::pair::interface::{
+        IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
+    };
+    use starkdefi::dex::v1::pair::interface::{
+        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
+        RelativeFeesAccum,
+    };
+    use starkdefi::utils::{pow};
+    use starkdefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
+    use starkdefi::utils::call_contract_with_selector_fallback;
+    use starkdefi::utils::selectors;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
-
-    use integer::u128_try_from_felt252;
     use super::{
         ContractAddress, Config, PairInfo, FEE_DENOMINATOR, MINIMUM_LIQUIDITY, PRECISION, MINIMUM_K
     };
@@ -124,6 +121,23 @@ mod StarkDPair {
         to: ContractAddress,
     }
 
+    mod Errors {
+        const INVALID_ADDRESS: felt252 = 'PAIR: invalid address';
+        const INVALID_TO: felt252 = 'PAIR: invalid to';
+        const INSUFFICIENT_LIQUIDITY_MINTED: felt252 = 'PAIR: insufficient liq minted';
+        const INSUFFICIENT_LIQUIDITY_BURNED: felt252 = 'PAIR: insufficient liq burned';
+        const INSUFFICIENT_INPUT_AMOUNT: felt252 = 'PAIR: insufficient input amount';
+        const INSUFFICIENT_OUTPUT_AMOUNT: felt252 = 'PAIR: insufficient out amount';
+        const INSUFFICIENT_LIQUIDITY: felt252 = 'PAIR: insufficient liquidity';
+        const UNEQUAL_AMOUNTS: felt252 = 'PAIR: unequal amounts';
+        const LOW_K: felt252 = 'PAIR: K too low';
+        const INVARIANT_K: felt252 = 'PAIR: invariant K';
+        const Y_NOT_FOUND: felt252 = 'PAIR: y not found';
+        const ONLY_HANDLER: felt252 = 'PAIR: only handler';
+        const LOCKED: felt252 = 'PAIR: locked';
+        const OVERFLOW: felt252 = 'PAIR: overflow';
+    }
+
     #[storage]
     struct Storage {
         config: Config,
@@ -142,7 +156,7 @@ mod StarkDPair {
         fee_tier: u8,
         vault_class_hash: ClassHash
     ) {
-        assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid address');
+        assert(tokenA.is_non_zero() && tokenB.is_non_zero(), Errors::INVALID_ADDRESS);
         let mut erc20_state = ERC20::unsafe_new_contract_state();
         if (stable) {
             ERC20::InternalImpl::initializer(ref erc20_state, 'sStarkDefi Pair', 'sSTARKD-P');
@@ -165,18 +179,15 @@ mod StarkDPair {
                     vault: vault,
                     stable: stable,
                     fee_tier: fee_tier,
-                    decimal0: u256 {
-                        low: pow(10, decimal0), high: 0
-                        }, decimal1: u256 {
-                        low: pow(10, decimal1), high: 0
-                    },
+                    decimal0: u256 { low: pow(10, decimal0), high: 0 },
+                    decimal1: u256 { low: pow(10, decimal1), high: 0 },
                 }
             );
 
         self._entry_locked.write(false);
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl StarkDPairImpl of IStarkDPair<ContractState> {
         fn name(self: @ContractState) -> felt252 {
             let erc20_state = ERC20::unsafe_new_contract_state();
@@ -346,7 +357,7 @@ mod StarkDPair {
                 cmp::min(liquidity0, liquidity1)
             };
 
-            assert(liquidity > 0, 'insufficient liquidity minted');
+            assert(liquidity > 0, Errors::INSUFFICIENT_LIQUIDITY_MINTED);
             let mut erc20_state = ERC20::unsafe_new_contract_state();
 
             if totalSupply == 0 {
@@ -358,9 +369,9 @@ mod StarkDPair {
                         (amount0 * PRECISION)
                             / config.decimal0 == (amount1 * PRECISION)
                             / config.decimal1,
-                        'unequal amounts'
+                        Errors::UNEQUAL_AMOUNTS
                     );
-                    assert(self._k(amount0, amount1) > MINIMUM_K, 'K too low');
+                    assert(self._k(amount0, amount1) > MINIMUM_K, Errors::LOW_K);
                 }
             }
             ERC20::InternalImpl::_mint(ref erc20_state, to, liquidity);
@@ -395,7 +406,7 @@ mod StarkDPair {
             let totalSupply = self.total_supply();
             let amount0 = (liquidity * balance0) / totalSupply;
             let amount1 = (liquidity * balance1) / totalSupply;
-            assert(amount0 > 0 && amount1 > 0, 'insufficient liquidity burned');
+            assert(amount0 > 0 && amount1 > 0, Errors::INSUFFICIENT_LIQUIDITY_BURNED);
 
             let mut erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::InternalImpl::_burn(ref erc20_state, get_contract_address(), liquidity);
@@ -424,14 +435,14 @@ mod StarkDPair {
             Modifiers::_lock(ref self);
             Modifiers::_assert_not_paused(@self);
 
-            assert(amount0Out > 0 || amount1Out > 0, 'insufficient output amount');
+            assert(amount0Out > 0 || amount1Out > 0, Errors::INSUFFICIENT_OUTPUT_AMOUNT);
             let (reserve0, reserve1, _) = self.get_reserves();
-            assert(amount0Out < reserve0 && amount1Out < reserve1, 'insufficient liquidity');
+            assert(amount0Out < reserve0 && amount1Out < reserve1, Errors::INSUFFICIENT_LIQUIDITY);
 
             let config = self.config.read();
             let token0 = config.token0;
             let token1 = config.token1;
-            assert(to != token0 && to != token1, 'invalid to');
+            assert(to != token0 && to != token1, Errors::INVALID_TO);
 
             let this_address = get_contract_address();
 
@@ -445,9 +456,7 @@ mod StarkDPair {
                 token1Dispatcher.transfer(to, amount1Out);
             }
             if data.len() > 0 {
-                IStarkDCalleeDispatcher {
-                    contract_address: to
-                }
+                IStarkDCalleeDispatcher { contract_address: to }
                     .hook(
                         get_caller_address(), amount0Out, amount1Out, data
                     ); // callback for flash loans
@@ -468,7 +477,7 @@ mod StarkDPair {
                 0
             };
 
-            assert(amount0In > 0 || amount1In > 0, 'insufficient input amount');
+            assert(amount0In > 0 || amount1In > 0, Errors::INSUFFICIENT_INPUT_AMOUNT);
             InternalFunctions::_update_global_fees(
                 ref self, amount0In, amount1In
             ); // accumulate and transfer fees to vault
@@ -478,7 +487,7 @@ mod StarkDPair {
             balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             assert(
-                self._k(balance0, balance1) >= self._k(reserve0, reserve1), 'invariant K'
+                self._k(balance0, balance1) >= self._k(reserve0, reserve1), Errors::INVARIANT_K
             ); // stable: x^3y+xy^3, volatile: x*y 
 
             InternalFunctions::_update(ref self, balance0, balance1, reserve0, reserve1);
@@ -548,12 +557,12 @@ mod StarkDPair {
         fn get_amount_out(
             ref self: ContractState, tokenIn: ContractAddress, amountIn: u256
         ) -> u256 {
-            assert(amountIn > 0, 'insufficient input amount');
+            assert(amountIn > 0, Errors::INSUFFICIENT_INPUT_AMOUNT);
             let (reserve0, reserve1, _) = self.get_reserves();
-            assert(reserve0 > 0 && reserve1 > 0, 'insufficient liquidity');
-            let pool_fee = IStarkDFactoryABIDispatcher {
-                contract_address: self.factory()
-            }.get_fee(get_contract_address()).into();
+            assert(reserve0 > 0 && reserve1 > 0, Errors::INSUFFICIENT_LIQUIDITY);
+            let pool_fee = IStarkDFactoryABIDispatcher { contract_address: self.factory() }
+                .get_fee(get_contract_address())
+                .into();
 
             let _amount_in = amountIn - ((amountIn * pool_fee) / FEE_DENOMINATOR);
 
@@ -561,7 +570,7 @@ mod StarkDPair {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl StarkDPairCamelOnlyImpl of IStarkDPairCamelOnly<ContractState> {
         fn totalSupply(self: @ContractState) -> u256 {
             self.total_supply()
@@ -627,7 +636,7 @@ mod StarkDPair {
     }
 
     /// @notice upgradable at moment, a future implementation will drop this
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl UpgradableImpl of IUpgradable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             Modifiers::assert_only_handler(@self);
@@ -636,26 +645,23 @@ mod StarkDPair {
         }
     }
 
-
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         fn _update(
             ref self: ContractState, balance0: u256, balance1: u256, reserve0: u256, reserve1: u256
         ) {
-            assert(balance0.high == 0 && balance1.high == 0, 'overflow');
+            assert(balance0.high == 0 && balance1.high == 0, Errors::OVERFLOW);
             let mut data = self.pair_data.read();
 
             let block_timestamp = get_block_timestamp();
             let timeElapsed = block_timestamp - data.block_timestamp_last;
 
             if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0) {
-                data.price_0_cumulative_last += (reserve1 / reserve0) * u256 {
-                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                };
+                data.price_0_cumulative_last += (reserve1 / reserve0)
+                    * u256 { low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0 };
 
-                data.price_1_cumulative_last += (reserve0 / reserve1) * u256 {
-                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                };
+                data.price_1_cumulative_last += (reserve0 / reserve1)
+                    * u256 { low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0 };
             }
 
             data.reserve0 = balance0;
@@ -690,7 +696,8 @@ mod StarkDPair {
             let token0_felt252 = contract_address_to_felt252(*token0);
             let token1_felt252 = contract_address_to_felt252(*token1);
 
-            let salt = pedersen(token0_felt252, token1_felt252);
+            let salt = PedersenTrait::new(token0_felt252).update_with(token1_felt252).finalize();
+
             let (vault, _) = deploy_syscall(vault_class_hash, salt, calldata.span(), false)
                 .unwrap_syscall();
             vault
@@ -712,15 +719,13 @@ mod StarkDPair {
 
             if (amount0In > 0) {
                 let fee0 = (amount0In * swap_fee) / FEE_DENOMINATOR;
-                ERC20ABIDispatcher {
-                    contract_address: self.token0()
-                }.transfer(self.fee_vault(), fee0); // transfer the fees to the fee vault
+                ERC20ABIDispatcher { contract_address: self.token0() }
+                    .transfer(self.fee_vault(), fee0); // transfer the fees to the fee vault
 
                 if (protocol_fee_on) {
                     let pfee0 = (fee0 * 3000) / FEE_DENOMINATOR; // 30% of fee0 to the protocol
-                    IFeesVaultDispatcher {
-                        contract_address: self.fee_vault()
-                    }.update_protocol_fees(pfee0, 0); // update the protocol fees
+                    IFeesVaultDispatcher { contract_address: self.fee_vault() }
+                        .update_protocol_fees(pfee0, 0); // update the protocol fees
 
                     let ufee0 = fee0 - pfee0; // 70% of fee0 to LP providers
                     global_fees.token0 += (ufee0 * PRECISION) / self.total_supply();
@@ -731,15 +736,13 @@ mod StarkDPair {
 
             if (amount1In > 0) {
                 let fee1 = (amount1In * swap_fee) / FEE_DENOMINATOR;
-                ERC20ABIDispatcher {
-                    contract_address: self.token1()
-                }.transfer(self.fee_vault(), fee1);
+                ERC20ABIDispatcher { contract_address: self.token1() }
+                    .transfer(self.fee_vault(), fee1);
 
                 if (protocol_fee_on) {
                     let pfee1 = (fee1 * 3000) / FEE_DENOMINATOR;
-                    IFeesVaultDispatcher {
-                        contract_address: self.fee_vault()
-                    }.update_protocol_fees(0, pfee1);
+                    IFeesVaultDispatcher { contract_address: self.fee_vault() }
+                        .update_protocol_fees(0, pfee1);
 
                     let ufee1 = fee1 - pfee1;
                     global_fees.token1 += (ufee1 * PRECISION) / self.total_supply();
@@ -810,9 +813,8 @@ mod StarkDPair {
                 user_fees.claimable0 = 0;
                 user_fees.claimable1 = 0;
 
-                IFeesVaultDispatcher {
-                    contract_address: self.fee_vault()
-                }.claim_lp_fees(user, claimable0, claimable1);
+                IFeesVaultDispatcher { contract_address: self.fee_vault() }
+                    .claim_lp_fees(user, claimable0, claimable1);
                 self.users_fee.write(user, user_fees);
             }
 
@@ -954,7 +956,7 @@ mod StarkDPair {
 
             let res = loop {
                 if (i >= max_iterations) {
-                    assert(false, '!found y');
+                    assert(false, Errors::Y_NOT_FOUND);
                 }
 
                 let f = self._f(x0, y0);
@@ -1006,7 +1008,7 @@ mod StarkDPair {
     impl Modifiers of ModifiersTrait {
         // @notice Locks the entry point to prevent reentrancy attacks
         fn _lock(ref self: ContractState) {
-            assert(!self._entry_locked.read(), 'locked');
+            assert(!self._entry_locked.read(), Errors::LOCKED);
             self._entry_locked.write(true);
         }
 
@@ -1027,7 +1029,7 @@ mod StarkDPair {
             let factory = IStarkDFactoryABIDispatcher {
                 contract_address: self.config.read().factory
             };
-            assert(caller == factory.fee_handler(), 'not allowed');
+            assert(caller == factory.fee_handler(), Errors::ONLY_HANDLER);
         }
     }
 }

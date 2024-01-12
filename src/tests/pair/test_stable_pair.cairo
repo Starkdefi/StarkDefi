@@ -1,20 +1,17 @@
 use core::traits::AddEq;
-use array::ArrayTrait;
 use starknet::account::Call;
 use starknet::ContractAddress;
 use starknet::get_caller_address;
 use starknet::contract_address_const;
-use starkDefi::tests::pair::test_pair_shared as Shared;
+use starkdefi::tests::pair::test_pair_shared as Shared;
 use Shared::{
     StarkDPair, StarkDPairImpl, STATE, IStarkDPairABIDispatcher, IStarkDPairABIDispatcherTrait,
     ERC20ABIDispatcher, ERC20ABIDispatcherTrait, AccountABIDispatcher, AccountABIDispatcherTrait,
     deploy_pair, token_at, transfer_erc20, add_initial_liquidity, add_more_liquidity, swap,
     remove_liqudity, with_decimals, deploy_erc20
 };
-use starkDefi::tests::utils::constants;
+use starkdefi::tests::utils::constants;
 use starknet::testing;
-use debug::PrintTrait;
-
 
 //
 // constructor
@@ -92,7 +89,7 @@ fn test_sPair_mint() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('unequal amounts', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: unequal amounts', 'ENTRYPOINT_FAILED'))]
 fn test_sPair_mint_unmatched() {
     let (pairDispatcher, accountDispatcher) = deploy_pair(true, 0);
 
@@ -245,7 +242,7 @@ fn test_sPair_get_amount_out() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('invariant K', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: invariant K', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_sPair_swap_invariant_k() {
     let stable = true;
     let (mut pairDispatcher, mut accountDispatcher) = add_initial_liquidity(
