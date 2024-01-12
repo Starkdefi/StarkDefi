@@ -20,7 +20,7 @@ jobs:
       - name: Setup Scarb
         uses: software-mansion/setup-scarb@v1
         with:
-          scarb-version: "0.6.2"
+          scarb-version: "2.4.3"
 
       - name: Check formatting
         run: scarb fmt --check
@@ -28,7 +28,3 @@ jobs:
       - name: Run Test
         run: scarb test
         
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
