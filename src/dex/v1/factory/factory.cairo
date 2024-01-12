@@ -377,7 +377,7 @@ mod StarkDFactory {
 
     /// @notice Callable when contract is paused
     // @dev reverts if not paused
-   #[external(v0)]
+    #[external(v0)]
     fn assert_paused(self: @ContractState) {
         assert(self.paused.read(), Errors::NOT_PAUSED);
     }

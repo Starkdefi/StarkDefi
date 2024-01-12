@@ -1,16 +1,12 @@
-use starkDefi::token::erc20::ERC20;
-use starkDefi::token::erc20::ERC20::Transfer;
-use starkDefi::token::erc20::ERC20::Approval;
-use starkDefi::token::erc20::ERC20ABIDispatcher;
-use starkDefi::tests::utils::constants::{OWNER, ADDRESS_ZERO};
-use array::ArrayTrait;
-use array::SpanTrait;
+use starkdefi::token::erc20::ERC20;
+use starkdefi::token::erc20::ERC20::Transfer;
+use starkdefi::token::erc20::ERC20::Approval;
+use starkdefi::token::erc20::ERC20ABIDispatcher;
+use starkdefi::tests::utils::constants::{OWNER, ADDRESS_ZERO};
 use core::result::ResultTrait;
-use option::OptionTrait;
 use starknet::ContractAddress;
 use starknet::testing;
-use traits::TryInto;
-use starkDefi::utils::{pow};
+use starkdefi::utils::{pow};
 
 fn deploy(contract_class_hash: felt252, calldata: Array<felt252>) -> ContractAddress {
     let (address, _) = starknet::deploy_syscall(
@@ -97,7 +93,6 @@ fn assert_only_event_transfer(from: ContractAddress, to: ContractAddress, value:
     assert_no_events_left(ADDRESS_ZERO());
 }
 
-use serde::Serde;
 
 trait SerializedAppend<T> {
     fn append_serde(ref self: Array<felt252>, value: T);

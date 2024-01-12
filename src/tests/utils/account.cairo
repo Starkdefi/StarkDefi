@@ -1,10 +1,8 @@
-use array::ArrayTrait;
-use starkDefi::tests::helper_account::Account;
-use starkDefi::tests::helper_account::AccountABIDispatcher;
-use starkDefi::tests::helper_account::TRANSACTION_VERSION;
-use option::OptionTrait;
+use starkdefi::tests::helper_account::Account;
+use starkdefi::tests::helper_account::AccountABIDispatcher;
+use starkdefi::tests::helper_account::TRANSACTION_VERSION;
 use starknet::testing;
-use starkDefi::tests::utils::functions::deploy;
+use starkdefi::tests::utils::functions::deploy;
 
 
 //

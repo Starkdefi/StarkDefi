@@ -3,12 +3,12 @@
 
 #[starknet::contract]
 mod ERC20 {
-    use integer::BoundedInt;
-    use starkDefi::token::erc20::interface::IERC20;
-    use starkDefi::token::erc20::interface::IERC20CamelOnly;
+    use core::integer::BoundedInt;
+    use starkdefi::token::erc20::interface::IERC20;
+    use starkdefi::token::erc20::interface::IERC20CamelOnly;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
-    use zeroable::Zeroable;
+    use core::zeroable::Zeroable;
 
     #[storage]
     struct Storage {
@@ -56,7 +56,7 @@ mod ERC20 {
     // External
     //
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl ERC20Impl of IERC20<ContractState> {
         fn name(self: @ContractState) -> felt252 {
             self._name.read()
@@ -109,7 +109,7 @@ mod ERC20 {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl ERC20CamelOnlyImpl of IERC20CamelOnly<ContractState> {
         fn totalSupply(self: @ContractState) -> u256 {
             ERC20Impl::total_supply(self)

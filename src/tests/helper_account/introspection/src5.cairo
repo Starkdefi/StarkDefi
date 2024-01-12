@@ -3,14 +3,14 @@
 
 #[starknet::contract]
 mod SRC5 {
-    use starkDefi::tests::helper_account::introspection::interface;
+    use starkdefi::tests::helper_account::introspection::interface;
 
     #[storage]
     struct Storage {
         supported_interfaces: LegacyMap<felt252, bool>
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl SRC5Impl of interface::ISRC5<ContractState> {
         fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
             if interface_id == interface::ISRC5_ID {
@@ -20,7 +20,7 @@ mod SRC5 {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl SRC5CamelImpl of interface::ISRC5Camel<ContractState> {
         fn supportsInterface(self: @ContractState, interfaceId: felt252) -> bool {
             SRC5Impl::supports_interface(self, interfaceId)

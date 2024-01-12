@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts for Cairo v0.7.0 (account/account.cairo)
 
-use array::ArrayTrait;
-use array::SpanTrait;
-use option::OptionTrait;
-use serde::Serde;
-use starknet::ContractAddress;
-use starknet::account::Call;
+use core::serde::Serde;
+use core::starknet::ContractAddress;
+use core::starknet::account::Call;
 
 const TRANSACTION_VERSION: felt252 = 1;
 
@@ -25,25 +22,22 @@ trait PublicKeyCamelTrait<TState> {
 
 #[starknet::contract]
 mod Account {
-    use array::ArrayTrait;
-    use array::SpanTrait;
-    use box::BoxTrait;
-    use ecdsa::check_ecdsa_signature;
+    use core::ecdsa::check_ecdsa_signature;
+    use core::starknet::SyscallResultTrait;
 
-    use starkDefi::tests::helper_account::interface;
-    use starkDefi::tests::helper_account::introspection::interface::ISRC5;
-    use starkDefi::tests::helper_account::introspection::interface::ISRC5Camel;
-    use starkDefi::tests::helper_account::introspection::src5::SRC5;
-    use option::OptionTrait;
-    use starknet::get_caller_address;
-    use starknet::get_contract_address;
+    use starkdefi::tests::helper_account::interface;
+    use starkdefi::tests::helper_account::introspection::interface::ISRC5;
+    use starkdefi::tests::helper_account::introspection::interface::ISRC5Camel;
+    use starkdefi::tests::helper_account::introspection::src5::SRC5;
+    use core::starknet::get_caller_address;
+    use core::starknet::get_contract_address;
     use starknet::get_tx_info;
 
     use super::Call;
     use super::QUERY_VERSION;
     use super::TRANSACTION_VERSION;
-    use zeroable::Zeroable;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
+    use core::zeroable::Zeroable;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
 
 
     #[storage]
@@ -77,7 +71,7 @@ mod Account {
     // External
     //
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl SRC6Impl of interface::ISRC6<ContractState> {
         fn __execute__(self: @ContractState, mut calls: Array<Call>) -> Array<Span<felt252>> {
             // Avoid calls from other contracts
@@ -110,7 +104,7 @@ mod Account {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl SRC6CamelOnlyImpl of interface::ISRC6CamelOnly<ContractState> {
         fn isValidSignature(
             self: @ContractState, hash: felt252, signature: Array<felt252>
@@ -119,14 +113,14 @@ mod Account {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl DeclarerImpl of interface::IDeclarer<ContractState> {
         fn __validate_declare__(self: @ContractState, class_hash: felt252) -> felt252 {
             self.validate_transaction()
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl SRC5Impl of ISRC5<ContractState> {
         fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
             let unsafe_state = SRC5::unsafe_new_contract_state();
@@ -134,7 +128,7 @@ mod Account {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl SRC5CamelImpl of ISRC5Camel<ContractState> {
         fn supportsInterface(self: @ContractState, interfaceId: felt252) -> bool {
             let unsafe_state = SRC5::unsafe_new_contract_state();
@@ -142,7 +136,7 @@ mod Account {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl PublicKeyImpl of super::PublicKeyTrait<ContractState> {
         fn get_public_key(self: @ContractState) -> felt252 {
             self.public_key.read()
@@ -155,7 +149,7 @@ mod Account {
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl PublicKeyCamelImpl of super::PublicKeyCamelTrait<ContractState> {
         fn getPublicKey(self: @ContractState) -> felt252 {
             self.public_key.read()
@@ -216,14 +210,12 @@ mod Account {
         }
     }
 
-    #[internal]
     fn assert_only_self() {
         let caller = get_caller_address();
         let self = get_contract_address();
         assert(self == caller, 'Account: unauthorized');
     }
 
-    #[internal]
     fn _execute_calls(mut calls: Array<Call>) -> Array<Span<felt252>> {
         let mut res = ArrayTrait::new();
         loop {
@@ -232,15 +224,12 @@ mod Account {
                     let _res = _execute_single_call(call);
                     res.append(_res);
                 },
-                Option::None(_) => {
-                    break ();
-                },
+                Option::None(_) => { break (); },
             };
         };
         res
     }
 
-    #[internal]
     fn _execute_single_call(call: Call) -> Span<felt252> {
         let Call{to, selector, calldata } = call;
         starknet::call_contract_syscall(to, selector, calldata.span()).unwrap_syscall()

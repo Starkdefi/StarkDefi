@@ -8,7 +8,8 @@ trait IUpgradable<TState> {
 
 #[starknet::contract]
 mod Upgradable {
-    use starknet::ClassHash;
+    use super::ClassHash;
+    use core::starknet::SyscallResultTrait;
     use core::zeroable::Zeroable;
 
 
