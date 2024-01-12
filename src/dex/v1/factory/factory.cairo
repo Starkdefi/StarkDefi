@@ -2,7 +2,7 @@
 /// @author StarkDefi Labs
 /// @license MIT
 /// @dev StarkDefi Pair Factory, responsible for creating pairs and setting fees
-use starknet::{ClassHash, ContractAddress};
+use core::starknet::{ClassHash, ContractAddress};
 
 /// @dev Configuration structure for the factory contract
 #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -32,16 +32,17 @@ const MAX_FEE: u8 = 100; // 1%
 
 #[starknet::contract]
 mod StarkDFactory {
-    use starkDefi::dex::v1::factory::interface::IStarkDFactory;
-    use array::ArrayTrait;
-    use traits::Into;
+    use core::starknet::SyscallResultTrait;
+    use core::zeroable::Zeroable;
+    use core::pedersen::PedersenTrait;
+    use core::hash::{HashStateTrait, HashStateExTrait};
+    use core::starknet::{get_caller_address, contract_address_to_felt252};
+    use core::starknet::syscalls::deploy_syscall;
+    use core::starknet::replace_class_syscall;
     use super::{Config, Fees, ValidPair, MAX_FEE, ContractAddress, ClassHash};
-    use starknet::{get_caller_address, contract_address_to_felt252};
-    use zeroable::Zeroable;
-    use starknet::syscalls::deploy_syscall;
-    use starknet::replace_class_syscall;
-    use starkDefi::utils::{ContractAddressPartialOrd};
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::dex::v1::factory::interface::IStarkDFactory;
+    use starkdefi::utils::{ContractAddressPartialOrd};
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     #[event]
@@ -75,12 +76,29 @@ mod StarkDFactory {
 
     #[derive(Drop, starknet::Event)]
     struct Paused {
-        account: ContractAddress, 
+        account: ContractAddress,
     }
 
     #[derive(Drop, starknet::Event)]
     struct Unpaused {
-        account: ContractAddress, 
+        account: ContractAddress,
+    }
+
+    mod Errors {
+        const INVALID_HANDLER: felt252 = 'FACTORY: invalid handler';
+        const INVALID_FEE_TO: felt252 = 'FACTORY: invalid fee to';
+        const INVALID_PAIR_CLASS_HASH: felt252 = 'FACTORY: invalid class hash';
+        const INVALID_VAULT_CLASS_HASH: felt252 = 'FACTORY: invalid vault c-hash';
+        const INVALID_PAIR: felt252 = 'FACTORY: invalid pair';
+        const INVALID_ADDRESS: felt252 = 'FACTORY: invalid address';
+        const INVALID_TOKEN: felt252 = 'FACTORY: invalid token';
+        const IDENTICAL_ADDRESSES: felt252 = 'FACTORY: identical addresses';
+        const HIGH_FEE: felt252 = 'FACTORY: fee too high';
+        const INVALID_FEE: felt252 = 'FACTORY: invalid fee';
+        const PAIR_EXISTS: felt252 = 'FACTORY: pair exists';
+        const PAUSED: felt252 = 'FACTORY: paused';
+        const NOT_PAUSED: felt252 = 'FACTORY: not paused';
+        const NOT_HANDLER: felt252 = 'FACTORY: not handler';
     }
 
     #[storage]
@@ -102,9 +120,9 @@ mod StarkDFactory {
         class_hash_pair_contract: ClassHash,
         vault_class_hash: ClassHash
     ) {
-        assert(fee_handler.is_non_zero(), 'invalid fee to setter');
-        assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
-        assert(vault_class_hash.is_non_zero(), 'invalid vault class hash');
+        assert(fee_handler.is_non_zero(), Errors::INVALID_HANDLER);
+        assert(class_hash_pair_contract.is_non_zero(), Errors::INVALID_PAIR_CLASS_HASH);
+        assert(vault_class_hash.is_non_zero(), Errors::INVALID_VAULT_CLASS_HASH);
 
         self._all_pairs_length.write(0);
         self.fees.write(Fees { stable: 4, volatile: 30 }); // 0.04% and 0.3%
@@ -123,7 +141,7 @@ mod StarkDFactory {
     }
 
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl StarkDFactoryImpl of IStarkDFactory<ContractState> {
         /// @notice Get fee to address
         /// @returns  address
@@ -168,7 +186,7 @@ mod StarkDFactory {
         /// @returns  fee
         fn get_fee(self: @ContractState, pair: ContractAddress) -> u8 {
             let pair_info = self.valid_pairs.read(pair);
-            assert(pair_info.is_valid, 'invalid pair');
+            assert(pair_info.is_valid, Errors::INVALID_PAIR);
             let is_stable = pair_info.is_stable;
 
             if pair_info.custom_fee > 0 {
@@ -226,15 +244,15 @@ mod StarkDFactory {
             stable: bool,
             fee: u8
         ) -> ContractAddress {
-            assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid token address');
-            assert(tokenA != tokenB, 'identical addresses');
-            assert(fee.into() <= MAX_FEE, 'fee too high');
+            assert(tokenA.is_non_zero() && tokenB.is_non_zero(), Errors::INVALID_ADDRESS);
+            assert(tokenA != tokenB, Errors::IDENTICAL_ADDRESSES);
+            assert(fee.into() <= MAX_FEE, Errors::HIGH_FEE);
 
             let config = self.config.read();
             let vault_class_hash = config.vault_class_hash;
 
             let found_pair = self.get_pair(tokenA, tokenB, stable, fee);
-            assert(found_pair.is_zero(), 'pair exists');
+            assert(found_pair.is_zero(), Errors::PAIR_EXISTS);
 
             let (token0, token1) = self.sort_tokens(tokenA, tokenB);
 
@@ -258,7 +276,9 @@ mod StarkDFactory {
                     0
                 }; // add stable bool as well since pedersen takes 2 args
 
-            let address_salt = pedersen(token0_felt252, token1_stable_felt252);
+            let address_salt = PedersenTrait::new(token0_felt252)
+                .update_with(token1_stable_felt252)
+                .finalize();
 
             let (pair, _) = deploy_syscall(
                 config.pair_class_hash, address_salt, pair_constructor_calldata.span(), false
@@ -288,7 +308,7 @@ mod StarkDFactory {
         fn set_fee_to(ref self: ContractState, fee_to: ContractAddress) {
             Modifiers::assert_only_handler(@self);
             let mut config = self.config.read();
-            assert(fee_to.is_non_zero(), 'invalid fee to');
+            assert(fee_to.is_non_zero(), Errors::INVALID_FEE_TO);
             config.fee_to = fee_to;
             self.config.write(config);
         }
@@ -298,7 +318,7 @@ mod StarkDFactory {
         /// @param stable bool
         fn set_fee(ref self: ContractState, fee: u8, stable: bool) {
             Modifiers::assert_only_handler(@self);
-            assert(fee <= MAX_FEE && fee > 0, 'invalid fee');
+            assert(fee <= MAX_FEE && fee > 0, Errors::INVALID_FEE);
             let mut fees = self.fees.read();
             if stable {
                 fees.stable = fee;
@@ -314,9 +334,9 @@ mod StarkDFactory {
         /// @param stable bool
         fn set_custom_pair_fee(ref self: ContractState, pair: ContractAddress, fee: u8) {
             Modifiers::assert_only_handler(@self);
-            assert(fee <= MAX_FEE, 'fee too high');
+            assert(fee <= MAX_FEE, Errors::INVALID_FEE);
             let mut pair_info = self.valid_pairs.read(pair);
-            assert(pair_info.is_valid, 'invalid pair');
+            assert(pair_info.is_valid, Errors::INVALID_PAIR);
             pair_info.custom_fee = fee;
             self.valid_pairs.write(pair, pair_info);
             self.emit(SetPairFee { pair, stable: pair_info.is_stable, fee });
@@ -327,7 +347,7 @@ mod StarkDFactory {
         fn set_fee_handler(ref self: ContractState, handler_address: ContractAddress) {
             Modifiers::assert_only_handler(@self);
             let mut config = self.config.read();
-            assert(handler_address.is_non_zero(), 'invalid handler address');
+            assert(handler_address.is_non_zero(), Errors::INVALID_HANDLER);
             config.fee_handler = handler_address;
             self.config.write(config);
         }
@@ -338,7 +358,7 @@ mod StarkDFactory {
     #[external(v0)]
     fn set_pair_contract_class(ref self: ContractState, class_hash_pair_contract: ClassHash) {
         Modifiers::assert_only_handler(@self);
-        assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
+        assert(class_hash_pair_contract.is_non_zero(), Errors::INVALID_PAIR_CLASS_HASH);
         let mut config = self.config.read();
         config.pair_class_hash = class_hash_pair_contract;
         self.config.write(config);
@@ -350,23 +370,23 @@ mod StarkDFactory {
     fn set_vault_contract_class(ref self: ContractState, vault_class_hash: ClassHash) {
         Modifiers::assert_only_handler(@self);
         let mut config = self.config.read();
-        assert(vault_class_hash.is_non_zero(), 'invalid class hash');
+        assert(vault_class_hash.is_non_zero(), Errors::INVALID_VAULT_CLASS_HASH);
         config.vault_class_hash = vault_class_hash;
         self.config.write(config);
     }
 
     /// @notice Callable when contract is paused
     // @dev reverts if not paused
-    #[external(v0)]
+   #[external(v0)]
     fn assert_paused(self: @ContractState) {
-        assert(self.paused.read(), 'not paused');
+        assert(self.paused.read(), Errors::NOT_PAUSED);
     }
 
     /// @notice Callable when contract is not paused
     // @dev reverts if paused
     #[external(v0)]
     fn assert_not_paused(self: @ContractState) {
-        assert(!self.paused.read(), 'paused');
+        assert(!self.paused.read(), Errors::PAUSED);
     }
 
     /// @notice Pause contract in case of emergency
@@ -396,7 +416,7 @@ mod StarkDFactory {
     }
 
     /// @notice upgradable at moment, a future implementation will drop this
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl UpgradableImpl of IUpgradable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             Modifiers::assert_only_handler(@self);
@@ -414,13 +434,13 @@ mod StarkDFactory {
         fn sort_tokens(
             self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
-            assert(tokenA != tokenB, 'identical addresses');
+            assert(tokenA != tokenB, Errors::IDENTICAL_ADDRESSES);
             let (token0, token1) = if tokenA < tokenB {
                 (tokenA, tokenB)
             } else {
                 (tokenB, tokenA)
             };
-            assert(token0.is_non_zero(), 'invalid token0');
+            assert(token0.is_non_zero(), Errors::INVALID_TOKEN);
             (token0, token1)
         }
     }
@@ -431,7 +451,7 @@ mod StarkDFactory {
         fn assert_only_handler(self: @ContractState) {
             let caller = get_caller_address();
             let handler = self.config.read().fee_handler;
-            assert(caller == handler, 'not allowed');
+            assert(caller == handler, Errors::NOT_HANDLER);
         }
     }
 }

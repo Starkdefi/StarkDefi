@@ -1,21 +1,20 @@
-use array::ArrayTrait;
-use option::OptionTrait;
 use starknet::{ContractAddress, contract_address_const};
 
-use starkDefi::dex::v1::factory::StarkDFactory;
-use starkDefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
-use starkDefi::dex::v1::factory::StarkDFactory::InternalFunctions;
-use starkDefi::dex::v1::factory::StarkDFactory::PairCreated;
-use starkDefi::dex::v1::factory::IStarkDFactoryABIDispatcher;
-use starkDefi::dex::v1::factory::IStarkDFactoryABIDispatcherTrait;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
-use starkDefi::tests::utils::constants::{
+use starkdefi::dex::v1::factory::StarkDFactory;
+use starkdefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
+use starkdefi::dex::v1::factory::StarkDFactory::InternalFunctions;
+use starkdefi::dex::v1::factory::StarkDFactory::PairCreated;
+use starkdefi::dex::v1::factory::StarkDFactory::Errors;
+use starkdefi::dex::v1::factory::IStarkDFactoryABIDispatcher;
+use starkdefi::dex::v1::factory::IStarkDFactoryABIDispatcherTrait;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcher;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcherTrait;
+use starkdefi::tests::utils::constants::{
     FEE_TO_SETTER, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH,
     PAIR_FEES_CLASS_HASH, TOTAL_SUPPLY
 };
-use starkDefi::tests::utils::deploy_erc20;
-use starkDefi::tests::utils::functions::{drop_event, pop_log, deploy};
+use starkdefi::tests::utils::deploy_erc20;
+use starkdefi::tests::utils::functions::{drop_event, pop_log, deploy};
 use starknet::testing;
 
 //
@@ -231,7 +230,7 @@ fn test_create_pair_twice() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('invalid token address',))]
+#[should_panic(expected: ('FACTORY: invalid address',))]
 fn test_create_pair_invalid_token() {
     let mut state = setup();
     StarkDFactoryImpl::create_pair(ref state, ADDRESS_ZERO(), ADDRESS_TWO(), false, 0);
@@ -239,7 +238,7 @@ fn test_create_pair_invalid_token() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('identical addresses',))]
+#[should_panic(expected: ('FACTORY: identical addresses',))]
 fn test_create_pair_identical_token() {
     let mut state = setup();
     StarkDFactoryImpl::create_pair(ref state, ADDRESS_ONE(), ADDRESS_ONE(), false, 0);
@@ -247,7 +246,7 @@ fn test_create_pair_identical_token() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('pair exists',))]
+#[should_panic(expected: ('FACTORY: pair exists',))]
 fn test_create_pair_pair_exists() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
@@ -271,7 +270,7 @@ fn test_set_fee_to() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('not allowed',))]
+#[should_panic(expected: ('FACTORY: not handler',))]
 fn test_set_fee_to_not_allowed() {
     let mut state = setup();
     testing::set_caller_address(ADDRESS_ONE());
@@ -299,7 +298,7 @@ fn test_set_fees() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('not allowed',))]
+#[should_panic(expected: ('FACTORY: not handler',))]
 fn test_set_fees_not_allowed() {
     let mut state = setup();
     testing::set_caller_address(ADDRESS_ONE());
@@ -308,7 +307,7 @@ fn test_set_fees_not_allowed() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('invalid fee',))]
+#[should_panic(expected: ('FACTORY: invalid fee',))]
 fn test_set_fees_invalid() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
@@ -317,7 +316,7 @@ fn test_set_fees_invalid() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('invalid fee',))]
+#[should_panic(expected: ('FACTORY: invalid fee',))]
 fn test_set_fees_max() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
@@ -352,7 +351,7 @@ fn test_set_custom_pair_fee() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('not allowed',))]
+#[should_panic(expected: ('FACTORY: not handler',))]
 fn test_set_custom_pair_fee_not_allowed() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
@@ -363,7 +362,7 @@ fn test_set_custom_pair_fee_not_allowed() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('fee too high',))]
+#[should_panic(expected: ('FACTORY: invalid fee',))]
 fn test_set_custom_pair_fee_too_high() {
     let mut state = setup();
     let (token0, token1) = deploy_tokens();
@@ -374,7 +373,7 @@ fn test_set_custom_pair_fee_too_high() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('invalid pair',))]
+#[should_panic(expected: ('FACTORY: invalid pair',))]
 fn test_set_custom_pair_fee_invalid_pair() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
@@ -408,7 +407,7 @@ fn test_set_fee_handler_new_handler() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('not allowed',))]
+#[should_panic(expected: ('FACTORY: not handler',))]
 fn test_set_fee_handler_not_allowed() {
     let mut state = setup();
     testing::set_caller_address(ADDRESS_ONE());
@@ -417,7 +416,7 @@ fn test_set_fee_handler_not_allowed() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('invalid handler address',))]
+#[should_panic(expected: ('FACTORY: invalid handler',))]
 fn test_set_fee_handler_invalid() {
     let mut state = setup();
     testing::set_caller_address(FEE_TO_SETTER());
@@ -443,7 +442,7 @@ fn test_sort_tokens() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('identical addresses',))]
+#[should_panic(expected: ('FACTORY: identical addresses',))]
 fn test_sort_tokens_identical() {
     let mut state = setup();
     InternalFunctions::sort_tokens(@state, ADDRESS_ONE(), ADDRESS_ONE());
@@ -451,7 +450,7 @@ fn test_sort_tokens_identical() {
 
 #[test]
 #[available_gas(2000000)]
-#[should_panic(expected: ('invalid token0',))]
+#[should_panic(expected: ('FACTORY: invalid token',))]
 fn test_sort_tokens_invalid_token0() {
     let mut state = setup();
     InternalFunctions::sort_tokens(@state, ADDRESS_ZERO(), ADDRESS_ONE());
