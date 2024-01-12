@@ -1,38 +1,34 @@
-use array::ArrayTrait;
-use clone::Clone;
-use option::OptionTrait;
-use result::ResultTrait;
+use core::array::ArrayTrait;
+use core::result::ResultTrait;
 use starknet::account::Call;
 use starknet::ContractAddress;
 use starknet::contract_address_const;
 
-use starkDefi::dex::v1::pair::IStarkDPairDispatcher;
-use starkDefi::dex::v1::pair::IStarkDPairDispatcherTrait;
+use starkdefi::dex::v1::pair::IStarkDPairDispatcher;
+use starkdefi::dex::v1::pair::IStarkDPairDispatcherTrait;
 
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
+use starkdefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
+use starkdefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
 
-use starkDefi::dex::v1::router::StarkDRouter;
-use starkDefi::dex::v1::router::interface::{IStarkDRouterDispatcher, SwapPath};
-use starkDefi::dex::v1::router::interface::IStarkDRouterDispatcherTrait;
+use starkdefi::dex::v1::router::StarkDRouter;
+use starkdefi::dex::v1::router::interface::{IStarkDRouterDispatcher, SwapPath};
+use starkdefi::dex::v1::router::interface::IStarkDRouterDispatcherTrait;
 
-use starkDefi::utils::selectors;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
+use starkdefi::utils::selectors;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcher;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcherTrait;
 
-use starkDefi::tests::helper_account::AccountABIDispatcher;
-use starkDefi::tests::helper_account::interface::AccountABIDispatcherTrait;
+use starkdefi::tests::helper_account::AccountABIDispatcher;
+use starkdefi::tests::helper_account::interface::AccountABIDispatcherTrait;
 
-use starkDefi::tests::factory::deploy_factory;
-use starkDefi::tests::utils::constants;
-use starkDefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, deploy, with_decimals};
-use starkDefi::tests::utils::{deploy_erc20, token_at};
-use starkDefi::tests::utils::account::setup_account;
-use starkDefi::utils::{pow};
+use starkdefi::tests::factory::deploy_factory;
+use starkdefi::tests::utils::constants;
+use starkdefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, deploy, with_decimals};
+use starkdefi::tests::utils::{deploy_erc20, token_at};
+use starkdefi::tests::utils::account::setup_account;
+use starkdefi::utils::{pow};
 
 use starknet::testing;
-use debug::PrintTrait;
-
 //
 // setup
 //
@@ -128,6 +124,32 @@ fn approve_spend(account: AccountABIDispatcher, spender: ContractAddress, amount
     account.__execute__(calls);
 }
 
+fn transfer(
+    account: AccountABIDispatcher, token: ContractAddress, recipient: ContractAddress, amount: u128
+) {
+    let mut calls = array![];
+    let amount = with_decimals(amount);
+    // approve all tokens
+    let mut token0 = array![];
+    Serde::serialize(@recipient, ref token0);
+    Serde::serialize(@amount, ref token0);
+
+    calls.append(Call { to: token, selector: selectors::transfer, calldata: token0 });
+
+    account.__execute__(calls);
+}
+
+fn transfer_call(
+    account: AccountABIDispatcher, token: ContractAddress, recipient: ContractAddress, amount: u256
+) -> Call {
+    // approve all tokens
+    let mut token0 = array![];
+    Serde::serialize(@recipient, ref token0);
+    Serde::serialize(@amount, ref token0);
+
+    Call { to: token, selector: selectors::transfer, calldata: token0 }
+}
+
 //
 // constructor
 //
@@ -221,7 +243,8 @@ fn add_initial_liquidity(
     AccountABIDispatcher,
     IStarkDFactoryABIDispatcher,
     ERC20ABIDispatcher,
-    ERC20ABIDispatcher
+    ERC20ABIDispatcher,
+    ContractAddress
 ) {
     let (router, account) = deploy_router();
     let factory = IStarkDFactoryABIDispatcher { contract_address: router.factory() };
@@ -232,7 +255,9 @@ fn add_initial_liquidity(
     let slipTolerance = 100; // 1%
     let deadline = 1;
 
-    approve_spend(account, router.contract_address, 1_000_000_000);
+    let pair = contract_address_const::<8>();
+    transfer(account, token0.contract_address, pair, amount0Desired);
+    transfer(account, token1.contract_address, pair, amount1Desired);
 
     add_liquidity(
         router,
@@ -247,7 +272,7 @@ fn add_initial_liquidity(
         deadline
     );
 
-    (router, account, factory, token0, token1)
+    (router, account, factory, token0, token1, pair)
 }
 
 fn add_multiple_liquidity(
@@ -270,11 +295,13 @@ fn add_multiple_liquidity(
     let minAmount = with_decimals(0);
     let deadline = 1;
 
-    approve_spend(account, router.contract_address, 1_000_000_000);
-
     let mut calls = array![];
 
     // token0, token1
+    let t0t1_pair = contract_address_const::<8>();
+    calls.append(transfer_call(account, token0.contract_address, t0t1_pair, amount0Desired));
+    calls.append(transfer_call(account, token1.contract_address, t0t1_pair, amount1Desired));
+
     let mut t0t1_calldata = array![];
     Serde::serialize(@token0.contract_address, ref t0t1_calldata);
     Serde::serialize(@token1.contract_address, ref t0t1_calldata);
@@ -297,9 +324,13 @@ fn add_multiple_liquidity(
         );
 
     // token0, token2
-    let mut t0t2_calldata = array![];
+    let t0t2_pair = contract_address_const::<10>();
     let amount0 = amount0Desired + with_decimals(10_222_789);
     let amount1 = amount1Desired + with_decimals(10_222_789);
+    calls.append(transfer_call(account, token0.contract_address, t0t2_pair, amount0));
+    calls.append(transfer_call(account, token2.contract_address, t0t2_pair, amount1));
+
+    let mut t0t2_calldata = array![];
     Serde::serialize(@token0.contract_address, ref t0t2_calldata);
     Serde::serialize(@token2.contract_address, ref t0t2_calldata);
     Serde::serialize(@stable, ref t0t2_calldata);
@@ -321,9 +352,13 @@ fn add_multiple_liquidity(
         );
 
     // token0, token3
-    let mut t0t3_calldata = array![];
+    let t0t3_pair = contract_address_const::<12>();
     let amount0 = amount0Desired + with_decimals(6_222_789);
     let amount1 = amount1Desired + with_decimals(20_222_789);
+    calls.append(transfer_call(account, token0.contract_address, t0t3_pair, amount0));
+    calls.append(transfer_call(account, token3.contract_address, t0t3_pair, amount1));
+
+    let mut t0t3_calldata = array![];
     Serde::serialize(@token0.contract_address, ref t0t3_calldata);
     Serde::serialize(@token3.contract_address, ref t0t3_calldata);
     Serde::serialize(@stable, ref t0t3_calldata);
@@ -345,9 +380,13 @@ fn add_multiple_liquidity(
         );
 
     // token1, token2
-    let mut t1t2_calldata = array![];
+    let t1t2_pair = contract_address_const::<14>();
     let amount0 = amount0Desired + with_decimals(80_222_789);
     let amount1 = amount1Desired + with_decimals(80_222_789);
+    calls.append(transfer_call(account, token1.contract_address, t1t2_pair, amount0));
+    calls.append(transfer_call(account, token2.contract_address, t1t2_pair, amount1));
+
+    let mut t1t2_calldata = array![];
     Serde::serialize(@token1.contract_address, ref t1t2_calldata);
     Serde::serialize(@token2.contract_address, ref t1t2_calldata);
     Serde::serialize(@stable, ref t1t2_calldata);
@@ -369,9 +408,13 @@ fn add_multiple_liquidity(
         );
 
     // token1, token3
-    let mut t1t3_calldata = array![];
+    let t1t3_pair = contract_address_const::<16>();
     let amount0 = amount0Desired + with_decimals(999_704);
     let amount1 = amount1Desired + with_decimals(10_257_832);
+    calls.append(transfer_call(account, token1.contract_address, t1t3_pair, amount0));
+    calls.append(transfer_call(account, token3.contract_address, t1t3_pair, amount1));
+
+    let mut t1t3_calldata = array![];
     Serde::serialize(@token1.contract_address, ref t1t3_calldata);
     Serde::serialize(@token3.contract_address, ref t1t3_calldata);
     Serde::serialize(@stable, ref t1t3_calldata);
@@ -393,9 +436,12 @@ fn add_multiple_liquidity(
         );
 
     // token2, token3
-    let mut t2t3_calldata = array![];
+    let t2t3_pair = contract_address_const::<18>();
     let amount0 = amount0Desired + with_decimals(64_235_889);
+    calls.append(transfer_call(account, token2.contract_address, t2t3_pair, amount0));
+    calls.append(transfer_call(account, token3.contract_address, t2t3_pair, amount1Desired));
 
+    let mut t2t3_calldata = array![];
     Serde::serialize(@token2.contract_address, ref t2t3_calldata);
     Serde::serialize(@token3.contract_address, ref t2t3_calldata);
     Serde::serialize(@stable, ref t2t3_calldata);
@@ -426,13 +472,15 @@ fn add_multiple_liquidity(
 fn test_router_add_new_liquidity() {
     let (router, account) = deploy_router();
     let (token0, token1, _, _) = deploy_tokens();
+    let pair = contract_address_const::<8>();
 
     let amount0Desired = 1_000_000;
     let amount1Desired = 1_000_000;
     let slipTolerance = 100; // 1%
     let deadline = 1;
 
-    approve_spend(account, router.contract_address, 100_000_000);
+    transfer(account, token0.contract_address, pair, amount0Desired);
+    transfer(account, token1.contract_address, pair, amount1Desired);
 
     let (amount0, amount1, liquidity) = add_liquidity(
         router,
@@ -456,12 +504,17 @@ fn test_router_add_new_liquidity() {
 #[test]
 #[available_gas(200000000)]
 fn test_router_add_more_liquidity() {
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(false, 0);
+    let (router, account, factoryDispatcher, token0, token1, pair) = add_initial_liquidity(
+        false, 0
+    );
 
     let amount0Desired = 100_000_000;
     let amount1Desired = 100_000_000;
     let slipTolerance = 100; // 1%
     let deadline = 1;
+
+    transfer(account, token0.contract_address, pair, amount0Desired - 80_222_789);
+    transfer(account, token1.contract_address, pair, amount1Desired - 80_222_789);
 
     // add more liquidity
     let (_, _, liquidity) = add_liquidity(
@@ -482,14 +535,23 @@ fn test_router_add_more_liquidity() {
 
 #[test]
 #[available_gas(40000000)]
-#[should_panic(expected: ('INSUFFICIENT_B_AMOUNT', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(
+    expected: ('ROUTER: insufficient B amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
 fn test_router_add_liquidity_insufficient_b() {
-    let (router, account, _, token0, token1) = add_initial_liquidity(false, 0);
+    let (router, account, _, token0, token1, pair) = add_initial_liquidity(false, 0);
 
     let amount0Desired = 100_000_000;
     let amount1Desired = 100_000_000;
     let slipTolerance = 100; // 1%
     let deadline = 1;
+
+    transfer(
+        account, token0.contract_address, pair, amount0Desired + (amount0Desired - 80_222_789)
+    );
+    transfer(
+        account, token1.contract_address, pair, amount1Desired + (amount1Desired - 40_222_789)
+    );
 
     add_liquidity(
         router,
@@ -521,14 +583,23 @@ fn test_router_add_liquidity_insufficient_b() {
 
 #[test]
 #[available_gas(40000000)]
-#[should_panic(expected: ('INSUFFICIENT_A_AMOUNT', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(
+    expected: ('ROUTER: insufficient A amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
 fn test_router_add_liquidity_insufficient_a() {
-    let (router, account, _, token0, token1) = add_initial_liquidity(false, 0);
+    let (router, account, _, token0, token1, pair) = add_initial_liquidity(false, 0);
 
     let amount0Desired = 100_000_000;
     let amount1Desired = 100_000_000;
     let slipTolerance = 100; // 1%
     let deadline = 1;
+
+    transfer(
+        account, token0.contract_address, pair, amount0Desired + (amount0Desired - 40_222_789)
+    );
+    transfer(
+        account, token1.contract_address, pair, amount1Desired + (amount1Desired - 80_222_789)
+    );
 
     add_liquidity(
         router,
@@ -579,15 +650,12 @@ fn remove_liquidity(
 
     let mut calls = array![];
 
-    // approve lp tokens
-    let mut approve_calldata = array![];
-    Serde::serialize(@router.contract_address, ref approve_calldata);
-    Serde::serialize(@liquidity, ref approve_calldata);
+    // transfer lp tokens
+    let mut _transfer = array![];
+    Serde::serialize(@lp_token_address, ref _transfer);
+    Serde::serialize(@liquidity, ref _transfer);
 
-    calls
-        .append(
-            Call { to: lp_token_address, selector: selectors::approve, calldata: approve_calldata }
-        );
+    calls.append(Call { to: lp_token_address, selector: selectors::transfer, calldata: _transfer });
 
     // remove liquidity
     let mut remove_calldata = array![];
@@ -623,7 +691,7 @@ fn remove_liquidity(
 fn test_router_remove_all_liquidity() {
     let stable = false;
     let feeTier = 0;
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(
+    let (router, account, factoryDispatcher, token0, token1, _) = add_initial_liquidity(
         stable, feeTier
     );
 
@@ -658,7 +726,7 @@ fn test_router_remove_all_liquidity() {
 fn test_router_remove_liqudity_some() {
     let stable = false;
     let feeTier = 0;
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(
+    let (router, account, factoryDispatcher, token0, token1, _) = add_initial_liquidity(
         stable, feeTier
     );
 
@@ -693,11 +761,13 @@ fn test_router_remove_liqudity_some() {
 
 #[test]
 #[available_gas(40000000)]
-#[should_panic(expected: ('insufficient A amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(
+    expected: ('ROUTER: insufficient A amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
 fn test_router_remove_liqudity_less_A() {
     let stable = false;
     let feeTier = 0;
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(
+    let (router, account, factoryDispatcher, token0, token1, _) = add_initial_liquidity(
         stable, feeTier
     );
 
@@ -717,11 +787,13 @@ fn test_router_remove_liqudity_less_A() {
 
 #[test]
 #[available_gas(40000000)]
-#[should_panic(expected: ('insufficient B amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(
+    expected: ('ROUTER: insufficient B amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
 fn test_router_remove_liqudity_less_B() {
     let stable = false;
     let feeTier = 0;
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(
+    let (router, account, factoryDispatcher, token0, token1, _) = add_initial_liquidity(
         stable, feeTier
     );
 
@@ -748,7 +820,7 @@ fn test_router_remove_liqudity_less_B() {
 fn test_router_quote() {
     let stable = false;
     let feeTier = 0;
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(
+    let (router, account, factoryDispatcher, token0, token1, _) = add_initial_liquidity(
         stable, feeTier
     );
 
@@ -767,22 +839,22 @@ fn test_router_quote() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient amount', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('ROUTER: insufficient A amount', 'ENTRYPOINT_FAILED'))]
 fn test_router_quote_insufficient_amount() {
     let stable = false;
     let feeTier = 0;
-    let (router, _, _, _, _) = add_initial_liquidity(stable, feeTier);
+    let (router, _, _, _, _, _) = add_initial_liquidity(stable, feeTier);
 
     router.quote(0, 1, 1);
 }
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('ROUTER: insufficient liquidity', 'ENTRYPOINT_FAILED'))]
 fn test_router_quote_insufficient_liquidity() {
     let stable = false;
     let feeTier = 0;
-    let (router, _, _, _, _) = add_initial_liquidity(stable, feeTier);
+    let (router, _, _, _, _, _) = add_initial_liquidity(stable, feeTier);
 
     router.quote(1, 0, 1);
 }
@@ -792,7 +864,7 @@ fn test_router_quote_insufficient_liquidity() {
 fn test_router_get_amount_out() {
     let stable = false;
     let feeTier = 0;
-    let (router, account, factoryDispatcher, token0, token1) = add_initial_liquidity(
+    let (router, account, factoryDispatcher, token0, token1, _) = add_initial_liquidity(
         stable, feeTier
     );
 
@@ -811,11 +883,11 @@ fn test_router_get_amount_out() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient input amount', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: insufficient input amount', 'ENTRYPOINT_FAILED'))]
 fn test_router_get_amount_out_insufficient_amount() {
     let stable = false;
     let feeTier = 0;
-    let (router, _, factoryDispatcher, token0, token1) = add_initial_liquidity(stable, feeTier);
+    let (router, _, factoryDispatcher, token0, token1, _) = add_initial_liquidity(stable, feeTier);
 
     let pairDispatcher = IStarkDPairDispatcher {
         contract_address: factoryDispatcher
@@ -827,7 +899,7 @@ fn test_router_get_amount_out_insufficient_amount() {
 
 #[test]
 #[available_gas(20000000)]
-#[should_panic(expected: ('insufficient liquidity', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('PAIR: insufficient liquidity', 'ENTRYPOINT_FAILED'))]
 fn test_router_get_amount_out_insufficient_liquidity() {
     let stable = false;
     let feeTier = 0;
@@ -843,7 +915,6 @@ fn test_router_get_amounts_out() {
     let stable = false;
     let feeTier = 0;
     let (router, _, _, token0, token1, token2, token3) = add_multiple_liquidity(stable, feeTier);
-
     let amountIn = with_decimals(1_000);
     let path: Array::<SwapPath> = array![
         SwapPath {
@@ -870,7 +941,7 @@ fn test_router_get_amounts_out() {
 
 #[test]
 #[available_gas(200000000)]
-#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('ROUTER: invalid path', 'ENTRYPOINT_FAILED'))]
 fn test_router_get_amounts_out_invalid_path() {
     let stable = false;
     let feeTier = 0;
@@ -955,9 +1026,16 @@ fn test_router_swap_exact_tokens_for_tokens() {
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t3_pair = contract_address_const::<12>();
     let slipTolerance = 100; // 1%
 
-    let amountIn: u256 = with_decimals(10_000);
+    let _amountIn: u128 = 10_000;
+    let amountIn: u256 = with_decimals(_amountIn);
+    let token0_balance_before = token0.balance_of(account.contract_address);
+    let token1_balance_before = token1.balance_of(account.contract_address);
+
+    transfer(account, token0.contract_address, t0t3_pair, _amountIn);
+
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token0.contract_address, tokenOut: token3.contract_address, stable, feeTier
@@ -969,9 +1047,6 @@ fn test_router_swap_exact_tokens_for_tokens() {
             tokenIn: token2.contract_address, tokenOut: token1.contract_address, stable, feeTier
         }
     ];
-
-    let token0_balance_before = token0.balance_of(account.contract_address);
-    let token1_balance_before = token1.balance_of(account.contract_address);
 
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(3) * (10000 - slipTolerance) / 10000;
@@ -1000,9 +1075,16 @@ fn test_router_swap_exact_tokens_for_tokens_3() {
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t3_pair = contract_address_const::<12>();
     let slipTolerance = 50; // 0.5%
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amountIn: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amountIn);
+    let balance0_before = token0.balance_of(account.contract_address);
+    let balance1_before = token1.balance_of(account.contract_address);
+
+    transfer(account, token0.contract_address, t0t3_pair, _amountIn);
+
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token0.contract_address, tokenOut: token3.contract_address, stable, feeTier
@@ -1011,9 +1093,6 @@ fn test_router_swap_exact_tokens_for_tokens_3() {
             tokenIn: token3.contract_address, tokenOut: token1.contract_address, stable, feeTier
         }
     ];
-
-    let balance0_before = token0.balance_of(account.contract_address);
-    let balance1_before = token1.balance_of(account.contract_address);
 
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(2) * (10000 - slipTolerance) / 10000;
@@ -1038,9 +1117,11 @@ fn test_router_swap_exact_tokens_for_tokens_2() {
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t2_pair = contract_address_const::<10>();
     let slipTolerance = 50; // 0.5%
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amountIn: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amountIn);
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token2.contract_address, tokenOut: token0.contract_address, stable, feeTier
@@ -1049,6 +1130,8 @@ fn test_router_swap_exact_tokens_for_tokens_2() {
 
     let balance2_before = token2.balance_of(account.contract_address);
     let balance0_before = token0.balance_of(account.contract_address);
+
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
 
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
@@ -1074,15 +1157,18 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t2_pair = contract_address_const::<10>();
     let slipTolerance = 50; // 0.5%
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amountIn: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amountIn);
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token2.contract_address, tokenOut: token0.contract_address, stable, feeTier
         }
     ];
 
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1091,6 +1177,7 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
     );
 
     // swap 2
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1099,6 +1186,7 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
     );
 
     // swap 3
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn * 8);
     let amounts = router.get_amounts_out(amountIn * 8, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1107,6 +1195,7 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
     );
 
     // swap 4
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn * 10);
     let amounts = router.get_amounts_out(amountIn * 10, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1115,6 +1204,7 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
     );
 
     // swap 5
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1127,16 +1217,19 @@ fn test_router_swap_exact_tokens_for_tokens_multiple() {
 
 #[test]
 #[available_gas(200000000)]
-#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('ROUTER: invalid path', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_router_swap_exact_tokens_for_tokens_invalid_path_progression() {
     let stable = false;
     let feeTier = 0;
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t3_pair = contract_address_const::<12>();
     let slipTolerance = 50; // 0.5%
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amount: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amount);
+    transfer(account, token0.contract_address, t0t3_pair, _amount);
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token0.contract_address, tokenOut: token3.contract_address, stable, feeTier
@@ -1162,15 +1255,18 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_m
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t2_pair = contract_address_const::<10>();
     let slipTolerance = 50; // 0.5%
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amountIn: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amountIn);
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token2.contract_address, tokenOut: token0.contract_address, stable, feeTier
         }
     ];
 
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1179,6 +1275,7 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_m
     );
 
     // swap 2
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1187,6 +1284,7 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_m
     );
 
     // swap 3
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn * 8);
     let amounts = router.get_amounts_out(amountIn * 8, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1195,6 +1293,7 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_m
     );
 
     // swap 4
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn * 10);
     let amounts = router.get_amounts_out(amountIn * 10, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1203,6 +1302,7 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_m
     );
 
     // swap 5
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let amounts = router.get_amounts_out(amountIn, path.clone());
     let amountOutMin = *amounts.at(1) * (10000 - slipTolerance) / 10000;
 
@@ -1213,16 +1313,19 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_m
 
 #[test]
 #[available_gas(200000000)]
-#[should_panic(expected: ('invalid path', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('ROUTER: invalid path', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_invalid_path_progression() {
     let stable = false;
     let feeTier = 0;
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t3_pair = contract_address_const::<12>();
     let slipTolerance = 50; // 0.5%
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amountIn: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amountIn);
+    transfer(account, token0.contract_address, t0t3_pair, _amountIn);
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token0.contract_address, tokenOut: token3.contract_address, stable, feeTier
@@ -1242,15 +1345,20 @@ fn test_router_swap_exact_tokens_for_tokens_supporting_fees_on_transfer_tokens_i
 
 #[test]
 #[available_gas(200000000)]
-#[should_panic(expected: ('insufficient output amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(
+    expected: ('ROUTER: insufficient out amount', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
 fn test_router_swap_exact_tokens_for_tokens_invalid() {
     let stable = false;
     let feeTier = 0;
     let (router, account, _, token0, token1, token2, token3) = add_multiple_liquidity(
         stable, feeTier
     );
+    let t0t2_pair = contract_address_const::<10>();
 
-    let amountIn: u256 = with_decimals(1_000);
+    let _amountIn: u128 = 1_000;
+    let amountIn: u256 = with_decimals(_amountIn);
+    transfer(account, token2.contract_address, t0t2_pair, _amountIn);
     let path: Array::<SwapPath> = array![
         SwapPath {
             tokenIn: token2.contract_address, tokenOut: token0.contract_address, stable, feeTier

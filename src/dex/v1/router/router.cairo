@@ -5,39 +5,50 @@
 
 #[starknet::contract]
 mod StarkDRouter {
-    use starkDefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
-    use starkDefi::utils::call_contract_with_selector_fallback;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
+    use starkdefi::utils::call_contract_with_selector_fallback;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
 
-    use starkDefi::dex::v1::factory::{
+    use starkdefi::dex::v1::factory::{
         IStarkDFactoryABIDispatcherTrait, IStarkDFactoryABIDispatcher
     };
-    use starkDefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
-    use starkDefi::utils::selectors::{transfer_from, transferFrom, balanceOf, balance_of};
-    use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
-    use array::SpanTrait;
-    use array::ArrayTrait;
-    use clone::Clone;
-    use option::OptionTrait;
-    use zeroable::Zeroable;
+    use starkdefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
+    use starkdefi::utils::selectors::{balanceOf, balance_of};
+    use starkdefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
+    use core::zeroable::Zeroable;
     use starknet::{
         ContractAddress, ClassHash, get_caller_address, get_block_timestamp, contract_address_const
     };
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
+
+    mod Errors {
+        const INVALID_FACTORY: felt252 = 'ROUTER: invalid factory';
+        const INVALID_PAIR: felt252 = 'ROUTER: invalid pair';
+        const INSUFFICIENT_A_AMOUNT: felt252 = 'ROUTER: insufficient A amount';
+        const INSUFFICIENT_B_AMOUNT: felt252 = 'ROUTER: insufficient B amount';
+        const INSUFFICIENT_OUTPUT_AMOUNT: felt252 = 'ROUTER: insufficient out amount';
+        const INSUFFICIENT_LIQUIDITY: felt252 = 'ROUTER: insufficient liquidity';
+        const IDENTICAL_ADDRESSES: felt252 = 'ROUTER: identical addresses';
+        const INVALID_TOKEN: felt252 = 'ROUTER: invalid token';
+        const AMOUNT_A_OPTIMAL_NOT_DESIRED: felt252 = 'ROUTER: amountA > desiredAmount';
+        const INVALID_PATH: felt252 = 'ROUTER: invalid path';
+        const DEADLINE_EXPIRED: felt252 = 'ROUTER: deadline expired';
+        const NOT_ALLOWED: felt252 = 'ROUTER: not allowed';
+    }
 
     #[storage]
     struct Storage {
-        _factory: ContractAddress, 
+        _factory: ContractAddress,
     }
 
     #[constructor]
     fn constructor(ref self: ContractState, factory: ContractAddress) {
-        assert(factory.is_non_zero(), 'invalid factory');
+        assert(factory.is_non_zero(), Errors::INVALID_FACTORY);
         self._factory.write(factory);
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl StarkDRouterImp of IStarkDRouter<ContractState> {
         /// @notice This function is used to get the factory address
         /// @return The factory address
@@ -53,7 +64,7 @@ mod StarkDRouter {
         fn sort_tokens(
             self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
-            assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid pair');
+            assert(tokenA.is_non_zero() && tokenB.is_non_zero(), Errors::INVALID_PAIR);
             InternalFunctions::_sort_tokens(tokenA, tokenB)
         }
 
@@ -119,9 +130,6 @@ mod StarkDRouter {
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
             let sender = get_caller_address();
 
-            InternalFunctions::_transfer_token_from(tokenA, sender, pair, amountA);
-            InternalFunctions::_transfer_token_from(tokenB, sender, pair, amountB);
-
             let liquidity = IStarkDPairDispatcher { contract_address: pair }.mint(to);
             (amountA, amountB, liquidity)
         }
@@ -153,9 +161,6 @@ mod StarkDRouter {
             let factory = self._factory.read();
 
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
-            let sender = get_caller_address();
-
-            InternalFunctions::_transfer_token_from(pair, sender, pair, liquidity);
 
             let (amount0, amount1) = IStarkDPairDispatcher { contract_address: pair }.burn(to);
             let (token0, _) = InternalFunctions::_sort_tokens(tokenA, tokenB);
@@ -170,8 +175,8 @@ mod StarkDRouter {
                 amountB = amount0;
             }
 
-            assert(amountA >= amountAMin, 'insufficient A amount');
-            assert(amountB >= amountBMin, 'insufficient B amount');
+            assert(amountA >= amountAMin, Errors::INSUFFICIENT_A_AMOUNT);
+            assert(amountB >= amountBMin, Errors::INSUFFICIENT_B_AMOUNT);
             (amountA, amountB)
         }
 
@@ -193,16 +198,8 @@ mod StarkDRouter {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
             let amounts = InternalFunctions::_get_amounts_out(factory, amountIn, path.span());
-            assert(*amounts[amounts.len() - 1] >= amountOutMin, 'insufficient output amount');
-            let mut _path = path.clone();
-            let _route = _path.pop_front().unwrap();
+            assert(*amounts[amounts.len() - 1] >= amountOutMin, Errors::INSUFFICIENT_OUTPUT_AMOUNT);
 
-            let pair = InternalFunctions::_pair_for(
-                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier
-            );
-            let sender = get_caller_address();
-
-            InternalFunctions::_transfer_token_from(_route.tokenIn, sender, pair, *amounts[0]);
             InternalFunctions::_swap(ref self, amounts.span(), path.span(), to);
             amounts
         }
@@ -225,13 +222,7 @@ mod StarkDRouter {
             Modifiers::_ensure(deadline);
             let mut _path = path.clone();
             let _route = _path.pop_front().unwrap();
-            let factory = self._factory.read();
-            let pair = InternalFunctions::_pair_for(
-                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier
-            );
-            let sender = get_caller_address();
 
-            InternalFunctions::_transfer_token_from(_route.tokenIn, sender, pair, amountIn);
             let _end_route: SwapPath = if (_path.len() > 0) {
                 *_path[_path.len() - 1]
             } else {
@@ -242,19 +233,19 @@ mod StarkDRouter {
             assert(
                 InternalFunctions::_balance_of(_end_route.tokenOut, to)
                     - prevBalance >= amountOutMin,
-                'insufficient output amount'
+                Errors::INSUFFICIENT_OUTPUT_AMOUNT
             );
         }
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     fn set_factory(ref self: ContractState, factory: ContractAddress) {
-        assert(factory.is_non_zero(), 'invalid factory');
+        assert(factory.is_non_zero(), Errors::INVALID_FACTORY);
         Modifiers::assert_only_handler(@self);
         self._factory.write(factory);
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl UpgradableImpl of IUpgradable<ContractState> {
         fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
             Modifiers::assert_only_handler(@self);
@@ -268,32 +259,14 @@ mod StarkDRouter {
         fn _sort_tokens(
             tokenA: ContractAddress, tokenB: ContractAddress
         ) -> (ContractAddress, ContractAddress) {
-            assert(tokenA != tokenB, 'identical addresses');
+            assert(tokenA != tokenB, Errors::IDENTICAL_ADDRESSES);
             let (token0, token1) = if tokenA < tokenB {
                 (tokenA, tokenB)
             } else {
                 (tokenB, tokenA)
             };
-            assert(token0.is_non_zero(), 'invalid token0');
+            assert(token0.is_non_zero(), Errors::INVALID_TOKEN);
             (token0, token1)
-        }
-
-        /// @notice try transferFrom & transfer_from
-        fn _transfer_token_from(
-            token: ContractAddress,
-            sender: ContractAddress,
-            recipient: ContractAddress,
-            amount: u256
-        ) {
-            let mut call_data = Default::default();
-            Serde::serialize(@sender, ref call_data);
-            Serde::serialize(@recipient, ref call_data);
-            Serde::serialize(@amount, ref call_data);
-
-            call_contract_with_selector_fallback(
-                token, transferFrom, transfer_from, call_data.span()
-            )
-                .unwrap_syscall();
         }
 
         /// @notice try balanceOf & balance_of
@@ -334,14 +307,14 @@ mod StarkDRouter {
             } else {
                 let amountBOptimal = InternalFunctions::_quote(amountADesired, reserveA, reserveB);
                 if (amountBOptimal <= amountBDesired) {
-                    assert(amountBOptimal >= amountBMin, 'INSUFFICIENT_B_AMOUNT');
+                    assert(amountBOptimal >= amountBMin, Errors::INSUFFICIENT_B_AMOUNT);
                     (amountADesired, amountBOptimal)
                 } else {
                     let amountAOptimal = InternalFunctions::_quote(
                         amountBDesired, reserveB, reserveA
                     );
-                    assert(amountAOptimal <= amountADesired, 'AMOUNT_A_OPTIMAL_!_ADESIRED');
-                    assert(amountAOptimal >= amountAMin, 'INSUFFICIENT_A_AMOUNT');
+                    assert(amountAOptimal <= amountADesired, Errors::AMOUNT_A_OPTIMAL_NOT_DESIRED);
+                    assert(amountAOptimal >= amountAMin, Errors::INSUFFICIENT_A_AMOUNT);
                     (amountAOptimal, amountBDesired)
                 }
             }
@@ -368,7 +341,7 @@ mod StarkDRouter {
                 match _path.pop_front() {
                     Option::Some(route) => {
                         if (index > 0) {
-                            assert(_path_to == *route.tokenIn, 'invalid path');
+                            assert(_path_to == *route.tokenIn, Errors::INVALID_PATH);
                             _path_to = *route.tokenOut;
                         }
 
@@ -403,13 +376,12 @@ mod StarkDRouter {
                                 *route.stable,
                                 *route.feeTier
                             )
-                        }.swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
+                        }
+                            .swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
 
                         index += 1;
                     },
-                    Option::None(_) => {
-                        break ();
-                    }
+                    Option::None(_) => { break (); }
                 };
             }
         }
@@ -428,7 +400,7 @@ mod StarkDRouter {
                 match _path.pop_front() {
                     Option::Some(route) => {
                         if (index > 0) {
-                            assert(_path_to == *route.tokenIn, 'invalid path');
+                            assert(_path_to == *route.tokenIn, Errors::INVALID_PATH);
                             _path_to = *route.tokenOut;
                         }
 
@@ -470,9 +442,7 @@ mod StarkDRouter {
 
                         index += 1;
                     },
-                    Option::None(_) => {
-                        break ();
-                    }
+                    Option::None(_) => { break (); }
                 };
             }
         }
@@ -485,9 +455,8 @@ mod StarkDRouter {
             feeTier: u8
         ) -> ContractAddress {
             let (token0, token1) = InternalFunctions::_sort_tokens(tokenA, tokenB);
-            IStarkDFactoryABIDispatcher {
-                contract_address: factory
-            }.get_pair(token0, token1, stable, feeTier)
+            IStarkDFactoryABIDispatcher { contract_address: factory }
+                .get_pair(token0, token1, stable, feeTier)
         }
 
         fn _get_reserves(
@@ -499,9 +468,8 @@ mod StarkDRouter {
         ) -> (u256, u256) {
             let (token0, _) = InternalFunctions::_sort_tokens(tokenA, tokenB);
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
-            let (reserve0, reserve1, _) = IStarkDPairDispatcher {
-                contract_address: pair
-            }.get_reserves();
+            let (reserve0, reserve1, _) = IStarkDPairDispatcher { contract_address: pair }
+                .get_reserves();
 
             if tokenA == token0 {
                 (reserve0, reserve1)
@@ -513,15 +481,15 @@ mod StarkDRouter {
 
         /// @dev This implementation only caters to volatile pools and may result in insufficient liquidity for stable pool
         fn _quote(amountA: u256, reserveA: u256, reserveB: u256) -> u256 {
-            assert(amountA > 0, 'insufficient amount');
-            assert(reserveA > 0 && reserveB > 0, 'insufficient liquidity');
+            assert(amountA > 0, Errors::INSUFFICIENT_A_AMOUNT);
+            assert(reserveA > 0 && reserveB > 0, Errors::INSUFFICIENT_LIQUIDITY);
             (amountA * reserveB) / reserveA
         }
 
         fn _get_amounts_out(
             factory: ContractAddress, amountIn: u256, path: Span::<SwapPath>
         ) -> Array::<u256> {
-            assert(path.len() >= 1, 'invalid path');
+            assert(path.len() >= 1, Errors::INVALID_PATH);
             let mut amounts = ArrayTrait::<u256>::new();
             let mut _path = path;
             amounts.append(amountIn);
@@ -541,16 +509,13 @@ mod StarkDRouter {
                         if (factoryDispatcher.valid_pair(pair)) {
                             amounts
                                 .append(
-                                    IStarkDPairDispatcher {
-                                        contract_address: pair
-                                    }.get_amount_out(*route.tokenIn, *amounts[index])
+                                    IStarkDPairDispatcher { contract_address: pair }
+                                        .get_amount_out(*route.tokenIn, *amounts[index])
                                 )
                         }
                         index += 1;
                     },
-                    Option::None(_) => {
-                        break ();
-                    }
+                    Option::None(_) => { break (); }
                 };
             };
             amounts
@@ -562,7 +527,7 @@ mod StarkDRouter {
         /// @notice This function is used to ensure that the current block timestamp is less than or equal to the deadline
         /// @param deadline The deadline for the transaction
         fn _ensure(deadline: u64) {
-            assert(get_block_timestamp() <= deadline, 'expired');
+            assert(get_block_timestamp() <= deadline, Errors::DEADLINE_EXPIRED);
         }
 
         /// @notice This function is used to ensure that the caller is the handler
@@ -571,7 +536,7 @@ mod StarkDRouter {
                 contract_address: self._factory.read()
             };
             let caller = get_caller_address();
-            assert(caller == factoryDipatcher.fee_handler(), 'not allowed');
+            assert(caller == factoryDipatcher.fee_handler(), Errors::NOT_ALLOWED);
         }
     }
 }
