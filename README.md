@@ -24,7 +24,7 @@ The repository is structured into several directories, each with a specific purp
 
 ## Development
 
-Scarb, a build toolchain and package manager for Cairo and Starknet ecosystems, is used for building and testing the StarkDefi contracts.
+Scarb ([v0.6.2](https://github.com/software-mansion/scarb/releases/tag/v0.6.2)), a build toolchain and package manager for Cairo and Starknet ecosystems, is used for building and testing the StarkDefi contracts.
 
 A Dockerfile is provided for building the StarkDefi contracts. As of 6th Sept 2023, the Dockerfile uses Scarb v0.6.2. You can use the Dockerfile to build the StarkDefi contracts without installing Scarb on your local machine.
 
