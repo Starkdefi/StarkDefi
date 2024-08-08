@@ -1,0 +1,10 @@
+[sncast.testnet]
+account = "./accounts/testnet/braavos/b1.json"
+keystore = "./accounts/signers/starkdefi_test.key.json"
+url = "$NODE_URL_TEST"
+
+[sncast.default]
+name = "mainnet"
+account = "./accounts/mainnet/braavos/deployer.json"
+keystore = "./accounts/signers/starkdefi_main.key.json"
+url = "$NODE_URL_PROD"
