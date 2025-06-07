@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 COPY . /app
 
 # Install Scarb
-RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v 0.6.2
+RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v 2.11.4
 
 # Add Scarb to PATH
 ENV PATH="/root/.local/bin:${PATH}"

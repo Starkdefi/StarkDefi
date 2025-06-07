@@ -4,8 +4,8 @@
 #[starknet::contract]
 mod ERC20 {
     use integer::BoundedInt;
-    use starkDefi::token::erc20::interface::IERC20;
-    use starkDefi::token::erc20::interface::IERC20CamelOnly;
+    use starkdefi::token::erc20::interface::IERC20;
+    use starkdefi::token::erc20::interface::IERC20CamelOnly;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
     use zeroable::Zeroable;

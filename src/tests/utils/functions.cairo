@@ -1,21 +1,20 @@
-use starkDefi::token::erc20::ERC20;
-use starkDefi::token::erc20::ERC20::Transfer;
-use starkDefi::token::erc20::ERC20::Approval;
-use starkDefi::token::erc20::ERC20ABIDispatcher;
-use starkDefi::tests::utils::constants::{OWNER, ADDRESS_ZERO};
+use starkdefi::token::erc20::ERC20;
+use starkdefi::token::erc20::ERC20::Transfer;
+use starkdefi::token::erc20::ERC20::Approval;
+use starkdefi::token::erc20::ERC20ABIDispatcher;
+use starkdefi::tests::utils::constants::{OWNER, ADDRESS_ZERO};
 use array::ArrayTrait;
 use array::SpanTrait;
 use core::result::ResultTrait;
 use option::OptionTrait;
 use starknet::ContractAddress;
-use starknet::testing;
+use starknet::ClassHash;
 use traits::TryInto;
-use starkDefi::utils::{pow};
+use starknet::testing;
+use starkdefi::utils::{pow};
 
-fn deploy(contract_class_hash: felt252, calldata: Array<felt252>) -> ContractAddress {
-    let (address, _) = starknet::deploy_syscall(
-        contract_class_hash.try_into().unwrap(), 0, calldata.span(), false
-    )
+fn deploy(contract_class_hash: ClassHash, calldata: Array<felt252>) -> ContractAddress {
+    let (address, _) = starknet::deploy_syscall(contract_class_hash, 0, calldata.span(), false, )
         .unwrap();
     address
 }
@@ -28,7 +27,7 @@ fn deploy_erc20(
     Serde::serialize(@symbol, ref calldata);
     Serde::serialize(@initial_supply, ref calldata);
     Serde::serialize(@recipient, ref calldata);
-    let address = deploy(ERC20::TEST_CLASS_HASH, calldata);
+    let address = deploy(ERC20::TEST_CLASS_HASH.try_into().unwrap(), calldata);
     ERC20ABIDispatcher { contract_address: address }
 }
 

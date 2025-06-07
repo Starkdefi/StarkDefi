@@ -18,9 +18,9 @@ struct ProtocolFees {
 
 #[starknet::contract]
 mod FeesVault {
-    use starkDefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
-    use starkDefi::token::erc20::{ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
-    use starkDefi::dex::v1::pair::interface::IFeesVault;
+    use starkdefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
+    use starkdefi::token::erc20::{ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
+    use starkdefi::dex::v1::pair::interface::IFeesVault;
     use super::{ContractAddress, ProtocolFees};
     use starknet::{get_caller_address, get_block_timestamp};
 

@@ -38,7 +38,7 @@ mod SimpleMulticall {
 
     #[internal]
     fn _execute_calls(mut calls: Array<Call>) -> Array<Span<felt252>> {
-        let mut res = ArrayTrait::new();
+        let mut res = ArrayTrait::<Span<felt252>>::new();
         loop {
             match calls.pop_front() {
                 Option::Some(call) => {

@@ -24,9 +24,9 @@ The repository is structured into several directories, each with a specific purp
 
 ## Development
 
-Scarb ([v0.6.2](https://github.com/software-mansion/scarb/releases/tag/v0.6.2)), a build toolchain and package manager for Cairo and Starknet ecosystems, is used for building and testing the StarkDefi contracts.
+Scarb ([v2.11.4](https://github.com/software-mansion/scarb/releases/tag/v2.11.4)), a build toolchain and package manager for Cairo and Starknet ecosystems, is used for building and testing the StarkDefi contracts.
 
-A Dockerfile is provided for building the StarkDefi contracts. As of 6th Sept 2023, the Dockerfile uses Scarb v0.6.2. You can use the Dockerfile to build the StarkDefi contracts without installing Scarb on your local machine.
+A Dockerfile is provided for building the StarkDefi contracts. As of 6th Sept 2023, the Dockerfile uses Scarb v2.11.4. You can use the Dockerfile to build the StarkDefi contracts without installing Scarb on your local machine.
 
 To build the StarkDefi contracts using the Dockerfile, use the following command:
 
@@ -49,7 +49,7 @@ docker run starkdefi scarb <command>
 To install Scarb, follow the installation script provided in the Scarb documentation [1](https://docs.swmansion.com/scarb/download.html). Here is how you can install the latest stable release of Scarb:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
+curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v 2.11.4
 ```
 
 This will install Scarb, the Cairo compiler, and the language server.

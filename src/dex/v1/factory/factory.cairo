@@ -32,7 +32,7 @@ const MAX_FEE: u8 = 100; // 1%
 
 #[starknet::contract]
 mod StarkDFactory {
-    use starkDefi::dex::v1::factory::interface::IStarkDFactory;
+    use starkdefi::dex::v1::factory::interface::IStarkDFactory;
     use array::ArrayTrait;
     use traits::Into;
     use super::{Config, Fees, ValidPair, MAX_FEE, ContractAddress, ClassHash};
@@ -40,8 +40,8 @@ mod StarkDFactory {
     use zeroable::Zeroable;
     use starknet::syscalls::deploy_syscall;
     use starknet::replace_class_syscall;
-    use starkDefi::utils::{ContractAddressPartialOrd};
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::utils::{ContractAddressPartialOrd};
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     #[event]

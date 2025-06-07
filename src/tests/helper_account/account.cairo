@@ -7,6 +7,7 @@ use option::OptionTrait;
 use serde::Serde;
 use starknet::ContractAddress;
 use starknet::account::Call;
+use starknet::SyscallResultTrait;
 
 const TRANSACTION_VERSION: felt252 = 1;
 
@@ -30,10 +31,10 @@ mod Account {
     use box::BoxTrait;
     use ecdsa::check_ecdsa_signature;
 
-    use starkDefi::tests::helper_account::interface;
-    use starkDefi::tests::helper_account::introspection::interface::ISRC5;
-    use starkDefi::tests::helper_account::introspection::interface::ISRC5Camel;
-    use starkDefi::tests::helper_account::introspection::src5::SRC5;
+    use starkdefi::tests::helper_account::interface;
+    use starkdefi::tests::helper_account::introspection::interface::ISRC5;
+    use starkdefi::tests::helper_account::introspection::interface::ISRC5Camel;
+    use starkdefi::tests::helper_account::introspection::src5::SRC5;
     use option::OptionTrait;
     use starknet::get_caller_address;
     use starknet::get_contract_address;
@@ -43,7 +44,7 @@ mod Account {
     use super::QUERY_VERSION;
     use super::TRANSACTION_VERSION;
     use zeroable::Zeroable;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
 
 
     #[storage]
@@ -216,16 +217,14 @@ mod Account {
         }
     }
 
-    #[internal]
     fn assert_only_self() {
         let caller = get_caller_address();
         let self = get_contract_address();
         assert(self == caller, 'Account: unauthorized');
     }
 
-    #[internal]
     fn _execute_calls(mut calls: Array<Call>) -> Array<Span<felt252>> {
-        let mut res = ArrayTrait::new();
+        let mut res = ArrayTrait::<Span<felt252>>::new();
         loop {
             match calls.pop_front() {
                 Option::Some(call) => {
@@ -240,7 +239,6 @@ mod Account {
         res
     }
 
-    #[internal]
     fn _execute_single_call(call: Call) -> Span<felt252> {
         let Call{to, selector, calldata } = call;
         starknet::call_contract_syscall(to, selector, calldata.span()).unwrap_syscall()

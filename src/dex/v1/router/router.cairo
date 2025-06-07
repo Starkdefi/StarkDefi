@@ -5,16 +5,16 @@
 
 #[starknet::contract]
 mod StarkDRouter {
-    use starkDefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
-    use starkDefi::utils::call_contract_with_selector_fallback;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
+    use starkdefi::utils::call_contract_with_selector_fallback;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
 
-    use starkDefi::dex::v1::factory::{
+    use starkdefi::dex::v1::factory::{
         IStarkDFactoryABIDispatcherTrait, IStarkDFactoryABIDispatcher
     };
-    use starkDefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
-    use starkDefi::utils::selectors::{transfer_from, transferFrom, balanceOf, balance_of};
-    use starkDefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
+    use starkdefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
+    use starkdefi::utils::selectors::{transfer_from, transferFrom, balanceOf, balance_of};
+    use starkdefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
     use array::SpanTrait;
     use array::ArrayTrait;
     use clone::Clone;
@@ -23,7 +23,7 @@ mod StarkDRouter {
     use starknet::{
         ContractAddress, ClassHash, get_caller_address, get_block_timestamp, contract_address_const
     };
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     #[storage]

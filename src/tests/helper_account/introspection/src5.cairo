@@ -3,7 +3,7 @@
 
 #[starknet::contract]
 mod SRC5 {
-    use starkDefi::tests::helper_account::introspection::interface;
+    use starkdefi::tests::helper_account::introspection::interface;
 
     #[storage]
     struct Storage {

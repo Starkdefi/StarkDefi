@@ -2,21 +2,22 @@ use array::ArrayTrait;
 use option::OptionTrait;
 use starknet::{ContractAddress, contract_address_const};
 
-use starkDefi::dex::v1::factory::StarkDFactory;
-use starkDefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
-use starkDefi::dex::v1::factory::StarkDFactory::InternalFunctions;
-use starkDefi::dex::v1::factory::StarkDFactory::PairCreated;
-use starkDefi::dex::v1::factory::IStarkDFactoryABIDispatcher;
-use starkDefi::dex::v1::factory::IStarkDFactoryABIDispatcherTrait;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
-use starkDefi::tests::utils::constants::{
+use starkdefi::dex::v1::factory::StarkDFactory;
+use starkdefi::dex::v1::factory::StarkDFactory::StarkDFactoryImpl;
+use starkdefi::dex::v1::factory::StarkDFactory::InternalFunctions;
+use starkdefi::dex::v1::factory::StarkDFactory::PairCreated;
+use starkdefi::dex::v1::factory::IStarkDFactoryABIDispatcher;
+use starkdefi::dex::v1::factory::IStarkDFactoryABIDispatcherTrait;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcher;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcherTrait;
+use starkdefi::tests::utils::constants::{
     FEE_TO_SETTER, ADDRESS_ZERO, ADDRESS_ONE, ADDRESS_TWO, ADDRESS_THREE, PAIR_CLASS_HASH,
     PAIR_FEES_CLASS_HASH, TOTAL_SUPPLY
 };
-use starkDefi::tests::utils::deploy_erc20;
-use starkDefi::tests::utils::functions::{drop_event, pop_log, deploy};
+use starkdefi::tests::utils::deploy_erc20;
+use starkdefi::tests::utils::functions::{drop_event, pop_log, deploy};
 use starknet::testing;
+use traits::TryInto;
 
 //
 // Setup
@@ -32,7 +33,7 @@ fn deploy_factory(address: ContractAddress) -> IStarkDFactoryABIDispatcher {
     Serde::serialize(@PAIR_CLASS_HASH(), ref calldata);
     Serde::serialize(@PAIR_FEES_CLASS_HASH(), ref calldata);
 
-    let address = deploy(StarkDFactory::TEST_CLASS_HASH, calldata);
+    let address = deploy(StarkDFactory::TEST_CLASS_HASH.try_into().unwrap(), calldata);
     IStarkDFactoryABIDispatcher { contract_address: address }
 }
 

@@ -33,21 +33,21 @@ const MINIMUM_K: u256 = 10_000_000_000; //1e10
 
 #[starknet::contract]
 mod StarkDPair {
-    use starkDefi::dex::v1::factory::{
+    use starkdefi::dex::v1::factory::{
         IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait
     };
-    use starkDefi::dex::v1::pair::interface::{
+    use starkdefi::dex::v1::pair::interface::{
         IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
     };
-    use starkDefi::dex::v1::pair::interface::{
+    use starkdefi::dex::v1::pair::interface::{
         IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
         RelativeFeesAccum,
     };
-    use starkDefi::utils::{pow};
+    use starkdefi::utils::{pow};
 
     use traits::Into;
 
-    use starkDefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
+    use starkdefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
     use zeroable::Zeroable;
     use array::ArrayTrait;
     use option::OptionTrait;
@@ -57,10 +57,10 @@ mod StarkDPair {
         get_contract_address, contract_address_to_felt252
     };
     use starknet::syscalls::deploy_syscall;
-    use starkDefi::utils::call_contract_with_selector_fallback;
-    use starkDefi::utils::selectors;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::utils::call_contract_with_selector_fallback;
+    use starkdefi::utils::selectors;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     use integer::u128_try_from_felt252;

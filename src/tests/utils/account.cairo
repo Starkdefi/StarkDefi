@@ -1,10 +1,10 @@
 use array::ArrayTrait;
-use starkDefi::tests::helper_account::Account;
-use starkDefi::tests::helper_account::AccountABIDispatcher;
-use starkDefi::tests::helper_account::TRANSACTION_VERSION;
+use starkdefi::tests::helper_account::Account;
+use starkdefi::tests::helper_account::AccountABIDispatcher;
+use starkdefi::tests::helper_account::TRANSACTION_VERSION;
 use option::OptionTrait;
 use starknet::testing;
-use starkDefi::tests::utils::functions::deploy;
+use starkdefi::tests::utils::functions::deploy;
 
 
 //
@@ -24,8 +24,11 @@ struct SignedTransactionData {
     s: felt252
 }
 
-fn CLASS_HASH() -> felt252 {
-    Account::TEST_CLASS_HASH
+use starknet::ClassHash;
+use traits::TryInto;
+
+fn CLASS_HASH() -> ClassHash {
+    Account::TEST_CLASS_HASH.try_into().unwrap()
 }
 
 fn SIGNED_TX_DATA() -> SignedTransactionData {
