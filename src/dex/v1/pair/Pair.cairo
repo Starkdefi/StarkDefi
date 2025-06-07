@@ -510,7 +510,7 @@ mod StarkDPair {
             let token1Dispatcher = ERC20ABIDispatcher { contract_address: config.token1 };
 
             let balance0 = InternalFunctions::_balance_of(config.token0, this_address);
-            let balance1 = InternalFunctions::_balance_of(config.token0, this_address);
+            let balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             token0Dispatcher.transfer(to, balance0 - reserve0);
             token1Dispatcher.transfer(to, balance1 - reserve1);

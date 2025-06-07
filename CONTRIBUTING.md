@@ -1,6 +1,6 @@
-# Contribution Guidelines for StarkDefi
+# Contribution Guidelines for StarkDeFi
 
-We appreciate your interest in contributing to StarkDefi! Here are some guidelines to help you get started.
+We appreciate your interest in contributing to StarkDeFi! Here are some guidelines to help you get started.
 
 ## Getting Started
 
@@ -12,7 +12,7 @@ We appreciate your interest in contributing to StarkDefi! Here are some guidelin
 
 The codebase is organized into several directories, each serving a specific purpose:
 
-- `src`: Contains the source code for the smart contracts that power the StarkDefi platform.
+- `src`: Contains the source code for the smart contracts that power the StarkDeFi platform.
 - `tests`: Contains the test cases for the smart contracts.
 - `dex`: Contains the source code for the decentralized exchange (DEX) contracts.
 
@@ -41,4 +41,4 @@ After you submit your pull request, it will be reviewed by the maintainers. They
 
 Please be respectful and considerate of others. We want to foster a positive and inclusive community for everyone.
 
-Thank you for your interest in contributing to StarkDefi!
+Thank you for your interest in contributing to StarkDeFi!

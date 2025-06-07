@@ -16,14 +16,3 @@ exit_first = true
 
 [scripts]
 devnet = "docker-compose up -d"
-
-[tool.sncast.testnet]
-name="testnet"
-account = "./accounts/testnet_deployer.json"
-keystore = "./accounts/testnet_deployer_key.json"
-url = "https://starknet-goerli.infura.io/v3/${INFURA_PROJECT_ID}"
-
-[tool.sncast.mainnet]
-account = "mainnet"
-accounts-file = "./accounts/mainnet_deployer.json"
-url = "https://starknet-mainnet.infura.io/v3/${INFURA_PROJECT_ID}"
