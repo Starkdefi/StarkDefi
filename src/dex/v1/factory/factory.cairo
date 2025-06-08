@@ -74,12 +74,12 @@ mod StarkDFactory {
 
     #[derive(Drop, starknet::Event)]
     struct Paused {
-        account: ContractAddress,
+        account: ContractAddress, 
     }
 
     #[derive(Drop, starknet::Event)]
     struct Unpaused {
-        account: ContractAddress,
+        account: ContractAddress, 
     }
 
     #[storage]
@@ -199,7 +199,7 @@ mod StarkDFactory {
                 }
                 pairs.append(self._all_pairs.read(index));
                 index += 1;
-            }
+            };
 
             (pair_counts, pairs)
         }
@@ -261,7 +261,7 @@ mod StarkDFactory {
             let address_salt = pedersen(token0_felt252, token1_stable_felt252);
 
             let (pair, _) = deploy_syscall(
-                config.pair_class_hash, address_salt, pair_constructor_calldata.span(), false,
+                config.pair_class_hash, address_salt, pair_constructor_calldata.span(), false, 
             )
                 .unwrap_syscall(); // deploy_syscall never panics
 
@@ -276,7 +276,7 @@ mod StarkDFactory {
             self
                 .emit(
                     PairCreated {
-                        tokenA: token0, tokenB: token1, pair, pair_count: pair_count + 1, stable,
+                        tokenA: token0, tokenB: token1, pair, pair_count: pair_count + 1, stable, 
                     },
                 );
 
@@ -412,7 +412,7 @@ mod StarkDFactory {
         /// @param tokenB ContractAddress of tokenB
         /// @return (token0, token1)
         fn sort_tokens(
-            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress,
+            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress, 
         ) -> (ContractAddress, ContractAddress) {
             assert(tokenA != tokenB, 'identical addresses');
             let (token0, token1) = if tokenA < tokenB {

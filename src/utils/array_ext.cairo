@@ -16,7 +16,7 @@ impl ArrayTraitExtImpl<T, impl TCopy: Copy<T>, impl TDrop: Drop<T>> of ArrayTrai
 
             result.append(*self[self.len() - i - 1]);
             i += 1;
-        }
+        };
 
         result
     }

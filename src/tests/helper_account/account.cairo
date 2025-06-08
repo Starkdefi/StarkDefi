@@ -39,7 +39,7 @@ mod Account {
 
     #[storage]
     struct Storage {
-        public_key: felt252,
+        public_key: felt252, 
     }
 
     #[event]
@@ -51,12 +51,12 @@ mod Account {
 
     #[derive(Drop, starknet::Event)]
     struct OwnerAdded {
-        new_owner_guid: felt252,
+        new_owner_guid: felt252, 
     }
 
     #[derive(Drop, starknet::Event)]
     struct OwnerRemoved {
-        removed_owner_guid: felt252,
+        removed_owner_guid: felt252, 
     }
 
     #[constructor]
@@ -91,7 +91,7 @@ mod Account {
         }
 
         fn is_valid_signature(
-            self: @ContractState, hash: felt252, signature: Array<felt252>,
+            self: @ContractState, hash: felt252, signature: Array<felt252>, 
         ) -> felt252 {
             if self._is_valid_signature(hash, signature.span()) {
                 starknet::VALIDATED
@@ -104,7 +104,7 @@ mod Account {
     #[external(v0)]
     impl SRC6CamelOnlyImpl of interface::ISRC6CamelOnly<ContractState> {
         fn isValidSignature(
-            self: @ContractState, hash: felt252, signature: Array<felt252>,
+            self: @ContractState, hash: felt252, signature: Array<felt252>, 
         ) -> felt252 {
             SRC6Impl::is_valid_signature(self, hash, signature)
         }
@@ -193,13 +193,13 @@ mod Account {
         }
 
         fn _is_valid_signature(
-            self: @ContractState, hash: felt252, signature: Span<felt252>,
+            self: @ContractState, hash: felt252, signature: Span<felt252>, 
         ) -> bool {
             let valid_length = signature.len() == 2_u32;
 
             if valid_length {
                 check_ecdsa_signature(
-                    hash, self.public_key.read(), *signature.at(0_u32), *signature.at(1_u32),
+                    hash, self.public_key.read(), *signature.at(0_u32), *signature.at(1_u32), 
                 )
             } else {
                 false
@@ -221,14 +221,16 @@ mod Account {
                     let _res = _execute_single_call(call);
                     res.append(_res);
                 },
-                Option::None(_) => { break (); },
+                Option::None(_) => {
+                    break ();
+                },
             };
-        }
+        };
         res
     }
 
     fn _execute_single_call(call: Call) -> Span<felt252> {
-        let Call { to, selector, calldata } = call;
+        let Call{to, selector, calldata } = call;
         starknet::call_contract_syscall(to, selector, calldata.span()).unwrap_syscall()
     }
 }

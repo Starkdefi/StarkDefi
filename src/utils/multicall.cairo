@@ -45,15 +45,17 @@ mod SimpleMulticall {
                     let _res = _execute_single_call(call);
                     res.append(_res);
                 },
-                Option::None(_) => { break (); },
+                Option::None(_) => {
+                    break ();
+                },
             };
-        }
+        };
         res
     }
 
     #[internal]
     fn _execute_single_call(call: Call) -> Span<felt252> {
-        let Call { to, selector, calldata } = call;
+        let Call{to, selector, calldata } = call;
         starknet::call_contract_syscall(to, selector, calldata.span()).unwrap_syscall()
     }
 }
