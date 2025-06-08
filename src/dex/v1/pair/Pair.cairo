@@ -1,7 +1,8 @@
 /// @title StarkDefi Stable Pair Contract
 /// @author StarkDefi Labs
 /// @license MIT
-/// @description Implements uniV2 (x*y=k) volatile pair and Solidly stableswap (x*y(x^2 + y^2) =k) curve
+/// @description Implements uniV2 (x*y=k) volatile pair and Solidly stableswap (x*y(x^2 + y^2) =k)
+/// curve
 use starknet::{ContractAddress};
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -33,39 +34,30 @@ const MINIMUM_K: u256 = 10_000_000_000; //1e10
 
 #[starknet::contract]
 mod StarkDPair {
-    use starkdefi::dex::v1::factory::{
-        IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait
-    };
-    use starkdefi::dex::v1::pair::interface::{
-        IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
-    };
-    use starkdefi::dex::v1::pair::interface::{
-        IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
-        RelativeFeesAccum,
-    };
-    use starkdefi::utils::{pow};
-
-    use traits::Into;
-
-    use starkdefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
-    use zeroable::Zeroable;
     use array::ArrayTrait;
-    use option::OptionTrait;
-
-    use starknet::{
-        ClassHash, contract_address_const, get_caller_address, get_block_timestamp,
-        get_contract_address, contract_address_to_felt252
-    };
-    use starknet::syscalls::deploy_syscall;
-    use starkdefi::utils::call_contract_with_selector_fallback;
-    use starkdefi::utils::selectors;
-    use starkdefi::utils::callFallback::UnwrapAndCast;
-    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
-
-
     use integer::u128_try_from_felt252;
+    use option::OptionTrait;
+    use starkdefi::dex::v1::factory::{
+        IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait,
+    };
+    use starkdefi::dex::v1::pair::interface::{
+        GlobalFeesAccum, IFeesVaultDispatcher, IFeesVaultDispatcherTrait, IStarkDCalleeDispatcher,
+        IStarkDCalleeDispatcherTrait, IStarkDPair, IStarkDPairCamelOnly, RelativeFeesAccum,
+        Snapshot,
+    };
+    use starkdefi::token::erc20::{ERC20, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+    use starkdefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::upgradable::{IUpgradable, Upgradable};
+    use starkdefi::utils::{call_contract_with_selector_fallback, pow, selectors};
+    use starknet::syscalls::deploy_syscall;
+    use starknet::{
+        ClassHash, contract_address_const, contract_address_to_felt252, get_block_timestamp,
+        get_caller_address, get_contract_address,
+    };
+    use traits::Into;
+    use zeroable::Zeroable;
     use super::{
-        ContractAddress, Config, PairInfo, FEE_DENOMINATOR, MINIMUM_LIQUIDITY, PRECISION, MINIMUM_K
+        Config, ContractAddress, FEE_DENOMINATOR, MINIMUM_K, MINIMUM_LIQUIDITY, PRECISION, PairInfo,
     };
 
     #[event]
@@ -129,7 +121,7 @@ mod StarkDPair {
         config: Config,
         pair_data: PairInfo,
         global_fees: GlobalFeesAccum,
-        users_fee: LegacyMap::<ContractAddress, RelativeFeesAccum>,
+        users_fee: LegacyMap<ContractAddress, RelativeFeesAccum>,
         _entry_locked: bool,
     }
 
@@ -140,7 +132,7 @@ mod StarkDPair {
         tokenB: ContractAddress,
         stable: bool,
         fee_tier: u8,
-        vault_class_hash: ClassHash
+        vault_class_hash: ClassHash,
     ) {
         assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid address');
         let mut erc20_state = ERC20::unsafe_new_contract_state();
@@ -165,12 +157,9 @@ mod StarkDPair {
                     vault: vault,
                     stable: stable,
                     fee_tier: fee_tier,
-                    decimal0: u256 {
-                        low: pow(10, decimal0), high: 0
-                        }, decimal1: u256 {
-                        low: pow(10, decimal1), high: 0
-                    },
-                }
+                    decimal0: u256 { low: pow(10, decimal0), high: 0 },
+                    decimal1: u256 { low: pow(10, decimal1), high: 0 },
+                },
             );
 
         self._entry_locked.write(false);
@@ -204,7 +193,7 @@ mod StarkDPair {
         }
 
         fn allowance(
-            self: @ContractState, owner: ContractAddress, spender: ContractAddress
+            self: @ContractState, owner: ContractAddress, spender: ContractAddress,
         ) -> u256 {
             let erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::allowance(@erc20_state, owner, spender)
@@ -278,7 +267,7 @@ mod StarkDPair {
 
         fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
             InternalFunctions::_before_transfer(
-                ref self, get_caller_address(), recipient, amount
+                ref self, get_caller_address(), recipient, amount,
             ); // called before any transfers to keep fees up to date
             let mut erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::ERC20Impl::transfer(ref erc20_state, recipient, amount);
@@ -289,7 +278,7 @@ mod StarkDPair {
             ref self: ContractState,
             sender: ContractAddress,
             recipient: ContractAddress,
-            amount: u256
+            amount: u256,
         ) -> bool {
             InternalFunctions::_before_transfer(ref self, sender, recipient, amount);
             let mut erc20_state = ERC20::unsafe_new_contract_state();
@@ -304,7 +293,7 @@ mod StarkDPair {
         }
 
         fn increase_allowance(
-            ref self: ContractState, spender: ContractAddress, addedValue: u256
+            ref self: ContractState, spender: ContractAddress, addedValue: u256,
         ) -> bool {
             let mut erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::increase_allowance(ref erc20_state, spender, addedValue);
@@ -312,7 +301,7 @@ mod StarkDPair {
         }
 
         fn decrease_allowance(
-            ref self: ContractState, spender: ContractAddress, subtractedValue: u256
+            ref self: ContractState, spender: ContractAddress, subtractedValue: u256,
         ) -> bool {
             let mut erc20_state = ERC20::unsafe_new_contract_state();
             ERC20::decreaseAllowance(ref erc20_state, spender, subtractedValue);
@@ -351,14 +340,14 @@ mod StarkDPair {
 
             if totalSupply == 0 {
                 ERC20::InternalImpl::_mint(
-                    ref erc20_state, contract_address_const::<'deAd'>(), MINIMUM_LIQUIDITY
+                    ref erc20_state, contract_address_const::<'deAd'>(), MINIMUM_LIQUIDITY,
                 );
                 if (config.stable) {
                     assert(
                         (amount0 * PRECISION)
                             / config.decimal0 == (amount1 * PRECISION)
                             / config.decimal1,
-                        'unequal amounts'
+                        'unequal amounts',
                     );
                     assert(self._k(amount0, amount1) > MINIMUM_K, 'K too low');
                 }
@@ -373,7 +362,8 @@ mod StarkDPair {
         }
 
         /// @notice Low-level function, importantant safety checks must be handled by the caller
-        /// @dev This function burns the given amount of liquidity and transfers the underlying tokens to the caller.
+        /// @dev This function burns the given amount of liquidity and transfers the underlying
+        /// tokens to the caller.
         /// @param to the address to transfer to.
         /// @return the amount of tokens transferred.
         fn burn(ref self: ContractState, to: ContractAddress) -> (u256, u256) {
@@ -419,7 +409,7 @@ mod StarkDPair {
             amount0Out: u256,
             amount1Out: u256,
             to: ContractAddress,
-            data: Array::<felt252>
+            data: Array<felt252>,
         ) {
             Modifiers::_lock(ref self);
             Modifiers::_assert_not_paused(@self);
@@ -445,11 +435,9 @@ mod StarkDPair {
                 token1Dispatcher.transfer(to, amount1Out);
             }
             if data.len() > 0 {
-                IStarkDCalleeDispatcher {
-                    contract_address: to
-                }
+                IStarkDCalleeDispatcher { contract_address: to }
                     .hook(
-                        get_caller_address(), amount0Out, amount1Out, data
+                        get_caller_address(), amount0Out, amount1Out, data,
                     ); // callback for flash loans
             }
 
@@ -470,7 +458,7 @@ mod StarkDPair {
 
             assert(amount0In > 0 || amount1In > 0, 'insufficient input amount');
             InternalFunctions::_update_global_fees(
-                ref self, amount0In, amount1In
+                ref self, amount0In, amount1In,
             ); // accumulate and transfer fees to vault
 
             // recalculate balance after fees are taken
@@ -478,7 +466,7 @@ mod StarkDPair {
             balance1 = InternalFunctions::_balance_of(config.token1, this_address);
 
             assert(
-                self._k(balance0, balance1) >= self._k(reserve0, reserve1), 'invariant K'
+                self._k(balance0, balance1) >= self._k(reserve0, reserve1), 'invariant K',
             ); // stable: x^3y+xy^3, volatile: x*y 
 
             InternalFunctions::_update(ref self, balance0, balance1, reserve0, reserve1);
@@ -491,8 +479,8 @@ mod StarkDPair {
                         amount1In,
                         amount0Out,
                         amount1Out,
-                        to
-                    }
+                        to,
+                    },
                 );
 
             Modifiers::_unlock(ref self);
@@ -546,14 +534,14 @@ mod StarkDPair {
         }
 
         fn get_amount_out(
-            ref self: ContractState, tokenIn: ContractAddress, amountIn: u256
+            ref self: ContractState, tokenIn: ContractAddress, amountIn: u256,
         ) -> u256 {
             assert(amountIn > 0, 'insufficient input amount');
             let (reserve0, reserve1, _) = self.get_reserves();
             assert(reserve0 > 0 && reserve1 > 0, 'insufficient liquidity');
-            let pool_fee = IStarkDFactoryABIDispatcher {
-                contract_address: self.factory()
-            }.get_fee(get_contract_address()).into();
+            let pool_fee = IStarkDFactoryABIDispatcher { contract_address: self.factory() }
+                .get_fee(get_contract_address())
+                .into();
 
             let _amount_in = amountIn - ((amountIn * pool_fee) / FEE_DENOMINATOR);
 
@@ -572,13 +560,13 @@ mod StarkDPair {
         }
 
         fn increaseAllowance(
-            ref self: ContractState, spender: ContractAddress, addedValue: u256
+            ref self: ContractState, spender: ContractAddress, addedValue: u256,
         ) -> bool {
             StarkDPairImpl::increase_allowance(ref self, spender, addedValue)
         }
 
         fn decreaseAllowance(
-            ref self: ContractState, spender: ContractAddress, subtractedValue: u256
+            ref self: ContractState, spender: ContractAddress, subtractedValue: u256,
         ) -> bool {
             StarkDPairImpl::decrease_allowance(ref self, spender, subtractedValue)
         }
@@ -587,7 +575,7 @@ mod StarkDPair {
             ref self: ContractState,
             sender: ContractAddress,
             recipient: ContractAddress,
-            amount: u256
+            amount: u256,
         ) -> bool {
             StarkDPairImpl::transfer_from(ref self, sender, recipient, amount)
         }
@@ -611,7 +599,7 @@ mod StarkDPair {
 
     #[external(v0)]
     fn fee_state(
-        self: @ContractState, user: ContractAddress
+        self: @ContractState, user: ContractAddress,
     ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
         let global_fees = self.global_fees.read();
         let user_fees = self.users_fee.read(user);
@@ -621,7 +609,7 @@ mod StarkDPair {
 
     #[external(v0)]
     fn feeState(
-        self: @ContractState, user: ContractAddress
+        self: @ContractState, user: ContractAddress,
     ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
         fee_state(self, user)
     }
@@ -640,7 +628,7 @@ mod StarkDPair {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         fn _update(
-            ref self: ContractState, balance0: u256, balance1: u256, reserve0: u256, reserve1: u256
+            ref self: ContractState, balance0: u256, balance1: u256, reserve0: u256, reserve1: u256,
         ) {
             assert(balance0.high == 0 && balance1.high == 0, 'overflow');
             let mut data = self.pair_data.read();
@@ -649,13 +637,11 @@ mod StarkDPair {
             let timeElapsed = block_timestamp - data.block_timestamp_last;
 
             if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0) {
-                data.price_0_cumulative_last += (reserve1 / reserve0) * u256 {
-                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                };
+                data.price_0_cumulative_last += (reserve1 / reserve0)
+                    * u256 { low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0 };
 
-                data.price_1_cumulative_last += (reserve0 / reserve1) * u256 {
-                    low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0
-                };
+                data.price_1_cumulative_last += (reserve0 / reserve1)
+                    * u256 { low: u128_try_from_felt252(timeElapsed.into()).unwrap(), high: 0 };
             }
 
             data.reserve0 = balance0;
@@ -679,7 +665,7 @@ mod StarkDPair {
             vault_class_hash: ClassHash,
             token0: @ContractAddress,
             token1: @ContractAddress,
-            factory: @ContractAddress
+            factory: @ContractAddress,
         ) -> ContractAddress {
             let mut calldata = array![];
 
@@ -697,7 +683,8 @@ mod StarkDPair {
         }
 
         /// @notice Updates the global fees for the pair contract
-        /// @dev This function calculates the fees for token0 and token1, transfers the fees to the fee vault,
+        /// @dev This function calculates the fees for token0 and token1, transfers the fees to the
+        /// fee vault,
         ///      updates the protocol fees, and updates the share rate for LP providers.
         /// @param self The state of the contract
         /// @param amount0In The amount of token0 being swapped
@@ -712,15 +699,13 @@ mod StarkDPair {
 
             if (amount0In > 0) {
                 let fee0 = (amount0In * swap_fee) / FEE_DENOMINATOR;
-                ERC20ABIDispatcher {
-                    contract_address: self.token0()
-                }.transfer(self.fee_vault(), fee0); // transfer the fees to the fee vault
+                ERC20ABIDispatcher { contract_address: self.token0() }
+                    .transfer(self.fee_vault(), fee0); // transfer the fees to the fee vault
 
                 if (protocol_fee_on) {
                     let pfee0 = (fee0 * 3000) / FEE_DENOMINATOR; // 30% of fee0 to the protocol
-                    IFeesVaultDispatcher {
-                        contract_address: self.fee_vault()
-                    }.update_protocol_fees(pfee0, 0); // update the protocol fees
+                    IFeesVaultDispatcher { contract_address: self.fee_vault() }
+                        .update_protocol_fees(pfee0, 0); // update the protocol fees
 
                     let ufee0 = fee0 - pfee0; // 70% of fee0 to LP providers
                     global_fees.token0 += (ufee0 * PRECISION) / self.total_supply();
@@ -731,15 +716,13 @@ mod StarkDPair {
 
             if (amount1In > 0) {
                 let fee1 = (amount1In * swap_fee) / FEE_DENOMINATOR;
-                ERC20ABIDispatcher {
-                    contract_address: self.token1()
-                }.transfer(self.fee_vault(), fee1);
+                ERC20ABIDispatcher { contract_address: self.token1() }
+                    .transfer(self.fee_vault(), fee1);
 
                 if (protocol_fee_on) {
                     let pfee1 = (fee1 * 3000) / FEE_DENOMINATOR;
-                    IFeesVaultDispatcher {
-                        contract_address: self.fee_vault()
-                    }.update_protocol_fees(0, pfee1);
+                    IFeesVaultDispatcher { contract_address: self.fee_vault() }
+                        .update_protocol_fees(0, pfee1);
 
                     let ufee1 = fee1 - pfee1;
                     global_fees.token1 += (ufee1 * PRECISION) / self.total_supply();
@@ -752,10 +735,13 @@ mod StarkDPair {
         }
 
         /// @notice Updates the user fees for a given user
-        /// @dev This function reads the global fees and the user's balance, and calculates the claimable fees for the user.
-        ///      If the user's balance is greater than 0, it updates the user's accumulators to the current global accumulators,
-        ///      and calculates the claimable fees based on the difference between the global and user's last accumulators.
-        ///      If the user's balance is 0, it sets the user's accumulators to the global accumulators and the claimable fees to 0.
+        /// @dev This function reads the global fees and the user's balance, and calculates the
+        /// claimable fees for the user.
+        ///      If the user's balance is greater than 0, it updates the user's accumulators to the
+        ///      current global accumulators, and calculates the claimable fees based on the
+        ///      difference between the global and user's last accumulators.
+        ///      If the user's balance is 0, it sets the user's accumulators to the global
+        ///      accumulators and the claimable fees to 0.
         /// @param self The state of the contract
         /// @param user The address of the user
         fn _update_user_fee(ref self: ContractState, user: ContractAddress) {
@@ -810,17 +796,19 @@ mod StarkDPair {
                 user_fees.claimable0 = 0;
                 user_fees.claimable1 = 0;
 
-                IFeesVaultDispatcher {
-                    contract_address: self.fee_vault()
-                }.claim_lp_fees(user, claimable0, claimable1);
+                IFeesVaultDispatcher { contract_address: self.fee_vault() }
+                    .claim_lp_fees(user, claimable0, claimable1);
                 self.users_fee.write(user, user_fees);
             }
 
             self
                 .emit(
                     Claim {
-                        sender: self.fee_vault(), amount0: claimable0, amount1: claimable1, to: user
-                    }
+                        sender: self.fee_vault(),
+                        amount0: claimable0,
+                        amount1: claimable1,
+                        to: user,
+                    },
                 );
         }
 
@@ -836,7 +824,7 @@ mod StarkDPair {
             tokenIn: ContractAddress,
             amountIn: u256,
             reserve0: u256,
-            reserve1: u256
+            reserve1: u256,
         ) -> u256 {
             let config = self.config.read();
             if (self.is_stable()) {
@@ -876,7 +864,7 @@ mod StarkDPair {
 
         /// @notice called before any transfers to keep fees up to date
         fn _before_transfer(
-            ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256
+            ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256,
         ) {
             InternalFunctions::_update_user_fee(ref self, from);
             InternalFunctions::_update_user_fee(ref self, to);
@@ -888,7 +876,7 @@ mod StarkDPair {
             Serde::serialize(@account, ref call_data);
 
             call_contract_with_selector_fallback(
-                token, selectors::balanceOf, selectors::balance_of, call_data.span()
+                token, selectors::balanceOf, selectors::balance_of, call_data.span(),
             )
                 .unwrap_and_cast()
         }
@@ -900,7 +888,7 @@ mod StarkDPair {
         /// @param self The state of the contract
         /// @param x Initial value of x
         /// @param y The second parameter of the equation
-        /// @return The result of the equation 
+        /// @return The result of the equation
         fn _f(self: @ContractState, x0: u256, y: u256) -> u256 {
             let lhs = (x0 * y) / PRECISION; // x*y
             let rhs = ((x0 * x0) / PRECISION + (y * y) / PRECISION); // x^2 + y^2
@@ -938,10 +926,14 @@ mod StarkDPair {
 
         /// @notice Finds the value of y such that f(x,y) ~= k0
         /// @dev This function uses the Newton-Raphson method to approximate the root of f(x,y)
-        ///      In each iteration, the value of y is adjusted such that f(x,y) is as close as possible to k0.
-        ///      If f(x,y) is less than k0, the adjustment is added to y, otherwise it is subtracted.
-        ///      The iterations continue until the function value is equal to k0 or the maximum number of iterations is reached.
-        ///      If the function value is not exactly equal to k0, the closest approximation is returned.
+        ///      In each iteration, the value of y is adjusted such that f(x,y) is as close as
+        ///      possible to k0.
+        ///      If f(x,y) is less than k0, the adjustment is added to y, otherwise it is
+        ///      subtracted.
+        ///      The iterations continue until the function value is equal to k0 or the maximum
+        ///      number of iterations is reached.
+        ///      If the function value is not exactly equal to k0, the closest approximation is
+        ///      returned.
         /// @param self The state of the contract
         /// @param x0 Initial value of x
         /// @param k0 The invariant value
@@ -964,13 +956,14 @@ mod StarkDPair {
                     // Calculate the adjustment for y using the derivative of the function.
                     // This is the Newton-Raphson method step.
                     let mut dy = ((k0 - f) * PRECISION) / self._dy(x0, y0);
-                    // If the adjustment is zero, it means we have found an exact solution or we need to make a minimum step.
+                    // If the adjustment is zero, it means we have found an exact solution or we
+                    // need to make a minimum step.
                     if (dy == 0) {
                         if (f == k0) {
                             break y0; // found exact solution
                         }
-                        // If increasing y by 1 makes the function value greater than the invariant value,
-                        // it means the current y is the closest approximation we can get.
+                        // If increasing y by 1 makes the function value greater than the invariant
+                        // value, it means the current y is the closest approximation we can get.
                         if (self._k(x0, y0 + 1) > k0) {
                             break y0 + 1; // return closest approximation
                         }
@@ -982,10 +975,12 @@ mod StarkDPair {
                     // Calculate the adjustment for y using the derivative of the function.
                     // This is the Newton-Raphson method step.
                     let mut dy = ((f - k0) * PRECISION) / self._dy(x0, y0);
-                    // If the adjustment is zero, it means we have found an exact solution or we need to make a minimum step.
+                    // If the adjustment is zero, it means we have found an exact solution or we
+                    // need to make a minimum step.
                     if (dy == 0) {
-                        // If the function value is equal to the invariant value, or if decreasing y by 1 makes the function value less than the invariant value,
-                        // it means the current y is the closest approximation we can get.
+                        // If the function value is equal to the invariant value, or if decreasing y
+                        // by 1 makes the function value less than the invariant value, it means the
+                        // current y is the closest approximation we can get.
                         if (f == k0 || self._f(x0, y0 - 1) < k0) {
                             break y0; // found exact solution; f(x,y) must be >= k0 hence y0-1 cannot be a solution
                         }
@@ -1021,11 +1016,11 @@ mod StarkDPair {
             factoryDipatcher.assert_not_paused();
         }
 
-        /// @dev reverts if not handler 
+        /// @dev reverts if not handler
         fn assert_only_handler(self: @ContractState) {
             let caller = get_caller_address();
             let factory = IStarkDFactoryABIDispatcher {
-                contract_address: self.config.read().factory
+                contract_address: self.config.read().factory,
             };
             assert(caller == factory.fee_handler(), 'not allowed');
         }

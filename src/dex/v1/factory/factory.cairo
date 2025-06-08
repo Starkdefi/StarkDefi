@@ -32,16 +32,15 @@ const MAX_FEE: u8 = 100; // 1%
 
 #[starknet::contract]
 mod StarkDFactory {
-    use starkdefi::dex::v1::factory::interface::IStarkDFactory;
     use array::ArrayTrait;
-    use traits::Into;
-    use super::{Config, Fees, ValidPair, MAX_FEE, ContractAddress, ClassHash};
-    use starknet::{get_caller_address, contract_address_to_felt252};
-    use zeroable::Zeroable;
+    use starkdefi::dex::v1::factory::interface::IStarkDFactory;
+    use starkdefi::utils::ContractAddressPartialOrd;
+    use starkdefi::utils::upgradable::{IUpgradable, Upgradable};
     use starknet::syscalls::deploy_syscall;
-    use starknet::replace_class_syscall;
-    use starkdefi::utils::{ContractAddressPartialOrd};
-    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starknet::{contract_address_to_felt252, get_caller_address, replace_class_syscall};
+    use traits::Into;
+    use zeroable::Zeroable;
+    use super::{ClassHash, Config, ContractAddress, Fees, MAX_FEE, ValidPair};
 
 
     #[event]
@@ -75,12 +74,12 @@ mod StarkDFactory {
 
     #[derive(Drop, starknet::Event)]
     struct Paused {
-        account: ContractAddress, 
+        account: ContractAddress,
     }
 
     #[derive(Drop, starknet::Event)]
     struct Unpaused {
-        account: ContractAddress, 
+        account: ContractAddress,
     }
 
     #[storage]
@@ -89,9 +88,9 @@ mod StarkDFactory {
         fees: Fees,
         paused: bool,
         protocol_fee_on: bool,
-        _pair: LegacyMap::<(ContractAddress, ContractAddress, bool, u8), ContractAddress>,
-        _all_pairs: LegacyMap::<u32, ContractAddress>,
-        valid_pairs: LegacyMap::<ContractAddress, ValidPair>,
+        _pair: LegacyMap<(ContractAddress, ContractAddress, bool, u8), ContractAddress>,
+        _all_pairs: LegacyMap<u32, ContractAddress>,
+        valid_pairs: LegacyMap<ContractAddress, ValidPair>,
         _all_pairs_length: u32,
     }
 
@@ -100,7 +99,7 @@ mod StarkDFactory {
         ref self: ContractState,
         fee_handler: ContractAddress,
         class_hash_pair_contract: ClassHash,
-        vault_class_hash: ClassHash
+        vault_class_hash: ClassHash,
     ) {
         assert(fee_handler.is_non_zero(), 'invalid fee to setter');
         assert(class_hash_pair_contract.is_non_zero(), 'invalid class hash');
@@ -118,7 +117,7 @@ mod StarkDFactory {
                     fee_handler,
                     pair_class_hash: class_hash_pair_contract,
                     vault_class_hash,
-                }
+                },
             );
     }
 
@@ -137,14 +136,14 @@ mod StarkDFactory {
             self.config.read().fee_handler
         }
 
-        /// @notice Get pair contract address given tokenA, tokenB and a bool representing stable or volatile
-        /// @returns  address of the pair
+        /// @notice Get pair contract address given tokenA, tokenB and a bool representing stable or
+        /// volatile @returns  address of the pair
         fn get_pair(
             self: @ContractState,
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
-            fee: u8
+            fee: u8,
         ) -> ContractAddress {
             let (token0, token1) = self.sort_tokens(tokenA, tokenB);
             let pair = self._pair.read((token0, token1, stable, fee));
@@ -187,7 +186,8 @@ mod StarkDFactory {
         }
 
         /// @notice Get all pairs
-        /// @returns  pair_counts (length of all the pairs) and pairs (addresses of all pairs addresses)
+        /// @returns  pair_counts (length of all the pairs) and pairs (addresses of all pairs
+        /// addresses)
         fn all_pairs(self: @ContractState) -> (u32, Array::<ContractAddress>) {
             let pair_counts = self._all_pairs_length.read();
             let mut pairs = ArrayTrait::<ContractAddress>::new();
@@ -199,7 +199,7 @@ mod StarkDFactory {
                 }
                 pairs.append(self._all_pairs.read(index));
                 index += 1;
-            };
+            }
 
             (pair_counts, pairs)
         }
@@ -224,7 +224,7 @@ mod StarkDFactory {
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
-            fee: u8
+            fee: u8,
         ) -> ContractAddress {
             assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid token address');
             assert(tokenA != tokenB, 'identical addresses');
@@ -261,7 +261,7 @@ mod StarkDFactory {
             let address_salt = pedersen(token0_felt252, token1_stable_felt252);
 
             let (pair, _) = deploy_syscall(
-                config.pair_class_hash, address_salt, pair_constructor_calldata.span(), false
+                config.pair_class_hash, address_salt, pair_constructor_calldata.span(), false,
             )
                 .unwrap_syscall(); // deploy_syscall never panics
 
@@ -276,8 +276,8 @@ mod StarkDFactory {
             self
                 .emit(
                     PairCreated {
-                        tokenA: token0, tokenB: token1, pair, pair_count: pair_count + 1, stable
-                    }
+                        tokenA: token0, tokenB: token1, pair, pair_count: pair_count + 1, stable,
+                    },
                 );
 
             pair
@@ -412,7 +412,7 @@ mod StarkDFactory {
         /// @param tokenB ContractAddress of tokenB
         /// @return (token0, token1)
         fn sort_tokens(
-            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
+            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress,
         ) -> (ContractAddress, ContractAddress) {
             assert(tokenA != tokenB, 'identical addresses');
             let (token0, token1) = if tokenA < tokenB {

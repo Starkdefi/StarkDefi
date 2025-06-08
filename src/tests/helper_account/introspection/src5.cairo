@@ -7,7 +7,7 @@ mod SRC5 {
 
     #[storage]
     struct Storage {
-        supported_interfaces: LegacyMap<felt252, bool>
+        supported_interfaces: LegacyMap<felt252, bool>,
     }
 
     #[external(v0)]

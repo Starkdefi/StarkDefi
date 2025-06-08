@@ -1,26 +1,21 @@
-use starkdefi::token::erc20::ERC20;
-use starkdefi::token::erc20::ERC20::Transfer;
-use starkdefi::token::erc20::ERC20::Approval;
-use starkdefi::token::erc20::ERC20ABIDispatcher;
-use starkdefi::tests::utils::constants::{OWNER, ADDRESS_ZERO};
-use array::ArrayTrait;
-use array::SpanTrait;
+use array::{ArrayTrait, SpanTrait};
 use core::result::ResultTrait;
 use option::OptionTrait;
-use starknet::ContractAddress;
-use starknet::ClassHash;
+use starkdefi::tests::utils::constants::{ADDRESS_ZERO, OWNER};
+use starkdefi::token::erc20::ERC20::{Approval, Transfer};
+use starkdefi::token::erc20::{ERC20, ERC20ABIDispatcher};
+use starkdefi::utils::pow;
+use starknet::{ClassHash, ContractAddress, testing};
 use traits::TryInto;
-use starknet::testing;
-use starkdefi::utils::{pow};
 
 fn deploy(contract_class_hash: ClassHash, calldata: Array<felt252>) -> ContractAddress {
-    let (address, _) = starknet::deploy_syscall(contract_class_hash, 0, calldata.span(), false, )
+    let (address, _) = starknet::deploy_syscall(contract_class_hash, 0, calldata.span(), false)
         .unwrap();
     address
 }
 
 fn deploy_erc20(
-    name: felt252, symbol: felt252, initial_supply: u256, recipient: ContractAddress
+    name: felt252, symbol: felt252, initial_supply: u256, recipient: ContractAddress,
 ) -> ERC20ABIDispatcher {
     let mut calldata = array![];
     Serde::serialize(@name, ref calldata);
@@ -44,7 +39,7 @@ fn with_decimals(amount: u128) -> u256 {
 /// and checks there's no more data left on the event, preventing unaccounted params.
 /// Indexed event members are currently not supported, so they are ignored.
 fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
-    address: ContractAddress
+    address: ContractAddress,
 ) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
     let ret = starknet::Event::deserialize(ref keys, ref data);
@@ -95,7 +90,6 @@ fn assert_only_event_transfer(from: ContractAddress, to: ContractAddress, value:
     assert_event_transfer(from, to, value);
     assert_no_events_left(ADDRESS_ZERO());
 }
-
 use serde::Serde;
 
 trait SerializedAppend<T> {

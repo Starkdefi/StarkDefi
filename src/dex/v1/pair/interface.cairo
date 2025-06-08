@@ -38,14 +38,14 @@ trait IStarkDPair<TContractState> {
 
     fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
     fn increase_allowance(
-        ref self: TContractState, spender: ContractAddress, addedValue: u256
+        ref self: TContractState, spender: ContractAddress, addedValue: u256,
     ) -> bool;
     fn decrease_allowance(
-        ref self: TContractState, spender: ContractAddress, subtractedValue: u256
+        ref self: TContractState, spender: ContractAddress, subtractedValue: u256,
     ) -> bool;
     fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
     fn transfer_from(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256,
     ) -> bool;
 
     fn factory(self: @TContractState) -> ContractAddress;
@@ -67,7 +67,7 @@ trait IStarkDPair<TContractState> {
         amount0Out: u256,
         amount1Out: u256,
         to: ContractAddress,
-        data: Array::<felt252>
+        data: Array<felt252>,
     );
     fn skim(ref self: TContractState, to: ContractAddress);
     fn sync(ref self: TContractState);
@@ -80,13 +80,13 @@ trait IStarkDPairCamelOnly<TContractState> {
     fn totalSupply(self: @TContractState) -> u256;
     fn balanceOf(self: @TContractState, account: ContractAddress) -> u256;
     fn increaseAllowance(
-        ref self: TContractState, spender: ContractAddress, addedValue: u256
+        ref self: TContractState, spender: ContractAddress, addedValue: u256,
     ) -> bool;
     fn decreaseAllowance(
-        ref self: TContractState, spender: ContractAddress, subtractedValue: u256
+        ref self: TContractState, spender: ContractAddress, subtractedValue: u256,
     ) -> bool;
     fn transferFrom(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256,
     ) -> bool;
 
     fn getReserves(self: @TContractState) -> (u256, u256, u64);
@@ -106,14 +106,14 @@ trait IStarkDPairABI<TContractState> {
 
     fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
     fn increase_allowance(
-        ref self: TContractState, spender: ContractAddress, addedValue: u256
+        ref self: TContractState, spender: ContractAddress, addedValue: u256,
     ) -> bool;
     fn decrease_allowance(
-        ref self: TContractState, spender: ContractAddress, subtractedValue: u256
+        ref self: TContractState, spender: ContractAddress, subtractedValue: u256,
     ) -> bool;
     fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
     fn transfer_from(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256,
     ) -> bool;
 
     fn factory(self: @TContractState) -> ContractAddress;
@@ -135,14 +135,14 @@ trait IStarkDPairABI<TContractState> {
         amount0Out: u256,
         amount1Out: u256,
         to: ContractAddress,
-        data: Array::<felt252>
+        data: Array<felt252>,
     );
     fn skim(ref self: TContractState, to: ContractAddress);
     fn sync(ref self: TContractState);
     fn claim_fees(ref self: TContractState);
     fn get_amount_out(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
     fn fee_state(
-        self: @TContractState, user: ContractAddress
+        self: @TContractState, user: ContractAddress,
     ) -> (u256, RelativeFeesAccum, GlobalFeesAccum);
 }
 
@@ -157,14 +157,14 @@ trait IStarkDPairCamelABI<TContractState> {
 
     fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
     fn increaseAllowance(
-        ref self: TContractState, spender: ContractAddress, addedValue: u256
+        ref self: TContractState, spender: ContractAddress, addedValue: u256,
     ) -> bool;
     fn decreaseAllowance(
-        ref self: TContractState, spender: ContractAddress, subtractedValue: u256
+        ref self: TContractState, spender: ContractAddress, subtractedValue: u256,
     ) -> bool;
     fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
     fn transferFrom(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256,
     ) -> bool;
 
     fn factory(self: @TContractState) -> ContractAddress;
@@ -184,14 +184,14 @@ trait IStarkDPairCamelABI<TContractState> {
         amount0Out: u256,
         amount1Out: u256,
         to: ContractAddress,
-        data: Array::<felt252>
+        data: Array<felt252>,
     );
     fn skim(ref self: TContractState, to: ContractAddress);
     fn sync(ref self: TContractState);
     fn claimFees(ref self: TContractState);
     fn getAmountOut(ref self: TContractState, tokenIn: ContractAddress, amountIn: u256) -> u256;
     fn feeState(
-        self: @TContractState, user: ContractAddress
+        self: @TContractState, user: ContractAddress,
     ) -> (u256, RelativeFeesAccum, GlobalFeesAccum);
 }
 
@@ -203,7 +203,7 @@ trait IStarkDCallee<TContractState> {
         sender: ContractAddress,
         amount0Out: u256,
         amount1Out: u256,
-        data: Array::<felt252>
+        data: Array<felt252>,
     );
 }
 

@@ -1,10 +1,8 @@
 use array::ArrayTrait;
-use starkdefi::tests::helper_account::Account;
-use starkdefi::tests::helper_account::AccountABIDispatcher;
-use starkdefi::tests::helper_account::TRANSACTION_VERSION;
 use option::OptionTrait;
-use starknet::testing;
+use starkdefi::tests::helper_account::{Account, AccountABIDispatcher, TRANSACTION_VERSION};
 use starkdefi::tests::utils::functions::deploy;
+use starknet::testing;
 
 
 //
@@ -21,9 +19,8 @@ struct SignedTransactionData {
     public_key: felt252,
     transaction_hash: felt252,
     r: felt252,
-    s: felt252
+    s: felt252,
 }
-
 use starknet::ClassHash;
 use traits::TryInto;
 
@@ -37,7 +34,7 @@ fn SIGNED_TX_DATA() -> SignedTransactionData {
         public_key: 883045738439352841478194533192765345509759306772397516907181243450667673002,
         transaction_hash: 2717105892474786771566982177444710571376803476229898722748888396642649184538,
         r: 3068558690657879390136740086327753007413919701043650133111397282816679110801,
-        s: 3355728545224320878895493649495491771252432631648740019139167265522817576501
+        s: 3355728545224320878895493649495491771252432631648740019139167265522817576501,
     }
 }
 

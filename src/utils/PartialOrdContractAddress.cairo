@@ -1,5 +1,4 @@
-use starknet::ContractAddress;
-use starknet::contract_address_to_felt252;
+use starknet::{ContractAddress, contract_address_to_felt252};
 use traits::Into;
 
 impl ContractAddressPartialOrd of PartialOrd<ContractAddress> {

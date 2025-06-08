@@ -13,16 +13,16 @@ struct ProtocolFees {
     // protocol's token1 balance
     token1: u256,
     // timestamp of last protocol fee claim
-    timestamp: u64
+    timestamp: u64,
 }
 
 #[starknet::contract]
 mod FeesVault {
-    use starkdefi::dex::v1::factory::{IStarkDFactoryDispatcherTrait, IStarkDFactoryDispatcher};
-    use starkdefi::token::erc20::{ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
+    use starkdefi::dex::v1::factory::{IStarkDFactoryDispatcher, IStarkDFactoryDispatcherTrait};
     use starkdefi::dex::v1::pair::interface::IFeesVault;
+    use starkdefi::token::erc20::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+    use starknet::{get_block_timestamp, get_caller_address};
     use super::{ContractAddress, ProtocolFees};
-    use starknet::{get_caller_address, get_block_timestamp};
 
     #[storage]
     struct Storage {
@@ -30,7 +30,7 @@ mod FeesVault {
         token0: ContractAddress,
         token1: ContractAddress,
         factory: ContractAddress,
-        protocol: ProtocolFees
+        protocol: ProtocolFees,
     }
 
     #[constructor]
@@ -38,7 +38,7 @@ mod FeesVault {
         ref self: ContractState,
         token0: ContractAddress,
         token1: ContractAddress,
-        factory: ContractAddress
+        factory: ContractAddress,
     ) {
         self.pair.write(get_caller_address());
         self.token0.write(token0);
@@ -51,7 +51,7 @@ mod FeesVault {
     #[external(v0)]
     impl FeesVaultImpl of IFeesVault<ContractState> {
         fn claim_lp_fees(
-            ref self: ContractState, user: ContractAddress, amount0: u256, amount1: u256
+            ref self: ContractState, user: ContractAddress, amount0: u256, amount1: u256,
         ) {
             assert(get_caller_address() == self.pair.read(), 'not authorized');
             if amount0 > 0 {
@@ -91,14 +91,12 @@ mod FeesVault {
                     .write(ProtocolFees { token0: 0, token1: 0, timestamp: get_block_timestamp() });
 
                 if token0 > 0 {
-                    ERC20ABIDispatcher {
-                        contract_address: self.token0.read()
-                    }.transfer(fee_to, protocol.token0);
+                    ERC20ABIDispatcher { contract_address: self.token0.read() }
+                        .transfer(fee_to, protocol.token0);
                 }
                 if token1 > 0 {
-                    ERC20ABIDispatcher {
-                        contract_address: self.token1.read()
-                    }.transfer(fee_to, protocol.token1);
+                    ERC20ABIDispatcher { contract_address: self.token1.read() }
+                        .transfer(fee_to, protocol.token1);
                 }
             }
         }

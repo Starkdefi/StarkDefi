@@ -5,30 +5,29 @@
 
 #[starknet::contract]
 mod StarkDRouter {
-    use starkdefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
-    use starkdefi::utils::call_contract_with_selector_fallback;
-    use starkdefi::utils::callFallback::UnwrapAndCast;
-
-    use starkdefi::dex::v1::factory::{
-        IStarkDFactoryABIDispatcherTrait, IStarkDFactoryABIDispatcher
-    };
-    use starkdefi::dex::v1::pair::interface::{IStarkDPairDispatcherTrait, IStarkDPairDispatcher};
-    use starkdefi::utils::selectors::{transfer_from, transferFrom, balanceOf, balance_of};
-    use starkdefi::utils::{ArrayTraitExt, ContractAddressPartialOrd};
-    use array::SpanTrait;
-    use array::ArrayTrait;
+    use array::{ArrayTrait, SpanTrait};
     use clone::Clone;
     use option::OptionTrait;
-    use zeroable::Zeroable;
-    use starknet::{
-        ContractAddress, ClassHash, get_caller_address, get_block_timestamp, contract_address_const
+    use starkdefi::dex::v1::factory::{
+        IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait,
     };
-    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::dex::v1::pair::interface::{IStarkDPairDispatcher, IStarkDPairDispatcherTrait};
+    use starkdefi::dex::v1::router::interface::{IStarkDRouter, SwapPath};
+    use starkdefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::selectors::{balanceOf, balance_of, transferFrom, transfer_from};
+    use starkdefi::utils::upgradable::{IUpgradable, Upgradable};
+    use starkdefi::utils::{
+        ArrayTraitExt, ContractAddressPartialOrd, call_contract_with_selector_fallback,
+    };
+    use starknet::{
+        ClassHash, ContractAddress, contract_address_const, get_block_timestamp, get_caller_address,
+    };
+    use zeroable::Zeroable;
 
 
     #[storage]
     struct Storage {
-        _factory: ContractAddress, 
+        _factory: ContractAddress,
     }
 
     #[constructor]
@@ -51,7 +50,7 @@ mod StarkDRouter {
         /// @param tokenB The second token address
         /// @return The sorted token addresses
         fn sort_tokens(
-            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress
+            self: @ContractState, tokenA: ContractAddress, tokenB: ContractAddress,
         ) -> (ContractAddress, ContractAddress) {
             assert(tokenA.is_non_zero() && tokenB.is_non_zero(), 'invalid pair');
             InternalFunctions::_sort_tokens(tokenA, tokenB)
@@ -72,8 +71,8 @@ mod StarkDRouter {
         /// @param path The path of the swap
         /// @return The output amounts of the swap
         fn get_amounts_out(
-            self: @ContractState, amountIn: u256, path: Array::<SwapPath>
-        ) -> Array::<u256> {
+            self: @ContractState, amountIn: u256, path: Array<SwapPath>,
+        ) -> Array<u256> {
             let factory = self._factory.read();
             InternalFunctions::_get_amounts_out(factory, amountIn, path.span())
         }
@@ -89,7 +88,8 @@ mod StarkDRouter {
         /// @param amountBMin The minimum amount of the second token
         /// @param to The address to receive the liquidity tokens
         /// @param deadline The deadline for the transaction
-        /// @return The actual amounts of tokens A and B added to the pool and the amount of liquidity tokens minted
+        /// @return The actual amounts of tokens A and B added to the pool and the amount of
+        /// liquidity tokens minted
         fn add_liquidity(
             ref self: ContractState,
             tokenA: ContractAddress,
@@ -101,7 +101,7 @@ mod StarkDRouter {
             amountAMin: u256,
             amountBMin: u256,
             to: ContractAddress,
-            deadline: u64
+            deadline: u64,
         ) -> (u256, u256, u256) {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
@@ -114,7 +114,7 @@ mod StarkDRouter {
                 amountADesired,
                 amountBDesired,
                 amountAMin,
-                amountBMin
+                amountBMin,
             );
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
             let sender = get_caller_address();
@@ -147,7 +147,7 @@ mod StarkDRouter {
             amountAMin: u256,
             amountBMin: u256,
             to: ContractAddress,
-            deadline: u64
+            deadline: u64,
         ) -> (u256, u256) {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
@@ -175,8 +175,8 @@ mod StarkDRouter {
             (amountA, amountB)
         }
 
-        /// @notice This function is used to swap an exact amount of input tokens for as many output tokens as possible
-        /// @param amountIn The amount of input tokens
+        /// @notice This function is used to swap an exact amount of input tokens for as many output
+        /// tokens as possible @param amountIn The amount of input tokens
         /// @param amountOutMin The minimum amount of output tokens
         /// @param path The path of the swap
         /// @param to The address to receive the output tokens
@@ -186,10 +186,10 @@ mod StarkDRouter {
             ref self: ContractState,
             amountIn: u256,
             amountOutMin: u256,
-            path: Array::<SwapPath>,
+            path: Array<SwapPath>,
             to: ContractAddress,
-            deadline: u64
-        ) -> Array::<u256> {
+            deadline: u64,
+        ) -> Array<u256> {
             Modifiers::_ensure(deadline);
             let factory = self._factory.read();
             let amounts = InternalFunctions::_get_amounts_out(factory, amountIn, path.span());
@@ -198,7 +198,7 @@ mod StarkDRouter {
             let _route = _path.pop_front().unwrap();
 
             let pair = InternalFunctions::_pair_for(
-                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier
+                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier,
             );
             let sender = get_caller_address();
 
@@ -207,7 +207,8 @@ mod StarkDRouter {
             amounts
         }
 
-        /// @notice This function is used to swap an exact amount of input tokens for as many output tokens as possible, 
+        /// @notice This function is used to swap an exact amount of input tokens for as many output
+        /// tokens as possible,
         ///         while also supporting tokens that charge a fee on transfer
         /// @param amountIn The amount of input tokens
         /// @param amountOutMin The minimum amount of output tokens
@@ -218,16 +219,16 @@ mod StarkDRouter {
             ref self: ContractState,
             amountIn: u256,
             amountOutMin: u256,
-            path: Array::<SwapPath>,
+            path: Array<SwapPath>,
             to: ContractAddress,
-            deadline: u64
+            deadline: u64,
         ) {
             Modifiers::_ensure(deadline);
             let mut _path = path.clone();
             let _route = _path.pop_front().unwrap();
             let factory = self._factory.read();
             let pair = InternalFunctions::_pair_for(
-                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier
+                factory, _route.tokenIn, _route.tokenOut, _route.stable, _route.feeTier,
             );
             let sender = get_caller_address();
 
@@ -242,7 +243,7 @@ mod StarkDRouter {
             assert(
                 InternalFunctions::_balance_of(_end_route.tokenOut, to)
                     - prevBalance >= amountOutMin,
-                'insufficient output amount'
+                'insufficient output amount',
             );
         }
     }
@@ -266,7 +267,7 @@ mod StarkDRouter {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         fn _sort_tokens(
-            tokenA: ContractAddress, tokenB: ContractAddress
+            tokenA: ContractAddress, tokenB: ContractAddress,
         ) -> (ContractAddress, ContractAddress) {
             assert(tokenA != tokenB, 'identical addresses');
             let (token0, token1) = if tokenA < tokenB {
@@ -283,7 +284,7 @@ mod StarkDRouter {
             token: ContractAddress,
             sender: ContractAddress,
             recipient: ContractAddress,
-            amount: u256
+            amount: u256,
         ) {
             let mut call_data = Default::default();
             Serde::serialize(@sender, ref call_data);
@@ -291,7 +292,7 @@ mod StarkDRouter {
             Serde::serialize(@amount, ref call_data);
 
             call_contract_with_selector_fallback(
-                token, transferFrom, transfer_from, call_data.span()
+                token, transferFrom, transfer_from, call_data.span(),
             )
                 .unwrap_syscall();
         }
@@ -314,7 +315,7 @@ mod StarkDRouter {
             amountADesired: u256,
             amountBDesired: u256,
             amountAMin: u256,
-            amountBMin: u256
+            amountBMin: u256,
         ) -> (u256, u256) {
             let factory = self._factory.read();
             let factoryDispatcher = IStarkDFactoryABIDispatcher { contract_address: factory };
@@ -326,7 +327,7 @@ mod StarkDRouter {
             }
 
             let (reserveA, reserveB) = InternalFunctions::_get_reserves(
-                factory, tokenA, tokenB, stable, feeTier
+                factory, tokenA, tokenB, stable, feeTier,
             );
 
             if (reserveA == 0 && reserveB == 0) {
@@ -338,7 +339,7 @@ mod StarkDRouter {
                     (amountADesired, amountBOptimal)
                 } else {
                     let amountAOptimal = InternalFunctions::_quote(
-                        amountBDesired, reserveB, reserveA
+                        amountBDesired, reserveB, reserveA,
                     );
                     assert(amountAOptimal <= amountADesired, 'AMOUNT_A_OPTIMAL_!_ADESIRED');
                     assert(amountAOptimal >= amountAMin, 'INSUFFICIENT_A_AMOUNT');
@@ -348,15 +349,15 @@ mod StarkDRouter {
         }
 
         /// @notice This function is used to swap tokens
-        /// @dev This function requires the initial amount to have already been sent to the first pair
-        /// @param amounts The amounts of the tokens
+        /// @dev This function requires the initial amount to have already been sent to the first
+        /// pair @param amounts The amounts of the tokens
         /// @param path The path of the swap
         /// @param _to The address to receive the output tokens
         fn _swap(
             ref self: ContractState,
-            amounts: Span::<u256>,
-            path: Span::<SwapPath>,
-            _to: ContractAddress
+            amounts: Span<u256>,
+            path: Span<SwapPath>,
+            _to: ContractAddress,
         ) {
             let mut index: u32 = 0;
             let factory = self._factory.read();
@@ -373,7 +374,7 @@ mod StarkDRouter {
                         }
 
                         let (token0, _) = InternalFunctions::_sort_tokens(
-                            *route.tokenIn, *route.tokenOut
+                            *route.tokenIn, *route.tokenOut,
                         );
 
                         let mut amount0Out: u256 = 0;
@@ -389,7 +390,7 @@ mod StarkDRouter {
                             let _next: SwapPath = *path[index + 1];
 
                             InternalFunctions::_pair_for(
-                                factory, _next.tokenIn, _next.tokenOut, _next.stable, _next.feeTier
+                                factory, _next.tokenIn, _next.tokenOut, _next.stable, _next.feeTier,
                             )
                         } else {
                             _to
@@ -401,15 +402,14 @@ mod StarkDRouter {
                                 *route.tokenIn,
                                 *route.tokenOut,
                                 *route.stable,
-                                *route.feeTier
-                            )
-                        }.swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
+                                *route.feeTier,
+                            ),
+                        }
+                            .swap(amount0Out, amount1Out, to, ArrayTrait::<felt252>::new());
 
                         index += 1;
                     },
-                    Option::None(_) => {
-                        break ();
-                    }
+                    Option::None(_) => { break (); },
                 };
             }
         }
@@ -417,7 +417,7 @@ mod StarkDRouter {
         /// @dev swap supporting fee-on-transfer tokens
         ///      requires the initial amount to have already been sent to the first pair
         fn _swap_supporting_fee_on_transfer_tokens(
-            ref self: ContractState, path: Span::<SwapPath>, _to: ContractAddress
+            ref self: ContractState, path: Span<SwapPath>, _to: ContractAddress,
         ) {
             let factory = self._factory.read();
             let mut index: u32 = 0;
@@ -433,16 +433,16 @@ mod StarkDRouter {
                         }
 
                         let (token0, _) = InternalFunctions::_sort_tokens(
-                            *route.tokenIn, *route.tokenOut
+                            *route.tokenIn, *route.tokenOut,
                         );
                         let pair = InternalFunctions::_pair_for(
-                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier
+                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier,
                         );
 
                         let pairDispatcher = IStarkDPairDispatcher { contract_address: pair };
 
                         let (reserveA, _) = InternalFunctions::_get_reserves(
-                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier
+                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier,
                         );
 
                         let balance_tokenIn = InternalFunctions::_balance_of(*route.tokenIn, pair);
@@ -459,7 +459,7 @@ mod StarkDRouter {
                         let to = if index < path.len() - 1 {
                             let _next: SwapPath = *path[index + 1];
                             InternalFunctions::_pair_for(
-                                factory, _next.tokenIn, _next.tokenOut, _next.stable, _next.feeTier
+                                factory, _next.tokenIn, _next.tokenOut, _next.stable, _next.feeTier,
                             )
                         } else {
                             _to
@@ -470,9 +470,7 @@ mod StarkDRouter {
 
                         index += 1;
                     },
-                    Option::None(_) => {
-                        break ();
-                    }
+                    Option::None(_) => { break (); },
                 };
             }
         }
@@ -482,12 +480,11 @@ mod StarkDRouter {
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
-            feeTier: u8
+            feeTier: u8,
         ) -> ContractAddress {
             let (token0, token1) = InternalFunctions::_sort_tokens(tokenA, tokenB);
-            IStarkDFactoryABIDispatcher {
-                contract_address: factory
-            }.get_pair(token0, token1, stable, feeTier)
+            IStarkDFactoryABIDispatcher { contract_address: factory }
+                .get_pair(token0, token1, stable, feeTier)
         }
 
         fn _get_reserves(
@@ -495,13 +492,12 @@ mod StarkDRouter {
             tokenA: ContractAddress,
             tokenB: ContractAddress,
             stable: bool,
-            feeTier: u8
+            feeTier: u8,
         ) -> (u256, u256) {
             let (token0, _) = InternalFunctions::_sort_tokens(tokenA, tokenB);
             let pair = InternalFunctions::_pair_for(factory, tokenA, tokenB, stable, feeTier);
-            let (reserve0, reserve1, _) = IStarkDPairDispatcher {
-                contract_address: pair
-            }.get_reserves();
+            let (reserve0, reserve1, _) = IStarkDPairDispatcher { contract_address: pair }
+                .get_reserves();
 
             if tokenA == token0 {
                 (reserve0, reserve1)
@@ -511,7 +507,8 @@ mod StarkDRouter {
         }
 
 
-        /// @dev This implementation only caters to volatile pools and may result in insufficient liquidity for stable pool
+        /// @dev This implementation only caters to volatile pools and may result in insufficient
+        /// liquidity for stable pool
         fn _quote(amountA: u256, reserveA: u256, reserveB: u256) -> u256 {
             assert(amountA > 0, 'insufficient amount');
             assert(reserveA > 0 && reserveB > 0, 'insufficient liquidity');
@@ -519,8 +516,8 @@ mod StarkDRouter {
         }
 
         fn _get_amounts_out(
-            factory: ContractAddress, amountIn: u256, path: Span::<SwapPath>
-        ) -> Array::<u256> {
+            factory: ContractAddress, amountIn: u256, path: Span<SwapPath>,
+        ) -> Array<u256> {
             assert(path.len() >= 1, 'invalid path');
             let mut amounts = ArrayTrait::<u256>::new();
             let mut _path = path;
@@ -532,35 +529,32 @@ mod StarkDRouter {
                 match _path.pop_front() {
                     Option::Some(route) => {
                         let pair = InternalFunctions::_pair_for(
-                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier
+                            factory, *route.tokenIn, *route.tokenOut, *route.stable, *route.feeTier,
                         );
                         let factoryDispatcher = IStarkDFactoryABIDispatcher {
-                            contract_address: factory
+                            contract_address: factory,
                         };
 
                         if (factoryDispatcher.valid_pair(pair)) {
                             amounts
                                 .append(
-                                    IStarkDPairDispatcher {
-                                        contract_address: pair
-                                    }.get_amount_out(*route.tokenIn, *amounts[index])
+                                    IStarkDPairDispatcher { contract_address: pair }
+                                        .get_amount_out(*route.tokenIn, *amounts[index]),
                                 )
                         }
                         index += 1;
                     },
-                    Option::None(_) => {
-                        break ();
-                    }
+                    Option::None(_) => { break (); },
                 };
-            };
+            }
             amounts
         }
     }
 
     #[generate_trait]
     impl Modifiers of ModifiersTrait {
-        /// @notice This function is used to ensure that the current block timestamp is less than or equal to the deadline
-        /// @param deadline The deadline for the transaction
+        /// @notice This function is used to ensure that the current block timestamp is less than or
+        /// equal to the deadline @param deadline The deadline for the transaction
         fn _ensure(deadline: u64) {
             assert(get_block_timestamp() <= deadline, 'expired');
         }
@@ -568,7 +562,7 @@ mod StarkDRouter {
         /// @notice This function is used to ensure that the caller is the handler
         fn assert_only_handler(self: @ContractState) {
             let factoryDipatcher = IStarkDFactoryABIDispatcher {
-                contract_address: self._factory.read()
+                contract_address: self._factory.read(),
             };
             let caller = get_caller_address();
             assert(caller == factoryDipatcher.fee_handler(), 'not allowed');

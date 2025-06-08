@@ -1,4 +1,4 @@
-use starknet::{ContractAddress, ClassHash};
+use starknet::{ClassHash, ContractAddress};
 
 #[starknet::interface]
 trait IStarkDFactory<TContractState> {
@@ -10,7 +10,7 @@ trait IStarkDFactory<TContractState> {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
-        fee: u8
+        fee: u8,
     ) -> ContractAddress;
     fn get_fees(self: @TContractState) -> (u8, u8);
     fn protocol_fee_on(self: @TContractState) -> bool;
@@ -25,7 +25,7 @@ trait IStarkDFactory<TContractState> {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
-        fee: u8
+        fee: u8,
     ) -> ContractAddress;
 
     fn set_fee_to(ref self: TContractState, fee_to: ContractAddress);
@@ -44,7 +44,7 @@ trait IStarkDFactoryABI<TContractState> {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
-        fee: u8
+        fee: u8,
     ) -> ContractAddress;
     fn get_fees(self: @TContractState) -> (u8, u8);
     fn protocol_fee_on(self: @TContractState) -> bool;
@@ -59,7 +59,7 @@ trait IStarkDFactoryABI<TContractState> {
         tokenA: ContractAddress,
         tokenB: ContractAddress,
         stable: bool,
-        fee: u8
+        fee: u8,
     ) -> ContractAddress;
 
     fn set_fee_to(ref self: TContractState, fee_to: ContractAddress);

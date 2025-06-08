@@ -1,14 +1,11 @@
-use starknet::ContractAddress;
-use starknet::ClassHash;
-use starknet::contract_address_const;
-use starkdefi::dex::v1::pair::StarkDPair;
-use starkdefi::dex::v1::pair::FeesVault;
 use option::OptionTrait;
+use starkdefi::dex::v1::pair::{FeesVault, StarkDPair};
+use starkdefi::utils::pow;
+use starknet::{ClassHash, ContractAddress, contract_address_const};
 use traits::TryInto;
-use starkdefi::utils::{pow};
 
 fn TOTAL_SUPPLY(total: u128) -> u256 {
-    u256 { low: total * pow(10, 18), high: 0,  }
+    u256 { low: total * pow(10, 18), high: 0 }
 }
 
 fn PAIR_CLASS_HASH() -> ClassHash {

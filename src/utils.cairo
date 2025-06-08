@@ -1,13 +1,11 @@
 mod PartialOrdContractAddress;
 mod array_ext;
-mod selectors;
-mod multicall;
 mod callFallback;
-
+mod multicall;
+mod selectors;
 use callFallback::call_contract_with_selector_fallback;
 
 mod upgradable;
-
 use PartialOrdContractAddress::ContractAddressPartialOrd;
 use array_ext::ArrayTraitExt;
 

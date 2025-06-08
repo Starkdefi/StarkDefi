@@ -2,29 +2,24 @@ mod v1 {
     mod factory {
         mod factory;
         mod interface;
-
         use factory::StarkDFactory;
-        use interface::IStarkDFactoryDispatcher;
-        use interface::IStarkDFactoryDispatcherTrait;
-        use interface::IStarkDFactoryABIDispatcher;
-        use interface::IStarkDFactoryABIDispatcherTrait;
+        use interface::{
+            IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait, IStarkDFactoryDispatcher,
+            IStarkDFactoryDispatcherTrait,
+        };
     }
     mod pair {
         mod Pair;
-        mod pairFeesVault;
         mod interface;
-
+        mod pairFeesVault;
         use Pair::StarkDPair;
+        use interface::{IStarkDPairDispatcher, IStarkDPairDispatcherTrait};
         use pairFeesVault::FeesVault;
-        use interface::IStarkDPairDispatcher;
-        use interface::IStarkDPairDispatcherTrait;
     }
     mod router {
-        mod router;
         mod interface;
-
+        mod router;
+        use interface::{IStarkDRouterDispatcher, IStarkDRouterDispatcherTrait};
         use router::StarkDRouter;
-        use interface::IStarkDRouterDispatcher;
-        use interface::IStarkDRouterDispatcherTrait;
     }
 }

@@ -8,8 +8,8 @@ trait IUpgradable<TState> {
 
 #[starknet::contract]
 mod Upgradable {
-    use starknet::ClassHash;
     use core::zeroable::Zeroable;
+    use starknet::ClassHash;
 
 
     #[storage]
@@ -18,12 +18,12 @@ mod Upgradable {
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
-        Upgraded: Upgraded
+        Upgraded: Upgraded,
     }
 
     #[derive(Drop, starknet::Event)]
     struct Upgraded {
-        class_hash: ClassHash
+        class_hash: ClassHash,
     }
 
     #[generate_trait]
