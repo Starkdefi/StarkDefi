@@ -30,10 +30,10 @@ mod Account {
     use box::BoxTrait;
     use ecdsa::check_ecdsa_signature;
 
-    use starkDefi::tests::helper_account::interface;
-    use starkDefi::tests::helper_account::introspection::interface::ISRC5;
-    use starkDefi::tests::helper_account::introspection::interface::ISRC5Camel;
-    use starkDefi::tests::helper_account::introspection::src5::SRC5;
+    use starkdefi::tests::helper_account::interface;
+    use starkdefi::tests::helper_account::introspection::interface::ISRC5;
+    use starkdefi::tests::helper_account::introspection::interface::ISRC5Camel;
+    use starkdefi::tests::helper_account::introspection::src5::SRC5;
     use option::OptionTrait;
     use starknet::get_caller_address;
     use starknet::get_contract_address;
@@ -43,7 +43,7 @@ mod Account {
     use super::QUERY_VERSION;
     use super::TRANSACTION_VERSION;
     use zeroable::Zeroable;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
 
 
     #[storage]

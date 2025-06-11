@@ -4,33 +4,33 @@ use starknet::ContractAddress;
 use starknet::get_caller_address;
 use starknet::contract_address_const;
 
-use starkDefi::dex::v1::pair::StarkDPair;
-use starkDefi::dex::v1::pair::StarkDPair::StarkDPairImpl;
-use starkDefi::dex::v1::pair::StarkDPair::Mint;
-use starkDefi::dex::v1::pair::StarkDPair::Burn;
-use starkDefi::dex::v1::pair::StarkDPair::Swap;
-use starkDefi::dex::v1::pair::StarkDPair::Sync;
+use starkdefi::dex::v1::pair::StarkDPair;
+use starkdefi::dex::v1::pair::StarkDPair::StarkDPairImpl;
+use starkdefi::dex::v1::pair::StarkDPair::Mint;
+use starkdefi::dex::v1::pair::StarkDPair::Burn;
+use starkdefi::dex::v1::pair::StarkDPair::Swap;
+use starkdefi::dex::v1::pair::StarkDPair::Sync;
 
-use starkDefi::dex::v1::pair::interface::IStarkDPairABIDispatcher;
-use starkDefi::dex::v1::pair::interface::IStarkDPairABIDispatcherTrait;
-use starkDefi::dex::v1::pair::interface::{IFeesVaultDispatcher, IFeesVaultDispatcherTrait};
+use starkdefi::dex::v1::pair::interface::IStarkDPairABIDispatcher;
+use starkdefi::dex::v1::pair::interface::IStarkDPairABIDispatcherTrait;
+use starkdefi::dex::v1::pair::interface::{IFeesVaultDispatcher, IFeesVaultDispatcherTrait};
 
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
-use starkDefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
+use starkdefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcher;
+use starkdefi::dex::v1::factory::interface::IStarkDFactoryABIDispatcherTrait;
 
-use starkDefi::utils::selectors;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcher;
-use starkDefi::token::erc20::interface::ERC20ABIDispatcherTrait;
+use starkdefi::utils::selectors;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcher;
+use starkdefi::token::erc20::interface::ERC20ABIDispatcherTrait;
 
-use starkDefi::tests::helper_account::AccountABIDispatcher;
-use starkDefi::tests::helper_account::interface::AccountABIDispatcherTrait;
+use starkdefi::tests::helper_account::AccountABIDispatcher;
+use starkdefi::tests::helper_account::interface::AccountABIDispatcherTrait;
 
-use starkDefi::tests::factory::deploy_factory;
+use starkdefi::tests::factory::deploy_factory;
 
-use starkDefi::tests::utils::constants;
-use starkDefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, with_decimals};
-use starkDefi::tests::utils::{deploy_erc20, token_at};
-use starkDefi::tests::utils::account::setup_account;
+use starkdefi::tests::utils::constants;
+use starkdefi::tests::utils::functions::{drop_event, pop_log, setup_erc20, with_decimals};
+use starkdefi::tests::utils::{deploy_erc20, token_at};
+use starkdefi::tests::utils::account::setup_account;
 use starknet::testing;
 use debug::PrintTrait;
 
