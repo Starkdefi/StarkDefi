@@ -33,21 +33,21 @@ const MINIMUM_K: u256 = 10_000_000_000; //1e10
 
 #[starknet::contract]
 mod StarkDPair {
-    use starkDefi::dex::v1::factory::{
+    use starkdefi::dex::v1::factory::{
         IStarkDFactoryABIDispatcher, IStarkDFactoryABIDispatcherTrait
     };
-    use starkDefi::dex::v1::pair::interface::{
+    use starkdefi::dex::v1::pair::interface::{
         IStarkDPair, IStarkDPairCamelOnly, IFeesVaultDispatcherTrait, IFeesVaultDispatcher
     };
-    use starkDefi::dex::v1::pair::interface::{
+    use starkdefi::dex::v1::pair::interface::{
         IStarkDCalleeDispatcherTrait, IStarkDCalleeDispatcher, Snapshot, GlobalFeesAccum,
         RelativeFeesAccum,
     };
-    use starkDefi::utils::{pow};
+    use starkdefi::utils::{pow};
 
     use traits::Into;
 
-    use starkDefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
+    use starkdefi::token::erc20::{ERC20, ERC20ABIDispatcherTrait, ERC20ABIDispatcher};
     use zeroable::Zeroable;
     use array::ArrayTrait;
     use option::OptionTrait;
@@ -57,10 +57,10 @@ mod StarkDPair {
         get_contract_address, contract_address_to_felt252
     };
     use starknet::syscalls::deploy_syscall;
-    use starkDefi::utils::call_contract_with_selector_fallback;
-    use starkDefi::utils::selectors;
-    use starkDefi::utils::callFallback::UnwrapAndCast;
-    use starkDefi::utils::upgradable::{Upgradable, IUpgradable};
+    use starkdefi::utils::call_contract_with_selector_fallback;
+    use starkdefi::utils::selectors;
+    use starkdefi::utils::callFallback::UnwrapAndCast;
+    use starkdefi::utils::upgradable::{Upgradable, IUpgradable};
 
 
     use integer::u128_try_from_felt252;
@@ -624,6 +624,35 @@ mod StarkDPair {
         self: @ContractState, user: ContractAddress
     ) -> (u256, RelativeFeesAccum, GlobalFeesAccum) {
         fee_state(self, user)
+    }
+
+    #[external(v0)]
+    fn recover_orphaned_fees(ref self: ContractState) {
+        Modifiers::assert_only_handler(@self);
+
+        let this_address = get_contract_address();
+        let config = self.config.read();
+
+        // Get current vault balance
+        let vault_balance0 = InternalFunctions::_balance_of(config.token0, config.vault);
+        let vault_balance1 = InternalFunctions::_balance_of(config.token1, config.vault);
+
+        // Calculate how much should be claimable by current LP holders
+        let global_fees = self.global_fees.read();
+        let total_supply = self.total_supply();
+        let claimable0 = (global_fees.token0 * total_supply) / PRECISION;
+        let claimable1 = (global_fees.token1 * total_supply) / PRECISION;
+
+        // Calculate orphaned fees (vault balance - claimable fees)
+        let orphaned0 = vault_balance0 - claimable0;
+        let orphaned1 = vault_balance1 - claimable1;
+
+        if (orphaned0 > 0 || orphaned1 > 0) {
+            // Move orphaned fees to protocol fees
+            IFeesVaultDispatcher {
+                contract_address: config.vault
+            }.update_protocol_fees(orphaned0, orphaned1);
+        }
     }
 
     /// @notice upgradable at moment, a future implementation will drop this
